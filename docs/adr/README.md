@@ -28,6 +28,7 @@
 ## ADR List
 
 1. [ADR-0001-use-langgraph-dai-as-render-target.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0001-use-langgraph-dai-as-render-target.md) - Accepted
+2. [ADR-0002-dsl-v0-yaml-first.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0002-dsl-v0-yaml-first.md) - Accepted
 
 ## Template
 

@@ -1,0 +1,101 @@
+schema_version: "0.1"
+
+project:
+  id: "invoice-ocr-hybrid-v0"
+  name: "OCR First Invoice Extraction"
+  description: "Гибридный pipeline: OCR + deterministic normalizer + LLM repair."
+
+mission:
+  task_type: "ocr_extraction"
+  objective: "Извлекать поля из сложных инвойсов в структурированные JSON-строки."
+  success_definition: "Schema pass rate >= 95% и снижение human review rate."
+
+constraints:
+  max_cost_usd: 120
+  max_latency_ms: 8000
+  allowed_model_providers:
+    - "openrouter"
+    - "local_vllm"
+  require_human_approval: false
+
+datasets:
+  - id: "invoice_golden_validation_v1"
+    format: "jsonl"
+    path: "datasets/invoices/validation.jsonl"
+    split: "validation"
+  - id: "invoice_golden_test_v1"
+    format: "jsonl"
+    path: "datasets/invoices/test.jsonl"
+    split: "test"
+
+components:
+  - id: "ocr_engine"
+    kind: "tool"
+    implementation: "mcp://ocr_server/extract_text"
+  - id: "json_normalizer"
+    kind: "deterministic"
+    implementation: "python://components.invoice_normalizer:normalize_invoice"
+  - id: "llm_repair"
+    kind: "llm"
+    implementation: "provider://openrouter/openai/gpt-4o-mini"
+  - id: "schema_guard"
+    kind: "validator"
+    implementation: "python://validators.invoice_schema_guard:validate"
+
+graph:
+  entry_node: "ocr_extract"
+  nodes:
+    - id: "ocr_extract"
+      type: "tool"
+      component_id: "ocr_engine"
+      on_fail: "fallback"
+    - id: "normalize_fields"
+      type: "deterministic"
+      component_id: "json_normalizer"
+      on_fail: "retry"
+    - id: "repair_missing_fields"
+      type: "llm"
+      component_id: "llm_repair"
+      prompt_id: "invoice_repair_v1"
+      on_fail: "retry"
+    - id: "validate_output"
+      type: "validator"
+      component_id: "schema_guard"
+      on_fail: "stop"
+  edges:
+    - source: "ocr_extract"
+      target: "normalize_fields"
+    - source: "normalize_fields"
+      target: "repair_missing_fields"
+    - source: "repair_missing_fields"
+      target: "validate_output"
+
+metrics:
+  - id: "schema_pass_rate"
+    kind: "output"
+    direction: "maximize"
+    description: "Доля кейсов, проходящих schema validation."
+  - id: "human_review_rate"
+    kind: "middle"
+    direction: "minimize"
+    description: "Доля кейсов, требующих ручного вмешательства."
+  - id: "cost_per_case_usd"
+    kind: "middle"
+    direction: "minimize"
+    description: "Средняя стоимость обработки одного документа."
+
+budget:
+  max_trials: 35
+  max_total_cost_usd: 120
+  max_wall_time_minutes: 180
+
+architecture_space:
+  selection_policy: "equal_budget_tournament"
+  candidates:
+    - id: "ocr_first_v1"
+      template: "ocr_first_document_pipeline"
+      enabled: true
+    - id: "hybrid_deterministic_v1"
+      template: "deterministic_plus_llm_hybrid"
+      enabled: true
+

@@ -1,0 +1,71 @@
+schema_version: "0.1"
+
+project:
+  id: "support-direct-llm-v0"
+  name: "Direct LLM Support Baseline"
+  description: "Базовый кандидат: прямой LLM-ответ без внешних tools."
+
+mission:
+  task_type: "support_qa"
+  objective: "Отвечать на вопросы клиента с минимальной задержкой."
+  success_definition: "Высокая точность ответа при p95 latency < 2500ms."
+
+constraints:
+  max_cost_usd: 50
+  max_latency_ms: 2500
+  allowed_model_providers:
+    - "openrouter"
+  require_human_approval: false
+
+datasets:
+  - id: "support_golden_test_v1"
+    format: "jsonl"
+    path: "datasets/support/test.jsonl"
+    split: "test"
+
+components:
+  - id: "llm_answerer"
+    kind: "llm"
+    implementation: "provider://openrouter/openai/gpt-4o-mini"
+  - id: "schema_guard"
+    kind: "validator"
+    implementation: "python://validators.support_schema_guard:validate"
+
+graph:
+  entry_node: "generate_answer"
+  nodes:
+    - id: "generate_answer"
+      type: "llm"
+      component_id: "llm_answerer"
+      prompt_id: "support_answer_v1"
+      on_fail: "retry"
+    - id: "validate_output"
+      type: "validator"
+      component_id: "schema_guard"
+      on_fail: "stop"
+  edges:
+    - source: "generate_answer"
+      target: "validate_output"
+
+metrics:
+  - id: "task_success_rate"
+    kind: "output"
+    direction: "maximize"
+    description: "Доля корректных ответов по golden dataset."
+  - id: "latency_p95_ms"
+    kind: "middle"
+    direction: "minimize"
+    description: "95-й перцентиль задержки выполнения."
+
+budget:
+  max_trials: 20
+  max_total_cost_usd: 50
+  max_wall_time_minutes: 90
+
+architecture_space:
+  selection_policy: "equal_budget_tournament"
+  candidates:
+    - id: "direct_llm_v1"
+      template: "direct_llm"
+      enabled: true
+

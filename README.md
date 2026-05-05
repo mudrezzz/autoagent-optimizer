@@ -6,8 +6,8 @@ OSS-first платформа для архитектурного поиска, w
 
 - `Phase`: MVP-1 (foundation)
 - `Iteration`: I1 - DSL/IR Skeleton
-- `Overall`: In Progress (I0 complete, I1 not started)
-- `Next Slice`: I1.S1 DSL v0 schema draft (YAML-first)
+- `Overall`: In Progress (I1.S1 done)
+- `Next Slice`: I1.S2 Graph IR v0 typed model
 
 Подробный статус:
 
@@ -33,6 +33,9 @@ OSS-first платформа для архитектурного поиска, w
 - `System_Architecture_Overview.md` - текущая целевая архитектура.
 - `docs/adr` - журнал архитектурных решений.
 - `langgraph-document-ai-platform` - внешний framework-источник для изучения и переиспользования (read-only в рамках этого проекта).
+- `optimizer/dsl` - DSL v0 schema, loader и CLI-валидация.
+- `examples/dsl` - эталонные YAML-спеки (`direct_llm`, `ocr_first`, `hitl_gate`).
+- `scripts/smoke_validate_dsl.ps1` - smoke-проверка всех DSL-примеров.
 
 ## Definition of Done For a Slice
 

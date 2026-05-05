@@ -24,6 +24,7 @@
 
 ### I1.S1 - DSL v0 schema draft (YAML-first)
 
+- Status: Done
 - Goal: зафиксировать минимальный язык описания проекта/архитектуры для дальнейшей компиляции.
 - Inputs: FR-4, FR-1/2/3 из ТЗ.
 - Deliverables:
@@ -39,6 +40,7 @@
 
 ### I1.S2 - Graph IR v0 typed model
 
+- Status: Planned
 - Goal: runtime-neutral представление графа, независимое от конкретного runtime.
 - Inputs: FR-5, FR-6.
 - Deliverables:
@@ -54,6 +56,7 @@
 
 ### I1.S3 - DSL -> IR compiler v0
 
+- Status: Planned
 - Goal: компиляция DSL в Graph IR с отчетом о трансформации.
 - Inputs: FR-4, FR-5.
 - Deliverables:
@@ -68,6 +71,7 @@
 
 ### I2.S1 - LangGraph renderer adapter on top of langgraph-dai
 
+- Status: Planned
 - Goal: превратить IR в исполняемый workflow через `BaseWorkflow`.
 - Inputs: FR-6, ADR-0001.
 - Deliverables:
@@ -83,6 +87,7 @@
 
 ### I2.S2 - Node event capture + white-box trace v0
 
+- Status: Planned
 - Goal: снять node-level события и сделать базовый trace storage format.
 - Inputs: FR-9, FR-10.
 - Deliverables:
@@ -98,6 +103,7 @@
 
 ### I2.S3 - Resume/checkpoint contract path
 
+- Status: Planned
 - Goal: подтвержденный invoke/resume сценарий для долгих execution.
 - Inputs: FR-6, FR-19.
 - Deliverables:
@@ -135,4 +141,10 @@
 ### I0.S2 - Done
 
 - Создан этот executable backlog и синхронизированы статусные документы.
+- Commit: tracked in git history.
+
+### I1.S1 - Done
+
+- Реализованы typed DSL v0 schema, YAML loader, CLI-валидатор и smoke-скрипт.
+- Добавлены 3 валидных референсных спецификации: `direct_llm`, `ocr_first`, `hitl_gate`.
 - Commit: tracked in git history.

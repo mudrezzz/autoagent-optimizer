@@ -1,0 +1,101 @@
+schema_version: "0.1"
+
+project:
+  id: "support-hitl-approval-v0"
+  name: "Support Agent With HITL Gate"
+  description: "Support pipeline с обязательным human approval для рискованных действий."
+
+mission:
+  task_type: "support_action_workflow"
+  objective: "Автоматизировать безопасные ответы и эскалировать рискованные действия на ревью."
+  success_definition: "0 несанкционированных действий при сохранении приемлемой скорости ответа."
+
+constraints:
+  max_cost_usd: 70
+  max_latency_ms: 5000
+  allowed_model_providers:
+    - "openrouter"
+  require_human_approval: true
+
+datasets:
+  - id: "support_actions_test_v1"
+    format: "jsonl"
+    path: "datasets/support_actions/test.jsonl"
+    split: "test"
+
+components:
+  - id: "intent_router"
+    kind: "llm"
+    implementation: "provider://openrouter/openai/gpt-4o-mini"
+  - id: "safe_action_executor"
+    kind: "tool"
+    implementation: "mcp://support_tools/execute_safe_action"
+  - id: "human_approval_gate"
+    kind: "hitl_gate"
+    implementation: "workflow://hitl/manual_approval_v1"
+  - id: "policy_validator"
+    kind: "validator"
+    implementation: "python://validators.policy_guard:validate_action"
+
+graph:
+  entry_node: "route_intent"
+  nodes:
+    - id: "route_intent"
+      type: "llm"
+      component_id: "intent_router"
+      prompt_id: "action_routing_v1"
+      on_fail: "retry"
+    - id: "validate_action_policy"
+      type: "validator"
+      component_id: "policy_validator"
+      on_fail: "stop"
+    - id: "human_approval"
+      type: "hitl_gate"
+      component_id: "human_approval_gate"
+      on_fail: "stop"
+    - id: "execute_safe_action"
+      type: "tool"
+      component_id: "safe_action_executor"
+      on_fail: "fallback"
+  edges:
+    - source: "route_intent"
+      target: "validate_action_policy"
+    - source: "validate_action_policy"
+      target: "human_approval"
+      condition: "action_risk == high"
+    - source: "validate_action_policy"
+      target: "execute_safe_action"
+      condition: "action_risk == low"
+    - source: "human_approval"
+      target: "execute_safe_action"
+      condition: "review_decision == approve"
+
+metrics:
+  - id: "unauthorized_action_rate"
+    kind: "output"
+    direction: "minimize"
+    description: "Доля несанкционированных действий."
+  - id: "hitl_review_rate"
+    kind: "middle"
+    direction: "minimize"
+    description: "Доля кейсов, ушедших на human review."
+  - id: "task_success_rate"
+    kind: "output"
+    direction: "maximize"
+    description: "Успешность выполнения задач пользователя."
+
+budget:
+  max_trials: 25
+  max_total_cost_usd: 70
+  max_wall_time_minutes: 120
+
+architecture_space:
+  selection_policy: "equal_budget_tournament"
+  candidates:
+    - id: "hitl_gate_v1"
+      template: "hitl_low_confidence_workflow"
+      enabled: true
+    - id: "react_tool_agent_v1"
+      template: "react_tool_agent"
+      enabled: true
+

@@ -70,6 +70,16 @@ Input (Task + Constraints + Data + Tools + Budget)
 6. `optimizer.components`
 7. `optimizer.evidence`
 
+## Implementation Status Snapshot
+
+1. Implemented:
+   - `optimizer.dsl.schema` (typed DSL v0),
+   - `optimizer.dsl.io` (YAML loading + validation),
+   - `optimizer.dsl.validate` (CLI smoke validation),
+   - `examples/dsl/*` (3 базовых сценария).
+2. Next:
+   - `optimizer.graph_ir` (I1.S2).
+
 ## Decision Records
 
 Архитектурные решения фиксируются в:
