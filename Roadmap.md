@@ -118,6 +118,7 @@
    - `System_Architecture_Overview.md` (если менялась архитектура)
    - `docs/adr/*` (если было архитектурное решение)
 4. Каждый слайс фиксируется отдельным commit.
+5. Перед commit обязателен полный прогон `python -m pytest` (unit + integration + e2e).
 
 ## Backlog Source
 

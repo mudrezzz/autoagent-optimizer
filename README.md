@@ -43,3 +43,26 @@ OSS-first платформа для архитектурного поиска, w
 2. Обновлены `Roadmap.md`, `README.md`, `System_Architecture_Overview.md` (если затронуто).
 3. Добавлен/обновлен ADR при архитектурных изменениях.
 4. Сделан отдельный git commit с привязкой к слайсу (например `I1.S2`).
+5. Выполнен полный прогон автотестов (`unit + integration + e2e`).
+
+## Test Policy
+
+Структура тестов:
+
+1. `tests/unit`
+2. `tests/integration`
+3. `tests/e2e`
+
+Полный прогон (обязательно после каждого слайса):
+
+```powershell
+python -m pytest
+```
+
+Прогон по уровням:
+
+```powershell
+python -m pytest -m unit
+python -m pytest -m integration
+python -m pytest -m e2e
+```
