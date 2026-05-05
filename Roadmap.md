@@ -1,0 +1,120 @@
+# Roadmap
+
+## Status Legend
+
+- `Planned` - слайс запланирован, не начат.
+- `In Progress` - слайс в работе.
+- `Done` - слайс завершен и закоммичен.
+- `Blocked` - есть внешний блокер.
+
+## Delivery Model
+
+Разработка идет итеративно малыми слайсами с постоянной поставкой проверяемой ценности:
+
+- MVP-1: Foundation + executable core loop.
+- MVP-2: Optimization depth + diagnostics.
+- MVP-3: Team-grade operations + extensibility.
+
+Принцип: расширяем концентрическими кругами, а не строим длинную линейную фазу.
+
+---
+
+## MVP-1 (Core Loop)
+
+Цель: получить рабочий путь `DSL -> Graph IR -> LangGraph runtime -> evaluation -> evidence`.
+
+### Iteration I0 - Governance & Baseline
+
+| Slice | Description | Status | Output |
+|---|---|---|---|
+| I0.S1 | Project governance docs baseline | Done | README + Roadmap + Architecture + ADR process |
+| I0.S2 | Initial backlog shaping from TZ to executable slices | Planned | prioritized slice backlog |
+
+### Iteration I1 - DSL/IR Skeleton
+
+| Slice | Description | Status | Output |
+|---|---|---|---|
+| I1.S1 | DSL v0 schema draft (YAML-first) | Planned | `dsl/schema` + examples |
+| I1.S2 | Graph IR v0 typed model | Planned | runtime-neutral IR contracts |
+| I1.S3 | DSL -> IR compiler v0 | Planned | parser/validator + compile report |
+
+### Iteration I2 - Runtime Rendering
+
+| Slice | Description | Status | Output |
+|---|---|---|---|
+| I2.S1 | LangGraph renderer adapter on top of `langgraph-dai` | Planned | IR -> BaseWorkflow |
+| I2.S2 | Node event capture + white-box trace v0 | Planned | node-level events/logs |
+| I2.S3 | Resume/checkpoint contract path | Planned | invoke/resume reliability |
+
+### Iteration I3 - Evaluation + Arena Lite
+
+| Slice | Description | Status | Output |
+|---|---|---|---|
+| I3.S1 | Golden dataset JSONL + loader | Planned | dataset studio lite |
+| I3.S2 | Executable oracle runner (schema/pytest) | Planned | deterministic evaluation |
+| I3.S3 | Architecture Arena equal-budget tournament v0 | Planned | baseline comparison report |
+
+### Iteration I4 - Evidence + Export
+
+| Slice | Description | Status | Output |
+|---|---|---|---|
+| I4.S1 | Middle-metrics v0 | Planned | per-node quality/cost/latency metrics |
+| I4.S2 | Evidence Pack v0 generator | Planned | champion reasoning report |
+| I4.S3 | Champion export bundle v0 | Planned | deployable artifact set |
+
+---
+
+## MVP-2 (Optimization & Components)
+
+Цель: углубить оптимизацию и внедрить контрактную компонентную модель.
+
+### Iteration I5 - Component Contracts
+
+| Slice | Description | Status | Output |
+|---|---|---|---|
+| I5.S1 | Component contract spec v0 | Planned | IO schema + invariants + permissions |
+| I5.S2 | Component registry lite | Planned | versions + test status + approvals |
+| I5.S3 | User component intake (python/http/mcp wrappers) | Planned | candidate component onboarding |
+
+### Iteration I6 - Optimizer Depth
+
+| Slice | Description | Status | Output |
+|---|---|---|---|
+| I6.S1 | Config search policies (random/grid/optuna) | Planned | deep optimization rounds |
+| I6.S2 | Promote/prune + budget allocator | Planned | architecture family progression |
+| I6.S3 | Intervention operators v0 | Planned | targeted bottleneck fixes |
+
+---
+
+## MVP-3 (Operational Maturity)
+
+Цель: сделать систему удобной для командной и длительной эксплуатации.
+
+### Iteration I7 - Team Readiness
+
+| Slice | Description | Status | Output |
+|---|---|---|---|
+| I7.S1 | HITL checkpoints orchestration hardening | Planned | explicit approval flow |
+| I7.S2 | Policy gates + permission enforcement | Planned | governance/security constraints |
+| I7.S3 | Reproducible run manifests | Planned | deterministic reruns |
+
+### Iteration I8 - UX & Operability
+
+| Slice | Description | Status | Output |
+|---|---|---|---|
+| I8.S1 | CLI ergonomics for full lifecycle | Planned | create/run/compare/export commands |
+| I8.S2 | Observability summaries + dashboards (lite) | Planned | quick diagnosis surface |
+| I8.S3 | Onboarding quickstart for new developers | Planned | 15-minute project entry |
+
+---
+
+## Working Agreement Per Iteration
+
+1. Планируем только ближайшие 1-2 итерации детально.
+2. Каждый слайс должен быть реалистично завершен за 0.5-2 дня.
+3. После каждого слайса сразу обновляем:
+   - `Roadmap.md`
+   - `README.md`
+   - `System_Architecture_Overview.md` (если менялась архитектура)
+   - `docs/adr/*` (если было архитектурное решение)
+4. Каждый слайс фиксируется отдельным commit.

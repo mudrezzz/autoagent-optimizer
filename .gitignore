@@ -1,0 +1,10 @@
+langgraph-document-ai-platform/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual env
+.venv/
+venv/

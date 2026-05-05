@@ -1,0 +1,79 @@
+# System Architecture Overview
+
+## Purpose
+
+`AutoAgent Optimizer` - control plane для поиска и оптимизации архитектур compound AI systems.
+
+Ключевой runtime target на MVP: LangGraph через библиотечную интеграцию `langgraph-dai`.
+
+## Architectural Principles
+
+1. OSS-first composability.
+2. Control plane over existing runtimes (not a replacement).
+3. White-box observability at node/edge level.
+4. Contract-first components.
+5. Human-in-the-loop at decision checkpoints.
+6. Budget-aware optimization.
+
+## High-Level Layers
+
+```text
+Input (Task + Constraints + Data + Tools + Budget)
+  -> Architecture Generator
+  -> AgentOpt DSL
+  -> Graph IR (runtime-neutral)
+  -> Renderer (LangGraph first)
+  -> Execution Runtime
+  -> White-box Trace + Metrics
+  -> Evaluation + Tournament + Optimization
+  -> Evidence Pack + Champion Export
+```
+
+## Current Target Architecture (MVP-1)
+
+1. `DSL Layer`
+   - YAML-first spec.
+   - Typed validation.
+2. `Graph IR Layer`
+   - Runtime-neutral graph model.
+   - Explicit node contracts.
+3. `Renderer Layer`
+   - IR -> `BaseWorkflow`/`WorkflowNodeSpec` adapter over `langgraph-dai`.
+4. `Execution Layer`
+   - invoke/resume path.
+   - fallback-safe execution mode.
+5. `Evaluation Layer`
+   - deterministic oracles first (schema/pytest).
+   - optional LLM-as-judge as auxiliary signal.
+6. `Optimization Layer`
+   - equal-budget baseline tournament.
+   - local config search in promoted families.
+7. `Evidence Layer`
+   - champion/challenger comparison.
+   - reproducible artifact bundle.
+
+## External Dependency Strategy
+
+`langgraph-document-ai-platform` используется как внешний framework reference и library dependency.
+
+- Integration mode: `Install as a Library` (`langgraph-dai` package).
+- Version policy: pin to explicit tag for reproducibility.
+- Coupling rule: избегаем прямой зависимости на нестабильные internal API через adapter boundary в нашем коде.
+
+## Core Internal Modules (Planned)
+
+1. `optimizer.dsl`
+2. `optimizer.graph_ir`
+3. `optimizer.renderer.langgraph_dai`
+4. `optimizer.arena`
+5. `optimizer.evaluation`
+6. `optimizer.components`
+7. `optimizer.evidence`
+
+## Decision Records
+
+Архитектурные решения фиксируются в:
+
+- [docs/adr/README.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/README.md)
+
+Изменение архитектурного направления без ADR не допускается.
