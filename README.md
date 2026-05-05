@@ -6,8 +6,8 @@ OSS-first платформа для архитектурного поиска, w
 
 - `Phase`: MVP-1 (foundation)
 - `Iteration`: I1 - DSL/IR Skeleton
-- `Overall`: In Progress (I1.S1 done)
-- `Next Slice`: I1.S2 Graph IR v0 typed model
+- `Overall`: In Progress (I1.S1, I1.S2 done)
+- `Next Slice`: I1.S3 DSL -> IR compiler v0
 
 Подробный статус:
 
@@ -34,8 +34,11 @@ OSS-first платформа для архитектурного поиска, w
 - `docs/adr` - журнал архитектурных решений.
 - `langgraph-document-ai-platform` - внешний framework-источник для изучения и переиспользования (read-only в рамках этого проекта).
 - `optimizer/dsl` - DSL v0 schema, loader и CLI-валидация.
+- `optimizer/graph_ir` - runtime-neutral Graph IR v0, валидаторы и CLI.
 - `examples/dsl` - эталонные YAML-спеки (`direct_llm`, `ocr_first`, `hitl_gate`).
+- `examples/graph_ir` - эталонные Graph IR JSON-спеки.
 - `scripts/smoke_validate_dsl.ps1` - smoke-проверка всех DSL-примеров.
+- `scripts/smoke_validate_graph_ir.ps1` - smoke-проверка всех Graph IR-примеров.
 
 ## Definition of Done For a Slice
 

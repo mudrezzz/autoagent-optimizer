@@ -1,0 +1,35 @@
+{
+  "ir_version": "0.1",
+  "entry_node": "generate_answer",
+  "terminal_nodes": ["validate_output"],
+  "nodes": [
+    {
+      "id": "generate_answer",
+      "kind": "llm",
+      "component_ref": "component://llm_answerer",
+      "config": {
+        "prompt_id": "support_answer_v1"
+      },
+      "on_fail": "retry"
+    },
+    {
+      "id": "validate_output",
+      "kind": "validator",
+      "component_ref": "component://schema_guard",
+      "config": {},
+      "on_fail": "stop"
+    }
+  ],
+  "edges": [
+    {
+      "source": "generate_answer",
+      "target": "validate_output",
+      "condition": null,
+      "label": "main_flow"
+    }
+  ],
+  "metadata": {
+    "source": "dsl_example_direct_llm"
+  }
+}
+

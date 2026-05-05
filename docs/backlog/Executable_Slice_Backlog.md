@@ -16,7 +16,7 @@
 ## Active Window (Now)
 
 - `Current Focus`: MVP-1 / I1-I2
-- `Active Next Slice`: I1.S1
+- `Active Next Slice`: I1.S3
 
 ---
 
@@ -40,7 +40,7 @@
 
 ### I1.S2 - Graph IR v0 typed model
 
-- Status: Planned
+- Status: Done
 - Goal: runtime-neutral представление графа, независимое от конкретного runtime.
 - Inputs: FR-5, FR-6.
 - Deliverables:
@@ -147,4 +147,11 @@
 
 - Реализованы typed DSL v0 schema, YAML loader, CLI-валидатор и smoke-скрипт.
 - Добавлены 3 валидных референсных спецификации: `direct_llm`, `ocr_first`, `hitl_gate`.
+- Commit: tracked in git history.
+
+### I1.S2 - Done
+
+- Реализованы runtime-neutral Graph IR models + validators + CLI.
+- Добавлены edge/start/end/unreachable проверки и roundtrip сериализация.
+- Добавлены unit/integration/e2e тесты для Graph IR и smoke-скрипт.
 - Commit: tracked in git history.

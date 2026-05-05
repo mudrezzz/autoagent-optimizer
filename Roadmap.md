@@ -35,7 +35,7 @@
 | Slice | Description | Status | Output |
 |---|---|---|---|
 | I1.S1 | DSL v0 schema draft (YAML-first) | Done | `dsl/schema` + examples |
-| I1.S2 | Graph IR v0 typed model | Planned | runtime-neutral IR contracts |
+| I1.S2 | Graph IR v0 typed model | Done | runtime-neutral IR contracts |
 | I1.S3 | DSL -> IR compiler v0 | Planned | parser/validator + compile report |
 
 ### Iteration I2 - Runtime Rendering

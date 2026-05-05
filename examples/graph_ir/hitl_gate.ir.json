@@ -1,0 +1,67 @@
+{
+  "ir_version": "0.1",
+  "entry_node": "route_intent",
+  "terminal_nodes": ["execute_safe_action"],
+  "nodes": [
+    {
+      "id": "route_intent",
+      "kind": "llm",
+      "component_ref": "component://intent_router",
+      "config": {
+        "prompt_id": "action_routing_v1"
+      },
+      "on_fail": "retry"
+    },
+    {
+      "id": "validate_action_policy",
+      "kind": "validator",
+      "component_ref": "component://policy_validator",
+      "config": {},
+      "on_fail": "stop"
+    },
+    {
+      "id": "human_approval",
+      "kind": "hitl_gate",
+      "component_ref": "component://human_approval_gate",
+      "config": {},
+      "on_fail": "stop"
+    },
+    {
+      "id": "execute_safe_action",
+      "kind": "tool",
+      "component_ref": "component://safe_action_executor",
+      "config": {},
+      "on_fail": "fallback"
+    }
+  ],
+  "edges": [
+    {
+      "source": "route_intent",
+      "target": "validate_action_policy",
+      "condition": null,
+      "label": "main_flow"
+    },
+    {
+      "source": "validate_action_policy",
+      "target": "human_approval",
+      "condition": "action_risk == high",
+      "label": "requires_review"
+    },
+    {
+      "source": "validate_action_policy",
+      "target": "execute_safe_action",
+      "condition": "action_risk == low",
+      "label": "safe_direct"
+    },
+    {
+      "source": "human_approval",
+      "target": "execute_safe_action",
+      "condition": "review_decision == approve",
+      "label": "approved"
+    }
+  ],
+  "metadata": {
+    "source": "dsl_example_hitl_gate"
+  }
+}
+

@@ -1,0 +1,61 @@
+{
+  "ir_version": "0.1",
+  "entry_node": "ocr_extract",
+  "terminal_nodes": ["validate_output"],
+  "nodes": [
+    {
+      "id": "ocr_extract",
+      "kind": "tool",
+      "component_ref": "component://ocr_engine",
+      "config": {},
+      "on_fail": "fallback"
+    },
+    {
+      "id": "normalize_fields",
+      "kind": "deterministic",
+      "component_ref": "component://json_normalizer",
+      "config": {},
+      "on_fail": "retry"
+    },
+    {
+      "id": "repair_missing_fields",
+      "kind": "llm",
+      "component_ref": "component://llm_repair",
+      "config": {
+        "prompt_id": "invoice_repair_v1"
+      },
+      "on_fail": "retry"
+    },
+    {
+      "id": "validate_output",
+      "kind": "validator",
+      "component_ref": "component://schema_guard",
+      "config": {},
+      "on_fail": "stop"
+    }
+  ],
+  "edges": [
+    {
+      "source": "ocr_extract",
+      "target": "normalize_fields",
+      "condition": null,
+      "label": "main_flow"
+    },
+    {
+      "source": "normalize_fields",
+      "target": "repair_missing_fields",
+      "condition": null,
+      "label": "main_flow"
+    },
+    {
+      "source": "repair_missing_fields",
+      "target": "validate_output",
+      "condition": null,
+      "label": "main_flow"
+    }
+  ],
+  "metadata": {
+    "source": "dsl_example_ocr_first"
+  }
+}
+

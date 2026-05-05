@@ -76,9 +76,13 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.dsl.schema` (typed DSL v0),
    - `optimizer.dsl.io` (YAML loading + validation),
    - `optimizer.dsl.validate` (CLI smoke validation),
-   - `examples/dsl/*` (3 базовых сценария).
+   - `examples/dsl/*` (3 базовых сценария),
+   - `optimizer.graph_ir.models` (typed Graph IR v0),
+   - `optimizer.graph_ir.validators` (start/end/edge/reachability checks),
+   - `optimizer.graph_ir.validate` (CLI smoke validation),
+   - `examples/graph_ir/*` (3 референсных Graph IR сценария).
 2. Next:
-   - `optimizer.graph_ir` (I1.S2).
+   - `optimizer.dsl.compiler` (I1.S3).
 
 ## Decision Records
 
