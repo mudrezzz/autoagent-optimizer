@@ -28,7 +28,7 @@
 | Slice | Description | Status | Output |
 |---|---|---|---|
 | I0.S1 | Project governance docs baseline | Done | README + Roadmap + Architecture + ADR process |
-| I0.S2 | Initial backlog shaping from TZ to executable slices | Planned | prioritized slice backlog |
+| I0.S2 | Initial backlog shaping from TZ to executable slices | Done | prioritized slice backlog |
 
 ### Iteration I1 - DSL/IR Skeleton
 
@@ -118,3 +118,9 @@
    - `System_Architecture_Overview.md` (если менялась архитектура)
    - `docs/adr/*` (если было архитектурное решение)
 4. Каждый слайс фиксируется отдельным commit.
+
+## Backlog Source
+
+Детализированный исполнимый backlog:
+
+- [docs/backlog/Executable_Slice_Backlog.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/backlog/Executable_Slice_Backlog.md)

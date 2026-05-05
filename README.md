@@ -5,9 +5,9 @@ OSS-first платформа для архитектурного поиска, w
 ## Current Status
 
 - `Phase`: MVP-1 (foundation)
-- `Iteration`: I0 - Governance & Architecture Baseline
-- `Overall`: In Progress (I0.S1 done, I0.S2 planned)
-- `Next Slice`: I0.S2 Initial backlog shaping from TZ
+- `Iteration`: I1 - DSL/IR Skeleton
+- `Overall`: In Progress (I0 complete, I1 not started)
+- `Next Slice`: I1.S1 DSL v0 schema draft (YAML-first)
 
 Подробный статус:
 
@@ -15,6 +15,7 @@ OSS-first платформа для архитектурного поиска, w
 - [System_Architecture_Overview.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/System_Architecture_Overview.md)
 - [ADR Index](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/README.md)
 - [Project Operating Model](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/process/Project_Operating_Model.md)
+- [Executable Slice Backlog](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/backlog/Executable_Slice_Backlog.md)
 
 ## Project Rules
 
