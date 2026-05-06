@@ -20,8 +20,9 @@ YAML-конфиг:
 4. `task_prefix` — префикс `task_id` для runtime режима.
 5. `budget` — config-first политика бюджета.
 6. `ranking` — config-first правила ранжирования.
-7. `evaluator` — evaluator policy.
-8. `participants` — список из 2-3 участников.
+7. `scoring` — config-first правила composite score.
+8. `evaluator` — evaluator policy.
+9. `participants` — список из 2-3 участников.
 
 Участник:
 
@@ -55,12 +56,23 @@ YAML-конфиг:
 2. `passed`
 3. `failed`
 4. `participant_id`
+5. `coverage`
+6. `rule_violations_total`
+7. `nodes_executed_total`
+8. `avg_nodes_per_case`
+9. `llm_calls_total`
+10. `duration_ms_total`
+11. `duration_ms_avg`
+12. `p95_case_duration_ms`
+13. `composite_score` (требует `scoring.enabled=true`)
 
 Пример:
 
 ```yaml
 ranking:
   metrics:
+    - name: composite_score
+      direction: desc
     - name: pass_rate
       direction: desc
     - name: passed
@@ -70,6 +82,51 @@ ranking:
     - name: participant_id
       direction: asc
 ```
+
+## Scoring Policy
+
+`scoring` контракт:
+
+1. `enabled` — включить/выключить расчет `composite_score`.
+2. `normalization` — стратегия нормализации (`minmax`).
+3. `metrics[]` — список метрик composite score:
+   - `name`
+   - `direction` (`desc` или `asc`)
+   - `weight` (положительный вес)
+
+Пример:
+
+```yaml
+scoring:
+  enabled: true
+  normalization: minmax
+  metrics:
+    - name: pass_rate
+      direction: desc
+      weight: 0.6
+    - name: rule_violations_total
+      direction: asc
+      weight: 0.3
+    - name: duration_ms_avg
+      direction: asc
+      weight: 0.1
+```
+
+## Middle Metrics
+
+Для каждого участника рассчитываются и публикуются `middle_metrics`:
+
+1. `coverage` — доля кейсов с непустым текстовым ответом.
+2. `rule_violations_total` — общее число нарушенных oracle-правил.
+3. `nodes_executed_total` — сумма выполненных узлов по кейсам.
+4. `avg_nodes_per_case` — среднее число выполненных узлов на кейс.
+5. `llm_calls_total` — общее число LLM-вызовов по кейсам.
+6. `duration_ms_total` — суммарная длительность кейсов.
+7. `duration_ms_avg` — средняя длительность кейса.
+8. `p95_case_duration_ms` — p95 латентности по кейсам.
+
+Примечание: в `expected_stub` режиме runtime-поля (`nodes*`, `llm_calls*`, `duration*`) могут быть нулевыми,
+так как детерминированный stub не исполняет реальный runtime pipeline.
 
 ## Evaluator Policy
 
@@ -87,9 +144,10 @@ python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_t
 
 1. `winner_id`
 2. `ranking`
-3. `participants[]` с `cases_total/passed/failed/pass_rate`
+3. `participants[]` с `cases_total/passed/failed/pass_rate/middle_metrics/composite_score`
 4. поля бюджета (`budget_policy`, `budget_unit`, `budget_selector`, `budget_limit`, `budget_seed`)
-5. `ranking_policy` (фактически примененная конфигурация ранжирования)
+5. поля scoring (`scoring_enabled`, `scoring_normalization`, `scoring_policy`)
+6. `ranking_policy` (фактически примененная конфигурация ранжирования)
 
 ## Smoke
 

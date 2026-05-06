@@ -8,12 +8,19 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
-from optimizer.arena.tournament_schema import ArenaParticipantSpec, ArenaRankingMetricSpec, ArenaTournamentSpec
+from optimizer.arena.tournament_schema import (
+    ArenaParticipantSpec,
+    ArenaRankingMetricSpec,
+    ArenaScoringMetricSpec,
+    ArenaTournamentSpec,
+)
 from optimizer.dsl.compiler import DslToGraphIRCompiler
 from optimizer.evaluation.dataset_loader import GoldenDatasetLoader
 from optimizer.evaluation.dataset_schema import GoldenDatasetRecord
 from optimizer.evaluation.oracle_runner import OracleRunner
 from optimizer.graph_ir.io import load_graph_ir_spec
+from optimizer.graph_ir.models import GraphNodeKind
+from optimizer.metrics.middle_metrics import compute_middle_metrics
 from optimizer.renderer.langgraph_dai.adapter import GraphIRToLangGraphRenderer
 from optimizer.renderer.langgraph_dai.run import _build_demo_bindings
 
@@ -32,6 +39,9 @@ class ArenaParticipantResult:
     passed: int
     failed: int
     pass_rate: float
+    middle_metrics: dict[str, float | int]
+    composite_score: float | None = None
+    score_breakdown: dict[str, Any] | None = None
     oracle_report: dict[str, Any] | None = None
 
     def to_payload(self) -> dict[str, Any]:
@@ -46,7 +56,12 @@ class ArenaParticipantResult:
             "passed": self.passed,
             "failed": self.failed,
             "pass_rate": self.pass_rate,
+            "middle_metrics": self.middle_metrics,
         }
+        if self.composite_score is not None:
+            payload["composite_score"] = self.composite_score
+        if self.score_breakdown is not None:
+            payload["score_breakdown"] = self.score_breakdown
         if self.oracle_report is not None:
             payload["oracle_report"] = self.oracle_report
         return payload
@@ -64,6 +79,9 @@ class ArenaTournamentResult:
     budget_selector: str
     budget_limit: int
     budget_seed: int
+    scoring_enabled: bool
+    scoring_normalization: str
+    scoring_policy: list[dict[str, Any]]
     cases_budget: int
     dataset_records_total: int
     evaluated_records_total: int
@@ -84,6 +102,9 @@ class ArenaTournamentResult:
             "budget_selector": self.budget_selector,
             "budget_limit": self.budget_limit,
             "budget_seed": self.budget_seed,
+            "scoring_enabled": self.scoring_enabled,
+            "scoring_normalization": self.scoring_normalization,
+            "scoring_policy": self.scoring_policy,
             "cases_budget": self.cases_budget,
             "dataset_records_total": self.dataset_records_total,
             "evaluated_records_total": self.evaluated_records_total,
@@ -129,6 +150,8 @@ class ArchitectureArenaRunner:
                 task_prefix=spec.task_prefix,
             )
             run_result = oracle_runner.run(selected_records, execute_fn)
+            full_report = run_result.full_payload()
+            middle_metrics = compute_middle_metrics(full_report).to_payload()
             source_kind, source_path = _participant_source(participant, arena_file_dir)
             participant_results.append(
                 ArenaParticipantResult(
@@ -140,10 +163,12 @@ class ArchitectureArenaRunner:
                     passed=run_result.passed,
                     failed=run_result.failed,
                     pass_rate=run_result.pass_rate,
-                    oracle_report=(run_result.full_payload() if include_details else None),
+                    middle_metrics=middle_metrics,
+                    oracle_report=(full_report if include_details else None),
                 )
             )
 
+        _apply_scoring_policy(participant_results, spec)
         sorted_results = _rank_participants(participant_results, spec.ranking.metrics)
         ranking = [item.participant_id for item in sorted_results]
         winner_id = ranking[0]
@@ -158,6 +183,12 @@ class ArchitectureArenaRunner:
             budget_selector=spec.budget.selector,
             budget_limit=spec.budget.limit,
             budget_seed=spec.budget.random_seed,
+            scoring_enabled=spec.scoring.enabled,
+            scoring_normalization=spec.scoring.normalization,
+            scoring_policy=[
+                {"name": metric.name, "direction": metric.direction, "weight": metric.weight}
+                for metric in spec.scoring.metrics
+            ],
             cases_budget=len(selected_records),
             dataset_records_total=len(dataset_result.records),
             evaluated_records_total=len(selected_records),
@@ -192,7 +223,96 @@ def _metric_value(participant: ArenaParticipantResult, metric_name: str) -> Any:
         return participant.failed
     if metric_name == "participant_id":
         return participant.participant_id
+    if metric_name == "composite_score":
+        if participant.composite_score is None:
+            raise ValueError("Метрика `composite_score` недоступна: scoring policy отключена.")
+        return participant.composite_score
+    if metric_name in participant.middle_metrics:
+        return participant.middle_metrics[metric_name]
     raise ValueError(f"Неподдерживаемая метрика ранжирования: {metric_name}")
+
+
+def _apply_scoring_policy(participants: list[ArenaParticipantResult], spec: ArenaTournamentSpec) -> None:
+    """Рассчитывает composite score и вклад метрик для каждого участника по scoring policy."""
+
+    if not spec.scoring.enabled:
+        return
+    if spec.scoring.normalization != "minmax":
+        raise ValueError(f"Неподдерживаемая стратегия нормализации scoring: {spec.scoring.normalization}")
+
+    values_by_participant = {item.participant_id: _participant_numeric_metrics(item) for item in participants}
+    metric_bounds = _compute_metric_bounds(values_by_participant, spec.scoring.metrics)
+    weight_total = sum(metric.weight for metric in spec.scoring.metrics)
+    if weight_total <= 0:
+        raise ValueError("Сумма весов scoring policy должна быть положительной.")
+
+    for participant in participants:
+        numeric_metrics = values_by_participant[participant.participant_id]
+        breakdown: dict[str, dict[str, float | str]] = {}
+        weighted_sum = 0.0
+        for metric in spec.scoring.metrics:
+            raw_value = float(numeric_metrics.get(metric.name, 0.0))
+            min_value, max_value = metric_bounds[metric.name]
+            normalized_value = _normalize_minmax(raw_value, min_value, max_value, metric.direction)
+            weighted_value = normalized_value * metric.weight
+            weighted_sum += weighted_value
+            breakdown[metric.name] = {
+                "direction": metric.direction,
+                "raw_value": _round_float(raw_value),
+                "normalized_value": _round_float(normalized_value),
+                "weight": _round_float(metric.weight),
+                "weighted_value": _round_float(weighted_value),
+            }
+        participant.composite_score = _round_float(weighted_sum / weight_total)
+        participant.score_breakdown = breakdown
+
+
+def _participant_numeric_metrics(participant: ArenaParticipantResult) -> dict[str, float]:
+    """Возвращает числовой вектор метрик участника для scoring и ranking."""
+
+    metrics: dict[str, float] = {
+        "pass_rate": float(participant.pass_rate),
+        "passed": float(participant.passed),
+        "failed": float(participant.failed),
+    }
+    for key, value in participant.middle_metrics.items():
+        if isinstance(value, (int, float)):
+            metrics[key] = float(value)
+    return metrics
+
+
+def _compute_metric_bounds(
+    values_by_participant: dict[str, dict[str, float]],
+    metrics: list[ArenaScoringMetricSpec],
+) -> dict[str, tuple[float, float]]:
+    """Считает min/max границы каждой scoring-метрики по всем участникам турнира."""
+
+    bounds: dict[str, tuple[float, float]] = {}
+    for metric in metrics:
+        values = [participant_values.get(metric.name, 0.0) for participant_values in values_by_participant.values()]
+        if not values:
+            bounds[metric.name] = (0.0, 0.0)
+            continue
+        bounds[metric.name] = (min(values), max(values))
+    return bounds
+
+
+def _normalize_minmax(raw_value: float, min_value: float, max_value: float, direction: str) -> float:
+    """Нормализует значение метрики в диапазон [0..1] с учетом направления оптимизации."""
+
+    if max_value <= min_value:
+        return 1.0
+
+    normalized = (raw_value - min_value) / (max_value - min_value)
+    if direction == "asc":
+        return 1.0 - normalized
+    return normalized
+
+
+def _round_float(value: float) -> float:
+    """Округляет вещественное значение для стабильного и читаемого JSON-вывода."""
+
+    return round(value, 6)
 
 
 def _apply_case_budget(records: list[GoldenDatasetRecord], spec: ArenaTournamentSpec) -> list[GoldenDatasetRecord]:
@@ -244,6 +364,7 @@ def _build_participant_executor(
         return _build_stub_executor(participant)
 
     graph_ir = _resolve_participant_graph_ir(participant, arena_file_dir)
+    llm_node_ids = {node.id for node in graph_ir.nodes if node.kind == GraphNodeKind.LLM}
     renderer = GraphIRToLangGraphRenderer()
     runtime = renderer.render(graph_ir=graph_ir, bindings=_build_demo_bindings())
 
@@ -254,10 +375,14 @@ def _build_participant_executor(
         state = runtime.invoke(payload=record.input, task_id=task_id)
         payload = state.payload if isinstance(state.payload, dict) else {"raw_payload": str(state.payload)}
         text = payload.get("text", "")
+        llm_calls = sum(1 for node_id in state.executed_nodes if node_id in llm_node_ids)
         return {
             "text": str(text),
             "payload": payload,
             "node_outputs": state.node_outputs,
+            "executed_nodes": state.executed_nodes,
+            "trace_summary": state.trace_summary,
+            "llm_calls": llm_calls,
         }
 
     return _execute_runtime

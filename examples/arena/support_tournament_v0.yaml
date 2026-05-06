@@ -10,6 +10,8 @@ budget:
   random_seed: 42
 ranking:
   metrics:
+    - name: composite_score
+      direction: desc
     - name: pass_rate
       direction: desc
     - name: passed
@@ -18,6 +20,19 @@ ranking:
       direction: asc
     - name: participant_id
       direction: asc
+scoring:
+  enabled: true
+  normalization: minmax
+  metrics:
+    - name: pass_rate
+      direction: desc
+      weight: 0.6
+    - name: rule_violations_total
+      direction: asc
+      weight: 0.3
+    - name: duration_ms_avg
+      direction: asc
+      weight: 0.1
 evaluator:
   mode: rule_based_v0
 participants:

@@ -93,9 +93,15 @@ python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_t
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena.ps1
 ```
 
+Что уже добавлено в D3:
+
+1. `middle_metrics` по каждому участнику (`coverage`, `violations`, `nodes`, `latency`, `llm_calls`);
+2. config-driven `scoring` policy с весами/направлениями;
+3. `composite_score` и `score_breakdown` в итоговом отчете турнира.
+
 Следующий шаг:
 
-1. middle-metrics v0 (I4.S1).
+1. Evidence Pack v0 (I4.S2).
 
 ### Stage D3 (I4) - Champion Demo
 
@@ -116,6 +122,6 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena.ps1
 
 ## Current Demo Status
 
-- Active stage: `D2 (I3)`
+- Active stage: `D3 (I4)`
 - Demo readiness: `Green`
-- Next demo milestone: `D3 metrics/evidence path` starting with `I4.S1`
+- Next demo milestone: `D3 evidence pack` (`I4.S2`)

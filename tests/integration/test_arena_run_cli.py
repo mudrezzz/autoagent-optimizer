@@ -44,8 +44,12 @@ def test_arena_run_cli_support_tournament_success() -> None:
     assert payload["budget_policy"] == "equal_cases"
     assert payload["budget_unit"] == "cases"
     assert payload["budget_selector"] == "head"
-    assert payload["ranking_policy"][0] == {"name": "pass_rate", "direction": "desc"}
+    assert payload["scoring_enabled"] is True
+    assert payload["scoring_normalization"] == "minmax"
+    assert payload["ranking_policy"][0] == {"name": "composite_score", "direction": "desc"}
     assert len(payload["participants"]) == 3
+    assert "composite_score" in payload["participants"][0]
+    assert "middle_metrics" in payload["participants"][0]
 
 
 @pytest.mark.integration

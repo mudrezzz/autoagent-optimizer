@@ -5,9 +5,9 @@ OSS-first платформа для архитектурного поиска, w
 ## Current Status
 
 - `Phase`: MVP-1 (foundation)
-- `Iteration`: I3 - Evaluation + Arena Lite
-- `Overall`: In Progress (I2.S1-I3.S3 done)
-- `Next Slice`: I4.S1 Middle-metrics v0
+- `Iteration`: I4 - Evidence + Export
+- `Overall`: In Progress (I2.S1-I4.S1 done)
+- `Next Slice`: I4.S2 Evidence Pack v0
 
 Подробный статус:
 
@@ -42,6 +42,7 @@ OSS-first платформа для архитектурного поиска, w
 - `optimizer/codegen` - DSL/IR -> сгенерированный код агента (package + runner).
 - `optimizer/tracing` - node-level события исполнения и сводка trace по run.
 - `optimizer/evaluation` - golden dataset contract, loader, oracle runner и CLI-валидация/прогон.
+- `optimizer/metrics` - middle-метрики и служебные агрегаторы для arena scoring.
 - `examples/dsl` - эталонные YAML-спеки (`direct_llm`, `ocr_first`, `hitl_gate`).
 - `examples/graph_ir` - эталонные Graph IR JSON-спеки.
 - `examples/datasets` - эталонные golden dataset JSONL кейсы.
@@ -60,6 +61,13 @@ OSS-first платформа для архитектурного поиска, w
 - `examples/arena/support_tournament_v0.yaml` - эталонная конфигурация турнира.
 - `scripts/smoke_run_arena.ps1` - smoke-прогон Architecture Arena tournament.
 - `docs/specs/Architecture_Arena_v0.md` - config-first контракт `budget`/`ranking`/`evaluator` политик турнира.
+
+## I4.S1 Artifacts
+
+- `optimizer/metrics/middle_metrics.py` - расчет middle-метрик (`coverage`, `violations`, `nodes`, `latency`, `llm_calls`).
+- `optimizer/arena/tournament_schema.py` - расширенный контракт `scoring` policy и ranking по `composite_score`.
+- `optimizer/arena/runner.py` - расчет `middle_metrics`, `composite_score` и `score_breakdown` в tournament output.
+- `examples/arena/support_tournament_v0.yaml` - демо-конфиг с включенным `scoring`.
 
 ## Definition of Done For a Slice
 
@@ -132,6 +140,12 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_oracle.ps1
 ```powershell
 python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_v0.yaml --pretty
 ```
+
+В успешном выводе проверьте:
+
+1. `scoring_enabled: true`
+2. `ranking_policy[0].name: composite_score`
+3. у каждого участника есть `middle_metrics`, `composite_score`, `score_breakdown`
 
 Полный smoke-прогон arena:
 

@@ -101,9 +101,11 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.evaluation.run_oracle` (CLI oracle прогона),
    - `optimizer.arena.tournament_schema` (typed contract config-driven `budget`/`ranking`/`evaluator` policies),
    - `optimizer.arena.runner` (config-driven tournament execution и ranking),
-   - `optimizer.arena.run_tournament` (CLI tournament compare path).
+   - `optimizer.arena.run_tournament` (CLI tournament compare path),
+   - `optimizer.metrics.middle_metrics` (middle-метрики и latency/cost агрегаты),
+   - `optimizer.arena` scoring path (`composite_score`, `score_breakdown`, config-driven weights).
 2. Next:
-   - Middle-metrics v0 (I4.S1).
+   - Evidence Pack v0 (I4.S2).
 
 ## Decision Records
 
