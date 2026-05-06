@@ -84,6 +84,20 @@ python -m pytest -m e2e
 Для CLI-команд, где передается JSON payload, в PowerShell используйте `--payload-file` как основной способ запуска.
 Это исключает ошибки экранирования вида `unrecognized arguments`.
 
+## Runtime Demo Quickstart (PowerShell)
+
+```powershell
+New-Item -ItemType Directory -Force -Path .\tmp | Out-Null
+'{"query":"Кратко опиши цель проекта"}' | Set-Content -LiteralPath .\tmp\runtime_payload.json -Encoding UTF8
+python -m optimizer.renderer.langgraph_dai.run --dsl-file .\examples\dsl\direct_llm.yaml --payload-file .\tmp\runtime_payload.json --pretty
+```
+
+Полный smoke-прогон демо:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_runtime_demo.ps1
+```
+
 ## OpenRouter Setup (For Real LLM Calls)
 
 Когда перейдем к runtime-слайсам (`I2.*`), можно включить реальные вызовы LLM.

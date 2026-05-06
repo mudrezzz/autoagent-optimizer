@@ -51,7 +51,9 @@
 Запуск через DSL:
 
 ```powershell
-python -m optimizer.renderer.langgraph_dai.run --dsl-file .\examples\dsl\direct_llm.yaml --payload-json "{\"query\":\"Summarize project goal\"}" --pretty
+New-Item -ItemType Directory -Force -Path .\tmp | Out-Null
+'{"query":"Summarize project goal"}' | Set-Content -LiteralPath .\tmp\runtime_payload.json -Encoding UTF8
+python -m optimizer.renderer.langgraph_dai.run --dsl-file .\examples\dsl\direct_llm.yaml --payload-file .\tmp\runtime_payload.json --pretty
 ```
 
 Smoke runtime demo:
@@ -59,3 +61,5 @@ Smoke runtime demo:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_runtime_demo.ps1
 ```
+
+Примечание: для PowerShell основной способ запуска — `--payload-file`, чтобы избежать ошибок экранирования JSON.
