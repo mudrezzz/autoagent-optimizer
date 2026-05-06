@@ -32,6 +32,7 @@
 3. [ADR-0003-mandatory-test-pyramid-and-full-gate.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0003-mandatory-test-pyramid-and-full-gate.md) - Accepted
 4. [ADR-0004-graph-ir-v0-runtime-neutral-boundary.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0004-graph-ir-v0-runtime-neutral-boundary.md) - Accepted
 5. [ADR-0005-continuous-demo-track-policy.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0005-continuous-demo-track-policy.md) - Accepted
+6. [ADR-0006-dsl-to-graph-ir-mapping-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0006-dsl-to-graph-ir-mapping-v0.md) - Accepted
 
 ## Template
 

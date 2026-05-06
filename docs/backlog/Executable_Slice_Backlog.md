@@ -16,7 +16,7 @@
 ## Active Window (Now)
 
 - `Current Focus`: MVP-1 / I1-I2
-- `Active Next Slice`: I1.S3
+- `Active Next Slice`: I2.S1
 
 ---
 
@@ -56,7 +56,7 @@
 
 ### I1.S3 - DSL -> IR compiler v0
 
-- Status: Planned
+- Status: Done
 - Goal: компиляция DSL в Graph IR с отчетом о трансформации.
 - Inputs: FR-4, FR-5.
 - Deliverables:
@@ -160,4 +160,11 @@
 - Реализованы runtime-neutral Graph IR models + validators + CLI.
 - Добавлены edge/start/end/unreachable проверки и roundtrip сериализация.
 - Добавлены unit/integration/e2e тесты для Graph IR и smoke-скрипт.
+- Commit: tracked in git history.
+
+### I1.S3 - Done
+
+- Реализован компилятор DSL -> Graph IR с compile report.
+- Добавлены CLI компиляции и smoke-скрипт сквозной компиляции DSL-примеров.
+- Добавлены unit/integration/e2e тесты на success/failure compile path.
 - Commit: tracked in git history.

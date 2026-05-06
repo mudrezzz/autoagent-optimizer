@@ -80,9 +80,12 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.graph_ir.models` (typed Graph IR v0),
    - `optimizer.graph_ir.validators` (start/end/edge/reachability checks),
    - `optimizer.graph_ir.validate` (CLI smoke validation),
-   - `examples/graph_ir/*` (3 референсных Graph IR сценария).
+   - `examples/graph_ir/*` (3 референсных Graph IR сценария),
+   - `optimizer.dsl.compiler` (DSL -> Graph IR compile),
+   - `optimizer.dsl.compile_report` (node mapping + issues),
+   - `optimizer.dsl.compile` (CLI compile path).
 2. Next:
-   - `optimizer.dsl.compiler` (I1.S3).
+   - `optimizer.renderer.langgraph_dai` (I2.S1).
 
 ## Decision Records
 

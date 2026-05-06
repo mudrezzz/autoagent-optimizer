@@ -54,3 +54,9 @@ Smoke всех примеров:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_validate_dsl.ps1
 ```
+
+Компиляция DSL в Graph IR:
+
+```powershell
+python -m optimizer.dsl.compile --dsl-file .\examples\dsl\ocr_first.yaml --output-ir-file .\tmp\ocr_first.ir.json --pretty
+```

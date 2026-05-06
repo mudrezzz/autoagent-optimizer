@@ -8,3 +8,4 @@ __pycache__/
 # Virtual env
 .venv/
 venv/
+tmp/
