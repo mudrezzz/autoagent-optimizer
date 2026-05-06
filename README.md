@@ -6,8 +6,8 @@ OSS-first платформа для архитектурного поиска, w
 
 - `Phase`: MVP-1 (foundation)
 - `Iteration`: I2 - Runtime Rendering
-- `Overall`: In Progress (I2.S1 done)
-- `Next Slice`: I2.S2 Node event capture + white-box trace v0
+- `Overall`: In Progress (I2.S1-I2.S2 done)
+- `Next Slice`: I2.S3 Node event capture + white-box trace v0
 
 Подробный статус:
 
@@ -39,12 +39,14 @@ OSS-first платформа для архитектурного поиска, w
 - `optimizer/graph_ir` - runtime-neutral Graph IR v0, валидаторы и CLI.
 - `optimizer/dsl/compiler.py` - компилятор DSL -> Graph IR и отчет компиляции.
 - `optimizer/renderer/langgraph_dai` - runtime renderer и запуск Graph IR workflow.
+- `optimizer/codegen` - DSL/IR -> сгенерированный код агента (package + runner).
 - `examples/dsl` - эталонные YAML-спеки (`direct_llm`, `ocr_first`, `hitl_gate`).
 - `examples/graph_ir` - эталонные Graph IR JSON-спеки.
 - `scripts/smoke_validate_dsl.ps1` - smoke-проверка всех DSL-примеров.
 - `scripts/smoke_validate_graph_ir.ps1` - smoke-проверка всех Graph IR-примеров.
 - `scripts/smoke_compile_dsl_to_ir.ps1` - smoke-компиляция DSL в IR.
 - `scripts/smoke_run_runtime_demo.ps1` - smoke runtime-демо исполнения workflow.
+- `scripts/smoke_generate_agent_code.ps1` - smoke-демо генерации и запуска кодового агента.
 
 ## Definition of Done For a Slice
 

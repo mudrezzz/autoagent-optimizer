@@ -44,8 +44,9 @@
 | Slice | Description | Status | Output |
 |---|---|---|---|
 | I2.S1 | LangGraph renderer adapter on top of `langgraph-dai` | Done | IR -> BaseWorkflow |
-| I2.S2 | Node event capture + white-box trace v0 | Planned | node-level events/logs |
-| I2.S3 | Resume/checkpoint contract path | Planned | invoke/resume reliability |
+| I2.S2 | Agent code generation v0 (DSL/IR -> runnable Python package) | Done | generated agent artifact + runner |
+| I2.S3 | Node event capture + white-box trace v0 | Planned | node-level events/logs |
+| I2.S4 | Resume/checkpoint contract path | Planned | invoke/resume reliability |
 
 ### Iteration I3 - Evaluation + Arena Lite
 

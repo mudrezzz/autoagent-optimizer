@@ -65,10 +65,11 @@ Input (Task + Constraints + Data + Tools + Budget)
 1. `optimizer.dsl`
 2. `optimizer.graph_ir`
 3. `optimizer.renderer.langgraph_dai`
-4. `optimizer.arena`
-5. `optimizer.evaluation`
-6. `optimizer.components`
-7. `optimizer.evidence`
+4. `optimizer.codegen`
+5. `optimizer.arena`
+6. `optimizer.evaluation`
+7. `optimizer.components`
+8. `optimizer.evidence`
 
 ## Implementation Status Snapshot
 
@@ -86,9 +87,11 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.dsl.compile` (CLI compile path),
    - `optimizer.renderer.langgraph_dai.workflow` (исполняемый runtime workflow),
    - `optimizer.renderer.langgraph_dai.adapter` (IR -> BaseWorkflow adapter),
-   - `optimizer.renderer.langgraph_dai.run` (CLI runtime execution).
+   - `optimizer.renderer.langgraph_dai.run` (CLI runtime execution),
+   - `optimizer.codegen.agent_generator` (Graph IR -> generated runnable package),
+   - `optimizer.codegen.generate` (CLI code generation path).
 2. Next:
-   - `optimizer.tracing` + node event capture (I2.S2).
+   - `optimizer.tracing` + node event capture (I2.S3).
 
 ## Decision Records
 

@@ -34,6 +34,7 @@
 5. [ADR-0005-continuous-demo-track-policy.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0005-continuous-demo-track-policy.md) - Accepted
 6. [ADR-0006-dsl-to-graph-ir-mapping-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0006-dsl-to-graph-ir-mapping-v0.md) - Accepted
 7. [ADR-0007-render-graph-ir-via-langgraph-dai-workflow.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0007-render-graph-ir-via-langgraph-dai-workflow.md) - Accepted
+8. [ADR-0008-add-agent-code-generation-path.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0008-add-agent-code-generation-path.md) - Accepted
 
 ## Template
 

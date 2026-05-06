@@ -16,7 +16,7 @@
 ## Active Window (Now)
 
 - `Current Focus`: MVP-1 / I1-I2
-- `Active Next Slice`: I2.S2
+- `Active Next Slice`: I2.S3
 
 ---
 
@@ -85,7 +85,23 @@
 - Dependencies: I1.S2, I1.S3.
 - Risks: зависимость от internal API внешней библиотеки.
 
-### I2.S2 - Node event capture + white-box trace v0
+### I2.S2 - Agent code generation v0
+
+- Status: Done
+- Goal: получить materialized Python-артефакт агента из лучшей DSL/IR конфигурации.
+- Inputs: FR-6, runtime path I2.S1.
+- Deliverables:
+  - `optimizer/codegen/agent_generator.py`,
+  - `optimizer/codegen/generate.py`,
+  - `docs/specs/Agent_Codegen_v0.md`.
+- Acceptance Criteria:
+  1. Есть CLI генерации из DSL или Graph IR.
+  2. Генератор создает runnable package + runner script.
+  3. Есть smoke-путь `DSL -> generate code -> run generated agent`.
+- Dependencies: I1.S3, I2.S1.
+- Risks: fallback-логика может скрыть отсутствие production-обработчиков, поэтому нужны явные TODO в артефакте.
+
+### I2.S3 - Node event capture + white-box trace v0
 
 - Status: Planned
 - Goal: снять node-level события и сделать базовый trace storage format.
@@ -101,7 +117,7 @@
 - Dependencies: I2.S1.
 - Risks: разрыв между runtime events и evaluation metrics.
 
-### I2.S3 - Resume/checkpoint contract path
+### I2.S4 - Resume/checkpoint contract path
 
 - Status: Planned
 - Goal: подтвержденный invoke/resume сценарий для долгих execution.
@@ -174,4 +190,12 @@
 - Реализован runtime renderer Graph IR -> BaseWorkflow (langgraph-dai).
 - Добавлен runtime CLI и smoke demo запуск workflow.
 - Добавлены unit/integration/e2e тесты рендерера и branch-логики.
+- Commit: tracked in git history.
+
+### I2.S2 - Done
+
+- Реализован codegen-путь DSL/IR -> runnable Python package агента.
+- Добавлен CLI генерации `python -m optimizer.codegen.generate`.
+- Добавлен smoke demo генерации и запуска сгенерированного агента.
+- Добавлены unit/integration/e2e тесты нового функционала.
 - Commit: tracked in git history.
