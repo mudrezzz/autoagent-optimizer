@@ -73,3 +73,13 @@ python -m pytest -m unit
 python -m pytest -m integration
 python -m pytest -m e2e
 ```
+
+## OpenRouter Setup (For Real LLM Calls)
+
+Когда перейдем к runtime-слайсам (`I2.*`), можно включить реальные вызовы LLM.
+
+1. Скопируйте `.env.example` в `.env`.
+2. Заполните `OPENROUTER_API_KEY`.
+3. При необходимости смените `OPENROUTER_MODEL`.
+
+Важно: `.env` добавлен в `.gitignore` и не должен попадать в git.
