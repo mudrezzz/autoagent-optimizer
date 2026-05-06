@@ -1,0 +1,17 @@
+version: arena_v0
+dataset_file: ../datasets/golden_support_v1.jsonl
+execution_mode: expected_stub
+budget_policy: equal_cases
+cases_limit: 0
+task_prefix: arena-demo
+participants:
+  - participant_id: direct_llm_candidate
+    dsl_file: ../dsl/direct_llm.yaml
+    stub_behavior: perfect
+  - participant_id: ocr_first_candidate
+    dsl_file: ../dsl/ocr_first.yaml
+    stub_behavior: fail_sensitive
+  - participant_id: hitl_gate_candidate
+    dsl_file: ../dsl/hitl_gate.yaml
+    stub_behavior: fail_all
+

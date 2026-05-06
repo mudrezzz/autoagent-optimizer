@@ -16,7 +16,7 @@
 ## Active Window (Now)
 
 - `Current Focus`: MVP-1 / I3
-- `Active Next Slice`: I3.S3
+- `Active Next Slice`: I4.S1
 
 ---
 
@@ -173,8 +173,23 @@
 
 ### I3.S3 - Architecture Arena equal-budget tournament v0
 
-- Status: Planned
+- Status: Done
 - Goal: сравнение 2-3 архитектур в равном бюджете с reproducible отчетом.
+- Deliverables:
+  - `optimizer/arena/tournament_schema.py`,
+  - `optimizer/arena/io.py`,
+  - `optimizer/arena/runner.py`,
+  - `optimizer/arena/run_tournament.py`,
+  - `examples/arena/support_tournament_v0.yaml`,
+  - `scripts/smoke_run_arena.ps1`,
+  - `docs/specs/Architecture_Arena_v0.md`.
+- Acceptance Criteria:
+  1. Один CLI-запуск сравнивает минимум 2 и максимум 3 архитектуры на общем датасете.
+  2. Equal-budget policy (`equal_cases`) применяет одинаковый набор кейсов для всех участников.
+  3. Отчет содержит ranking и winner по прозрачным правилам tie-break.
+  4. Добавлены unit/integration/e2e тесты и зеленый полный `python -m pytest`.
+- Dependencies: I3.S2.
+- Risks: `expected_stub` режим дает упрощенный baseline и не заменяет production runtime-сравнение.
 
 ### I4.S1 - Middle-metrics v0
 
@@ -268,4 +283,20 @@
 - Реализован typed loader с диагностикой ошибок по line number.
 - Добавлен CLI `python -m optimizer.evaluation.validate_dataset`.
 - Добавлен smoke-скрипт валидации датасета и покрытие unit/integration/e2e.
+- Commit: tracked in git history.
+
+### I3.S2 - Done
+
+- Реализован executable oracle runner на базе `must_include/forbidden` правил.
+- Добавлен CLI `python -m optimizer.evaluation.run_oracle` и smoke-скрипт oracle прогона.
+- Добавлены deterministic (`expected_stub`) и runtime пути исполнения.
+- Добавлены unit/integration/e2e тесты и зеленый full pytest gate.
+- Commit: tracked in git history.
+
+### I3.S3 - Done
+
+- Реализован Architecture Arena v0 для сравнения 2-3 архитектур.
+- Введен equal-budget policy `equal_cases` с единым набором кейсов для всех участников.
+- Добавлен CLI `python -m optimizer.arena.run_tournament`, example tournament config и smoke-скрипт.
+- Добавлены unit/integration/e2e тесты arena-контура.
 - Commit: tracked in git history.

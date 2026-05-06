@@ -6,8 +6,8 @@ OSS-first платформа для архитектурного поиска, w
 
 - `Phase`: MVP-1 (foundation)
 - `Iteration`: I3 - Evaluation + Arena Lite
-- `Overall`: In Progress (I2.S1-I3.S2 done)
-- `Next Slice`: I3.S3 Architecture Arena equal-budget tournament v0
+- `Overall`: In Progress (I2.S1-I3.S3 done)
+- `Next Slice`: I4.S1 Middle-metrics v0
 
 Подробный статус:
 
@@ -52,6 +52,13 @@ OSS-first платформа для архитектурного поиска, w
 - `scripts/smoke_generate_agent_code.ps1` - smoke-демо генерации и запуска кодового агента.
 - `scripts/smoke_validate_dataset.ps1` - smoke-валидация golden dataset.
 - `scripts/smoke_run_oracle.ps1` - smoke-прогон executable oracle runner.
+
+
+## I3.S3 Artifacts
+
+- `optimizer/arena` - equal-budget tournament runner и CLI сравнения 2-3 архитектур.
+- `examples/arena/support_tournament_v0.yaml` - эталонная конфигурация турнира.
+- `scripts/smoke_run_arena.ps1` - smoke-прогон Architecture Arena tournament.
 
 ## Definition of Done For a Slice
 
@@ -114,6 +121,21 @@ python -m optimizer.evaluation.run_oracle --dsl-file .\examples\dsl\direct_llm.y
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_oracle.ps1
+```
+
+
+## Arena Demo Quickstart (PowerShell)
+
+Сравнение 3 кандидатов в equal-budget режиме:
+
+```powershell
+python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_v0.yaml --pretty
+```
+
+Полный smoke-прогон arena:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena.ps1
 ```
 
 Resume quickstart:

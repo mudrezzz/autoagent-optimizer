@@ -54,7 +54,7 @@
 |---|---|---|---|
 | I3.S1 | Golden dataset JSONL + loader | Done | dataset contract + loader + CLI |
 | I3.S2 | Executable oracle runner (schema/pytest) | Done | deterministic evaluation |
-| I3.S3 | Architecture Arena equal-budget tournament v0 | Planned | baseline comparison report |
+| I3.S3 | Architecture Arena equal-budget tournament v0 | Done | baseline comparison report |
 
 ### Iteration I4 - Evidence + Export
 

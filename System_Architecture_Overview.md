@@ -98,9 +98,12 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.evaluation.validate_dataset` (CLI dataset validation),
    - `optimizer.evaluation.oracle_rules` (v0 правила `must_include/forbidden`),
    - `optimizer.evaluation.oracle_runner` (исполняемый runner и summary),
-   - `optimizer.evaluation.run_oracle` (CLI oracle прогона).
+   - `optimizer.evaluation.run_oracle` (CLI oracle прогона),
+   - `optimizer.arena.tournament_schema` (typed contract конфига tournament),
+   - `optimizer.arena.runner` (equal-budget tournament execution),
+   - `optimizer.arena.run_tournament` (CLI tournament compare path).
 2. Next:
-   - Architecture Arena equal-budget tournament v0 (I3.S3).
+   - Middle-metrics v0 (I4.S1).
 
 ## Decision Records
 

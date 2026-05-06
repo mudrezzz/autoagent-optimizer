@@ -80,10 +80,22 @@ python -m optimizer.evaluation.run_oracle --dsl-file .\examples\dsl\direct_llm.y
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_oracle.ps1
 ```
 
-Следующий шаг D2:
+Что уже добавлено в D2:
 
 1. equal-budget tournament между 2-3 архитектурами (I3.S3);
-2. подготовка к output + middle metrics (I4.S1).
+2. ranking + winner с прозрачным tie-break контрактом;
+3. CLI и smoke-команда для воспроизводимого сравнения.
+
+Команды Arena:
+
+```powershell
+python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_v0.yaml --pretty
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena.ps1
+```
+
+Следующий шаг:
+
+1. middle-metrics v0 (I4.S1).
 
 ### Stage D3 (I4) - Champion Demo
 
@@ -106,4 +118,4 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_oracle.ps1
 
 - Active stage: `D2 (I3)`
 - Demo readiness: `Green`
-- Next demo milestone: `D2 arena` after completion of `I3.S3`
+- Next demo milestone: `D3 metrics/evidence path` starting with `I4.S1`
