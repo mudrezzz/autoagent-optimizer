@@ -143,6 +143,12 @@
 - Создан этот executable backlog и синхронизированы статусные документы.
 - Commit: tracked in git history.
 
+### I0.S3 - Done
+
+- Добавлен синхронный demo track и зафиксирована политика его обязательного развития.
+- Принят ADR с обязательным demo-sync правилом.
+- Commit: tracked in git history.
+
 ### I1.S1 - Done
 
 - Реализованы typed DSL v0 schema, YAML loader, CLI-валидатор и smoke-скрипт.

@@ -16,6 +16,7 @@ OSS-first платформа для архитектурного поиска, w
 - [ADR Index](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/README.md)
 - [Project Operating Model](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/process/Project_Operating_Model.md)
 - [Executable Slice Backlog](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/backlog/Executable_Slice_Backlog.md)
+- [Demo Track](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/demo/Demo_Track.md)
 
 ## Project Rules
 
@@ -25,6 +26,7 @@ OSS-first платформа для архитектурного поиска, w
 4. Новый разработчик должен за 10-15 минут понять текущий статус и взять следующий слайс.
 5. Каждый слайс завершается отдельным git commit.
 6. Развитие идет концентрическими MVP-кругами: MVP-1 -> MVP-2 -> MVP-3.
+7. Демо развивается синхронно с функционалом и обновляется на каждом слайсе.
 
 ## Repository Map
 

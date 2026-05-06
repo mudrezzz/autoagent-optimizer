@@ -29,6 +29,7 @@
 |---|---|---|---|
 | I0.S1 | Project governance docs baseline | Done | README + Roadmap + Architecture + ADR process |
 | I0.S2 | Initial backlog shaping from TZ to executable slices | Done | prioritized slice backlog |
+| I0.S3 | Continuous demo track baseline and policy | Done | demo scenario + ADR + process rules |
 
 ### Iteration I1 - DSL/IR Skeleton
 
@@ -125,3 +126,9 @@
 Детализированный исполнимый backlog:
 
 - [docs/backlog/Executable_Slice_Backlog.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/backlog/Executable_Slice_Backlog.md)
+
+## Demo Track
+
+Синхронный демо-трек проекта:
+
+- [docs/demo/Demo_Track.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/demo/Demo_Track.md)
