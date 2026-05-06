@@ -95,9 +95,12 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.renderer.langgraph_dai.checkpoint_store` (invoke/resume checkpoint contract),
    - `optimizer.evaluation.dataset_schema` (golden dataset typed contract),
    - `optimizer.evaluation.dataset_loader` (JSONL loader with line diagnostics),
-   - `optimizer.evaluation.validate_dataset` (CLI dataset validation).
+   - `optimizer.evaluation.validate_dataset` (CLI dataset validation),
+   - `optimizer.evaluation.oracle_rules` (v0 правила `must_include/forbidden`),
+   - `optimizer.evaluation.oracle_runner` (исполняемый runner и summary),
+   - `optimizer.evaluation.run_oracle` (CLI oracle прогона).
 2. Next:
-   - executable oracle runner (I3.S2).
+   - Architecture Arena equal-budget tournament v0 (I3.S3).
 
 ## Decision Records
 

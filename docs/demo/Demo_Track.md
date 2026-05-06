@@ -70,13 +70,20 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_generate_agent_code.ps1
 Что уже показываем:
 
 1. валидацию golden dataset JSONL через typed loader и CLI;
-2. smoke-прогон dataset-контракта перед evaluation шагами.
+2. исполняемый oracle-прогон по golden dataset (`expected_stub` для deterministic smoke/CI);
+3. summary pass/fail (`cases_total/passed/failed/pass_rate`) и корректный exit code.
 
-План показа (следующие слайсы D2):
+Команды:
 
-1. исполняемый прогон на golden dataset (oracle runner);
-2. output + middle metrics;
-3. equal-budget tournament между 2-3 архитектурами.
+```powershell
+python -m optimizer.evaluation.run_oracle --dsl-file .\examples\dsl\direct_llm.yaml --dataset-file .\examples\datasets\golden_support_v1.jsonl --execution-mode expected_stub --pretty
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_oracle.ps1
+```
+
+Следующий шаг D2:
+
+1. equal-budget tournament между 2-3 архитектурами (I3.S3);
+2. подготовка к output + middle metrics (I4.S1).
 
 ### Stage D3 (I4) - Champion Demo
 
@@ -99,4 +106,4 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_generate_agent_code.ps1
 
 - Active stage: `D2 (I3)`
 - Demo readiness: `Green`
-- Next demo milestone: `D2 oracle + arena` after completion of `I3.S2-I3.S3`
+- Next demo milestone: `D2 arena` after completion of `I3.S3`

@@ -6,8 +6,8 @@ OSS-first платформа для архитектурного поиска, w
 
 - `Phase`: MVP-1 (foundation)
 - `Iteration`: I3 - Evaluation + Arena Lite
-- `Overall`: In Progress (I2.S1-I3.S1 done)
-- `Next Slice`: I3.S2 Executable oracle runner (schema/pytest)
+- `Overall`: In Progress (I2.S1-I3.S2 done)
+- `Next Slice`: I3.S3 Architecture Arena equal-budget tournament v0
 
 Подробный статус:
 
@@ -41,7 +41,7 @@ OSS-first платформа для архитектурного поиска, w
 - `optimizer/renderer/langgraph_dai` - runtime renderer и запуск Graph IR workflow.
 - `optimizer/codegen` - DSL/IR -> сгенерированный код агента (package + runner).
 - `optimizer/tracing` - node-level события исполнения и сводка trace по run.
-- `optimizer/evaluation` - golden dataset contract, loader и CLI-валидация.
+- `optimizer/evaluation` - golden dataset contract, loader, oracle runner и CLI-валидация/прогон.
 - `examples/dsl` - эталонные YAML-спеки (`direct_llm`, `ocr_first`, `hitl_gate`).
 - `examples/graph_ir` - эталонные Graph IR JSON-спеки.
 - `examples/datasets` - эталонные golden dataset JSONL кейсы.
@@ -51,6 +51,7 @@ OSS-first платформа для архитектурного поиска, w
 - `scripts/smoke_run_runtime_demo.ps1` - smoke runtime-демо исполнения workflow.
 - `scripts/smoke_generate_agent_code.ps1` - smoke-демо генерации и запуска кодового агента.
 - `scripts/smoke_validate_dataset.ps1` - smoke-валидация golden dataset.
+- `scripts/smoke_run_oracle.ps1` - smoke-прогон executable oracle runner.
 
 ## Definition of Done For a Slice
 
@@ -99,6 +100,20 @@ python -m optimizer.renderer.langgraph_dai.run --dsl-file .\examples\dsl\direct_
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_runtime_demo.ps1
+```
+
+## Oracle Demo Quickstart (PowerShell)
+
+Быстрая проверка исполняемой оценки на golden dataset (детерминированный режим для smoke/CI):
+
+```powershell
+python -m optimizer.evaluation.run_oracle --dsl-file .\examples\dsl\direct_llm.yaml --dataset-file .\examples\datasets\golden_support_v1.jsonl --execution-mode expected_stub --pretty
+```
+
+Полный smoke-прогон oracle:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_oracle.ps1
 ```
 
 Resume quickstart:

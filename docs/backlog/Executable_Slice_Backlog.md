@@ -16,7 +16,7 @@
 ## Active Window (Now)
 
 - `Current Focus`: MVP-1 / I3
-- `Active Next Slice`: I3.S2
+- `Active Next Slice`: I3.S3
 
 ---
 
@@ -155,8 +155,21 @@
 
 ### I3.S2 - Executable oracle runner (schema/pytest)
 
-- Status: Planned
+- Status: Done
 - Goal: исполняемая oracle-проверка результата по `expected` контракту датасета.
+- Deliverables:
+  - `optimizer/evaluation/oracle_rules.py`,
+  - `optimizer/evaluation/oracle_runner.py`,
+  - `optimizer/evaluation/run_oracle.py`,
+  - `scripts/smoke_run_oracle.ps1`,
+  - `docs/specs/Oracle_Runner_v0.md`.
+- Acceptance Criteria:
+  1. Есть rule-contract v0 (`must_include`/`forbidden`) и pass/fail по каждому кейсу.
+  2. CLI выдает summary (`cases_total/passed/failed/pass_rate`) и корректный exit code.
+  3. Есть deterministic `expected_stub` режим для smoke/CI.
+  4. Добавлены unit/integration/e2e тесты и зеленый полный `python -m pytest`.
+- Dependencies: I3.S1.
+- Risks: правила v0 текстовые и не покрывают семантическую эквивалентность ответов.
 
 ### I3.S3 - Architecture Arena equal-budget tournament v0
 
