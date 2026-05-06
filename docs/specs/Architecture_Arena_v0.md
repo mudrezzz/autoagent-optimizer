@@ -136,6 +136,14 @@ scoring:
 
 ## CLI
 
+Стабильный deterministic запуск (для CI):
+
+```powershell
+python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_ci_v0.yaml --pretty
+```
+
+Live runtime запуск (для демо/ручной проверки):
+
 ```powershell
 python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_v0.yaml --pretty
 ```
@@ -151,6 +159,14 @@ python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_t
 
 ## Smoke
 
+CI smoke:
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena.ps1
+```
+
+Live smoke:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live.ps1
 ```

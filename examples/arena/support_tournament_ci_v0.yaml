@@ -1,7 +1,7 @@
 version: arena_v0
 dataset_file: ../datasets/golden_support_v1.jsonl
-execution_mode: runtime # expected_stub
-task_prefix: arena-demo
+execution_mode: expected_stub
+task_prefix: arena-ci
 budget:
   policy: equal_cases
   unit: cases

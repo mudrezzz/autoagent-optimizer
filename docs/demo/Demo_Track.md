@@ -89,8 +89,15 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_oracle.ps1
 Команды Arena:
 
 ```powershell
-python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_v0.yaml --pretty
+python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_ci_v0.yaml --pretty
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena.ps1
+```
+
+Live команды Arena:
+
+```powershell
+python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_v0.yaml --pretty
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live.ps1
 ```
 
 Что уже добавлено в D3:

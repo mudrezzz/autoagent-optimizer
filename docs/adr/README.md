@@ -42,6 +42,7 @@
 13. [ADR-0013-architecture-arena-equal-budget-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0013-architecture-arena-equal-budget-v0.md) - Accepted
 14. [ADR-0014-arena-policies-config-driven.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0014-arena-policies-config-driven.md) - Accepted
 15. [ADR-0015-middle-metrics-and-composite-scoring-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0015-middle-metrics-and-composite-scoring-v0.md) - Accepted
+16. [ADR-0016-dual-metrics-model-comparative-vs-diagnostic.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0016-dual-metrics-model-comparative-vs-diagnostic.md) - Accepted
 
 ## Template
 

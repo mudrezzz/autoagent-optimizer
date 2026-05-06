@@ -3,9 +3,9 @@ param()
 
 $ErrorActionPreference = "Stop"
 
-# Вычисляем корень репозитория и путь к arena-конфигу.
+# Вычисляем корень репозитория и путь к стабильному CI arena-конфигу.
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$arenaFile = Join-Path $repoRoot "examples\arena\support_tournament_v0.yaml"
+$arenaFile = Join-Path $repoRoot "examples\arena\support_tournament_ci_v0.yaml"
 
 Write-Host "[SMOKE] run architecture arena tournament"
 python -m optimizer.arena.run_tournament `
@@ -16,4 +16,3 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "[SMOKE] arena tournament completed successfully."
-

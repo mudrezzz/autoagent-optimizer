@@ -61,7 +61,7 @@
 | Slice | Description | Status | Output |
 |---|---|---|---|
 | I4.S1 | Middle-metrics v0 | Done | per-node quality/cost/latency metrics + composite scoring |
-| I4.S2 | Evidence Pack v0 generator | Planned | champion reasoning report |
+| I4.S2 | Evidence Pack v0 + dual-metrics contract | Planned | comparative vs diagnostic evidence report |
 | I4.S3 | Champion export bundle v0 | Planned | deployable artifact set |
 
 ---
@@ -84,7 +84,7 @@
 |---|---|---|---|
 | I6.S1 | Config search policies (random/grid/optuna) | Planned | deep optimization rounds |
 | I6.S2 | Promote/prune + budget allocator | Planned | architecture family progression |
-| I6.S3 | Intervention operators v0 | Planned | targeted bottleneck fixes |
+| I6.S3 | Intervention operators v0 (diagnostic-driven) | Planned | targeted bottleneck fixes from diagnostic signals |
 
 ---
 

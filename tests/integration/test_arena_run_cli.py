@@ -20,7 +20,7 @@ def _project_root() -> Path:
 def test_arena_run_cli_support_tournament_success() -> None:
     """Проверяет успешный запуск arena CLI на эталонном турнире из examples."""
 
-    arena_file = _project_root() / "examples" / "arena" / "support_tournament_v0.yaml"
+    arena_file = _project_root() / "examples" / "arena" / "support_tournament_ci_v0.yaml"
     proc = subprocess.run(
         [
             sys.executable,

@@ -69,6 +69,15 @@ OSS-first платформа для архитектурного поиска, w
 - `optimizer/arena/runner.py` - расчет `middle_metrics`, `composite_score` и `score_breakdown` в tournament output.
 - `examples/arena/support_tournament_v0.yaml` - демо-конфиг с включенным `scoring`.
 
+## Dual Metrics Model
+
+В проекте закреплена модель двух типов метрик:
+
+1. `Comparative Metrics` - только для сравнения архитектур и ranking.
+2. `Diagnostic Signals` - только для локализации bottleneck и планирования intervention.
+
+Фиксация решения: `ADR-0016`.
+
 ## Definition of Done For a Slice
 
 1. Реализация завершена и проверена локально.
@@ -97,6 +106,13 @@ python -m pytest
 python -m pytest -m unit
 python -m pytest -m integration
 python -m pytest -m e2e
+```
+
+Live runtime-тесты (опционально, неблокирующие):
+
+```powershell
+$env:RUN_LIVE_ARENA="1"
+python -m pytest -m live
 ```
 
 ## PowerShell JSON Tip
@@ -135,10 +151,10 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_oracle.ps1
 
 ## Arena Demo Quickstart (PowerShell)
 
-Сравнение 3 кандидатов в equal-budget режиме:
+Стабильный CI-турнир (deterministic `expected_stub`):
 
 ```powershell
-python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_v0.yaml --pretty
+python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_ci_v0.yaml --pretty
 ```
 
 В успешном выводе проверьте:
@@ -147,10 +163,22 @@ python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_t
 2. `ranking_policy[0].name: composite_score`
 3. у каждого участника есть `middle_metrics`, `composite_score`, `score_breakdown`
 
+Live runtime-демо (winner может меняться из-за LLM):
+
+```powershell
+python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_v0.yaml --pretty
+```
+
 Полный smoke-прогон arena:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena.ps1
+```
+
+Live smoke-прогон arena:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live.ps1
 ```
 
 Resume quickstart:

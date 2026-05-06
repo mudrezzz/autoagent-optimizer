@@ -47,6 +47,9 @@ Input (Task + Constraints + Data + Tools + Budget)
    - optional LLM-as-judge as auxiliary signal.
 6. `Optimization Layer`
    - equal-budget baseline tournament.
+   - dual-metrics model:
+     - comparative metrics for ranking,
+     - diagnostic signals for bottleneck localization.
    - local config search in promoted families.
 7. `Evidence Layer`
    - champion/challenger comparison.
@@ -105,7 +108,7 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.metrics.middle_metrics` (middle-метрики и latency/cost агрегаты),
    - `optimizer.arena` scoring path (`composite_score`, `score_breakdown`, config-driven weights).
 2. Next:
-   - Evidence Pack v0 (I4.S2).
+   - Evidence Pack v0 + dual-metrics contract (I4.S2).
 
 ## Decision Records
 

@@ -15,8 +15,8 @@
 
 ## Active Window (Now)
 
-- `Current Focus`: MVP-1 / I3
-- `Active Next Slice`: I4.S1
+- `Current Focus`: MVP-1 / I4
+- `Active Next Slice`: I4.S2
 
 ---
 
@@ -193,18 +193,42 @@
 
 ### I4.S1 - Middle-metrics v0
 
-- Status: Planned
+- Status: Done
 - Goal: ввести промежуточные метрики качества/стоимости/латентности.
 
 ### I4.S2 - Evidence pack generator
 
 - Status: Planned
-- Goal: собрать evidence pack champion/challenger.
+- Goal: собрать evidence pack champion/challenger с разделением comparative и diagnostic метрик.
+- Deliverables:
+  - `optimizer/evidence/*` (генератор отчетов),
+  - `docs/specs/Evidence_Pack_v0.md`,
+  - обновленный JSON-контракт результатов Arena (`comparison` + `diagnostics` разделы).
+- Acceptance Criteria:
+  1. В отчете отдельные секции:
+     - `comparison` (для ranking),
+     - `diagnostics` (для локализации bottleneck).
+  2. Для каждого candidate есть минимум:
+     - `comparative_metrics`,
+     - `diagnostic_signals_by_stage`.
+  3. Для winner/challenger формируется explainable diff по comparative-метрикам.
+  4. Добавлены unit/integration/e2e тесты и зеленый полный `python -m pytest`.
+- Dependencies: I4.S1.
+- Risks: смешение ranking-метрик и root-cause сигналов в одной шкале.
 
 ### I4.S3 - Champion export bundle
 
 - Status: Planned
-- Goal: сформировать экспортируемый пакет лучшей конфигурации.
+- Goal: сформировать экспортируемый пакет лучшей конфигурации и диагностической карты улучшений.
+- Deliverables:
+  - bundle champion artifacts,
+  - `diagnostic_map.json` (top bottlenecks + suggested interventions).
+- Acceptance Criteria:
+  1. Bundle включает runnable config/code и evidence pack.
+  2. Диагностическая карта содержит приоритизированные точки оптимизации.
+  3. Добавлены integration/e2e проверки экспортируемого комплекта.
+- Dependencies: I4.S2.
+- Risks: переизбыточный объем bundle без явной структуры.
 
 ---
 
