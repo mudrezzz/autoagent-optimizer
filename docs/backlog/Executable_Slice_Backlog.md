@@ -15,8 +15,8 @@
 
 ## Active Window (Now)
 
-- `Current Focus`: MVP-1 / I1-I2
-- `Active Next Slice`: I2.S4
+- `Current Focus`: MVP-1 / I2-I3
+- `Active Next Slice`: I3.S1
 
 ---
 
@@ -119,7 +119,7 @@
 
 ### I2.S4 - Resume/checkpoint contract path
 
-- Status: Planned
+- Status: Done
 - Goal: подтвержденный invoke/resume сценарий для долгих execution.
 - Inputs: FR-6, FR-19.
 - Deliverables:
@@ -206,4 +206,12 @@
 - Добавлен `InMemoryTraceStore` и агрегированная `trace_summary` по run/task.
 - Runtime и CLI теперь возвращают `node_events` + `trace_summary`.
 - Добавлены unit/integration тесты trace-контракта.
+- Commit: tracked in git history.
+
+### I2.S4 - Done
+
+- Реализован checkpoint/resume контракт с файловым checkpoint-store.
+- Добавлен invoke/resume путь в runtime API и CLI (`--resume-task-id`, `--checkpoint-dir`).
+- Добавлены integration/negative тесты на missing/invalid task_id.
+- Добавлен smoke invoke->resume сценарий в runtime demo.
 - Commit: tracked in git history.

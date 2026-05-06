@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from optimizer.graph_ir.models import GraphIREdge, GraphIRNode, GraphIRSpec, GraphNodeKind
 from optimizer.renderer.langgraph_dai.adapter import GraphIRToLangGraphRenderer, RendererBindings
+from optimizer.renderer.langgraph_dai.checkpoint_store import FileRuntimeCheckpointStore, RuntimeCheckpointStoreError
 from optimizer.renderer.langgraph_dai.runtime_state import RenderedGraphState
 
 import pytest
@@ -92,3 +95,51 @@ def test_renderer_executes_high_risk_branch_with_review() -> None:
     assert "finish" in result.executed_nodes
     assert result.trace_summary["task_id"] == "it-high-risk"
     assert result.trace_summary["started"] >= 1
+
+
+@pytest.mark.integration
+def test_renderer_resume_from_checkpoint_preserves_task_id(tmp_path: Path) -> None:
+    """Проверяет invoke->resume путь с checkpoint и сохранением task_id контекста."""
+
+    graph_ir = _build_conditional_graph_ir()
+    checkpoint_store = FileRuntimeCheckpointStore(tmp_path / "checkpoints")
+    renderer = GraphIRToLangGraphRenderer()
+    runtime = renderer.render(
+        graph_ir,
+        bindings=RendererBindings(),
+        checkpoint_store=checkpoint_store,
+    )
+
+    first_state = runtime.invoke(payload={"action_risk": "low"}, task_id="resume-contract-task")
+    assert checkpoint_store.exists("resume-contract-task") is True
+
+    resumed_state = runtime.resume(
+        task_id="resume-contract-task",
+        payload_patch={"action_risk": "high", "review_decision": "approve"},
+    )
+    assert resumed_state.task_context["task_id"] == "resume-contract-task"
+    assert resumed_state.trace_summary["task_id"] == "resume-contract-task"
+    assert len(resumed_state.executed_nodes) >= len(first_state.executed_nodes)
+
+
+@pytest.mark.integration
+def test_renderer_resume_fails_for_missing_or_empty_task_id(tmp_path: Path) -> None:
+    """Проверяет негативные кейсы resume: пустой task_id и отсутствующий checkpoint."""
+
+    graph_ir = _build_conditional_graph_ir()
+    checkpoint_store = FileRuntimeCheckpointStore(tmp_path / "checkpoints")
+    renderer = GraphIRToLangGraphRenderer()
+    runtime = renderer.render(
+        graph_ir,
+        bindings=RendererBindings(),
+        checkpoint_store=checkpoint_store,
+    )
+
+    with pytest.raises(RuntimeCheckpointStoreError):
+        runtime.resume(task_id="")
+
+    with pytest.raises(RuntimeCheckpointStoreError):
+        runtime.resume(task_id="unknown-task")
+
+    with pytest.raises(RuntimeCheckpointStoreError):
+        runtime.invoke(payload={"action_risk": "low"}, task_id="")

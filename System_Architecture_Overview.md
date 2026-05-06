@@ -91,9 +91,10 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.codegen.agent_generator` (Graph IR -> generated runnable package),
    - `optimizer.codegen.generate` (CLI code generation path),
    - `optimizer.tracing.node_events` (structured node-level events),
-   - `optimizer.tracing.trace_store` (in-memory trace summary per run).
+   - `optimizer.tracing.trace_store` (in-memory trace summary per run),
+   - `optimizer.renderer.langgraph_dai.checkpoint_store` (invoke/resume checkpoint contract).
 2. Next:
-   - resume/checkpoint contract path (I2.S4).
+   - golden dataset JSONL + loader (I3.S1).
 
 ## Decision Records
 

@@ -22,6 +22,8 @@
    - `skipped_nodes`
    - `node_outputs`
    - `trace`
+   - `node_events`
+   - `trace_summary`
 4. Условные ребра оцениваются через `ConditionEvaluator`.
 
 ## Branch Semantics v0
@@ -63,3 +65,9 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_runtime_demo.ps1
 ```
 
 Примечание: для PowerShell основной способ запуска — `--payload-file`, чтобы избежать ошибок экранирования JSON.
+
+Resume запуск из checkpoint:
+
+```powershell
+python -m optimizer.renderer.langgraph_dai.run --dsl-file .\examples\dsl\hitl_gate.yaml --resume-task-id demo-resume-task --payload-file .\tmp\resume.json --checkpoint-dir .\tmp\runtime_checkpoints --pretty
+```

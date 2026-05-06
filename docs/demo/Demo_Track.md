@@ -50,11 +50,11 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_compile_dsl_to_ir.ps1
 3. invoke path на нескольких сценариях (`direct_llm`, `hitl_gate low/high risk`);
 4. реальный OpenRouter-вызов в LLM узлах при наличии `OPENROUTER_API_KEY`;
 5. генерация кодового артефакта агента (`DSL -> generated package -> generated runner`).
+6. checkpoint/resume путь (`invoke -> checkpoint -> resume`) по `task_id`.
 
 Пока в работе:
 
-1. resume/checkpoint сценарий;
-2. расширение trace в сторону checkpoint-aware run history.
+1. расширение trace в сторону checkpoint-aware run history.
 
 Команды:
 

@@ -5,9 +5,9 @@ OSS-first платформа для архитектурного поиска, w
 ## Current Status
 
 - `Phase`: MVP-1 (foundation)
-- `Iteration`: I2 - Runtime Rendering
-- `Overall`: In Progress (I2.S1-I2.S3 done)
-- `Next Slice`: I2.S4 Resume/checkpoint contract path
+- `Iteration`: I3 - Evaluation + Arena Lite
+- `Overall`: In Progress (I2.S1-I2.S4 done)
+- `Next Slice`: I3.S1 Golden dataset JSONL + loader
 
 Подробный статус:
 
@@ -96,6 +96,16 @@ python -m optimizer.renderer.langgraph_dai.run --dsl-file .\examples\dsl\direct_
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_runtime_demo.ps1
+```
+
+Resume quickstart:
+
+```powershell
+'{"query":"Create safe ticket","action_risk":"low"}' | Set-Content -LiteralPath .\tmp\start.json -Encoding UTF8
+python -m optimizer.renderer.langgraph_dai.run --dsl-file .\examples\dsl\hitl_gate.yaml --payload-file .\tmp\start.json --task-id demo-resume-task --checkpoint-dir .\tmp\runtime_checkpoints --pretty
+
+'{"action_risk":"high","review_decision":"approve"}' | Set-Content -LiteralPath .\tmp\resume.json -Encoding UTF8
+python -m optimizer.renderer.langgraph_dai.run --dsl-file .\examples\dsl\hitl_gate.yaml --resume-task-id demo-resume-task --payload-file .\tmp\resume.json --checkpoint-dir .\tmp\runtime_checkpoints --pretty
 ```
 
 ## OpenRouter Setup (For Real LLM Calls)

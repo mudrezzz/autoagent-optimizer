@@ -1,9 +1,10 @@
-"""CLI запуска рендеренного workflow поверх Graph IR/DSL."""
+"""CLI запуска и возобновления рендеренного workflow поверх Graph IR/DSL."""
 
 from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +12,7 @@ from optimizer.common.env_loader import load_env_file
 from optimizer.dsl.compiler import DslToGraphIRCompiler
 from optimizer.graph_ir.io import load_graph_ir_spec
 from optimizer.renderer.langgraph_dai.adapter import GraphIRToLangGraphRenderer, RendererBindings
+from optimizer.renderer.langgraph_dai.checkpoint_store import FileRuntimeCheckpointStore, RuntimeCheckpointStoreError
 from optimizer.renderer.langgraph_dai.runtime_state import RenderedGraphState
 
 
@@ -21,14 +23,25 @@ class RendererRunCli:
     def build_parser() -> argparse.ArgumentParser:
         """Создает CLI-парсер аргументов запуска."""
 
-        parser = argparse.ArgumentParser(description="Запуск Graph IR workflow на базе langgraph-dai")
+        parser = argparse.ArgumentParser(description="Запуск/возобновление Graph IR workflow на базе langgraph-dai")
         source_group = parser.add_mutually_exclusive_group(required=True)
         source_group.add_argument("--graph-ir-file", default="", help="Путь до Graph IR JSON файла.")
         source_group.add_argument("--dsl-file", default="", help="Путь до DSL YAML файла (с компиляцией перед запуском).")
-        parser.add_argument("--payload-json", default="{}", help="JSON-объект входного payload.")
-        parser.add_argument("--payload-file", default="", help="Путь до JSON-файла payload.")
-        parser.add_argument("--task-id", default="demo-task", help="task_id для runtime state.")
+        parser.add_argument("--payload-json", default="{}", help="JSON-объект входного payload или payload patch.")
+        parser.add_argument("--payload-file", default="", help="Путь до JSON-файла payload или payload patch.")
+        parser.add_argument("--task-id", default="demo-task", help="task_id для нового invoke-запуска.")
         parser.add_argument("--run-id", default="", help="run_id для трассировки; если пусто, генерируется автоматически.")
+        parser.add_argument("--resume-task-id", default="", help="Если задан, выполняется resume из checkpoint по этому task_id.")
+        parser.add_argument(
+            "--checkpoint-dir",
+            default=".\\tmp\\runtime_checkpoints",
+            help="Каталог хранения checkpoint runtime-состояний.",
+        )
+        parser.add_argument(
+            "--disable-langgraph-checkpointer",
+            action="store_true",
+            help="Отключает встроенный LangGraph checkpointer (для локальной диагностики).",
+        )
         parser.add_argument("--pretty", action="store_true", help="Печатать результат в pretty JSON.")
         return parser
 
@@ -43,16 +56,33 @@ class RendererRunCli:
         project_root = Path(__file__).resolve().parents[3]
         load_env_file(project_root / ".env")
 
-        graph_ir = _resolve_graph_ir(args)
-        payload = _resolve_payload(args)
+        try:
+            graph_ir = _resolve_graph_ir(args)
+            payload = _resolve_payload(args)
+            checkpoint_store = FileRuntimeCheckpointStore(Path(args.checkpoint_dir).resolve())
+            renderer = GraphIRToLangGraphRenderer()
+            runtime = renderer.render(
+                graph_ir=graph_ir,
+                bindings=_build_demo_bindings(),
+                checkpoint_store=checkpoint_store,
+                enable_langgraph_checkpointer=(not args.disable_langgraph_checkpointer),
+            )
 
-        renderer = GraphIRToLangGraphRenderer()
-        runtime = renderer.render(graph_ir=graph_ir, bindings=_build_demo_bindings())
-        final_state = runtime.invoke(
-            payload=payload,
-            task_id=args.task_id,
-            run_id=(args.run_id.strip() or None),
-        )
+            if args.resume_task_id.strip():
+                final_state = runtime.resume(
+                    task_id=args.resume_task_id.strip(),
+                    payload_patch=payload,
+                    run_id=(args.run_id.strip() or None),
+                )
+            else:
+                final_state = runtime.invoke(
+                    payload=payload,
+                    task_id=args.task_id,
+                    run_id=(args.run_id.strip() or None),
+                )
+        except (ValueError, RuntimeCheckpointStoreError, FileNotFoundError, json.JSONDecodeError) as exc:
+            print(f"[RUNTIME ERROR] {exc}", file=sys.stderr)
+            return 1
 
         rendered = _render_state_summary(final_state)
         if args.pretty:

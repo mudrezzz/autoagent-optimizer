@@ -23,6 +23,7 @@ class RenderedGraphIRWorkflow(BaseWorkflow):
         graph_ir: GraphIRSpec,
         node_executor: GraphIRNodeExecutor,
         *,
+        checkpointer: object | None = None,
         trace_store: InMemoryTraceStore | None = None,
         use_langgraph_runtime: bool = True,
     ) -> None:
@@ -38,7 +39,7 @@ class RenderedGraphIRWorkflow(BaseWorkflow):
             self._edges_by_source[edge.source].append(edge)
         self._topological_order = self._build_topological_order(graph_ir)
 
-        super().__init__(use_langgraph_runtime=use_langgraph_runtime)
+        super().__init__(use_langgraph_runtime=use_langgraph_runtime, checkpointer=checkpointer)
         self.compile()
 
     def state_schema(self) -> type[RenderedGraphState]:
@@ -231,4 +232,3 @@ def _resolve_run_context(state: RenderedGraphState) -> tuple[str, str]:
     run_id = str(state.task_context.get("run_id", "run-unknown")).strip() or "run-unknown"
     task_id = str(state.task_context.get("task_id", "task-unknown")).strip() or "task-unknown"
     return run_id, task_id
-
