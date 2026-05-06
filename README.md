@@ -6,8 +6,8 @@ OSS-first платформа для архитектурного поиска, w
 
 - `Phase`: MVP-1 (foundation)
 - `Iteration`: I2 - Runtime Rendering
-- `Overall`: In Progress (I2.S1-I2.S2 done)
-- `Next Slice`: I2.S3 Node event capture + white-box trace v0
+- `Overall`: In Progress (I2.S1-I2.S3 done)
+- `Next Slice`: I2.S4 Resume/checkpoint contract path
 
 Подробный статус:
 
@@ -40,6 +40,7 @@ OSS-first платформа для архитектурного поиска, w
 - `optimizer/dsl/compiler.py` - компилятор DSL -> Graph IR и отчет компиляции.
 - `optimizer/renderer/langgraph_dai` - runtime renderer и запуск Graph IR workflow.
 - `optimizer/codegen` - DSL/IR -> сгенерированный код агента (package + runner).
+- `optimizer/tracing` - node-level события исполнения и сводка trace по run.
 - `examples/dsl` - эталонные YAML-спеки (`direct_llm`, `ocr_first`, `hitl_gate`).
 - `examples/graph_ir` - эталонные Graph IR JSON-спеки.
 - `scripts/smoke_validate_dsl.ps1` - smoke-проверка всех DSL-примеров.
@@ -77,6 +78,11 @@ python -m pytest -m unit
 python -m pytest -m integration
 python -m pytest -m e2e
 ```
+
+## PowerShell JSON Tip
+
+Для CLI-команд, где передается JSON payload, в PowerShell используйте `--payload-file` как основной способ запуска.
+Это исключает ошибки экранирования вида `unrecognized arguments`.
 
 ## OpenRouter Setup (For Real LLM Calls)
 

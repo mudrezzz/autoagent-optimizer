@@ -41,4 +41,6 @@ def test_renderer_run_cli_with_dsl_file() -> None:
     payload = json.loads(proc.stdout)
     assert "executed_nodes" in payload
     assert "trace" in payload
-
+    assert "node_events" in payload
+    assert "trace_summary" in payload
+    assert payload["trace_summary"]["events_total"] >= 1

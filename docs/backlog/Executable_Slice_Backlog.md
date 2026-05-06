@@ -16,7 +16,7 @@
 ## Active Window (Now)
 
 - `Current Focus`: MVP-1 / I1-I2
-- `Active Next Slice`: I2.S3
+- `Active Next Slice`: I2.S4
 
 ---
 
@@ -103,7 +103,7 @@
 
 ### I2.S3 - Node event capture + white-box trace v0
 
-- Status: Planned
+- Status: Done
 - Goal: снять node-level события и сделать базовый trace storage format.
 - Inputs: FR-9, FR-10.
 - Deliverables:
@@ -198,4 +198,12 @@
 - Добавлен CLI генерации `python -m optimizer.codegen.generate`.
 - Добавлен smoke demo генерации и запуска сгенерированного агента.
 - Добавлены unit/integration/e2e тесты нового функционала.
+- Commit: tracked in git history.
+
+### I2.S3 - Done
+
+- Реализован white-box trace v0 с node-level событиями `started/completed/failed/skipped`.
+- Добавлен `InMemoryTraceStore` и агрегированная `trace_summary` по run/task.
+- Runtime и CLI теперь возвращают `node_events` + `trace_summary`.
+- Добавлены unit/integration тесты trace-контракта.
 - Commit: tracked in git history.

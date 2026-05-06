@@ -89,9 +89,11 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.renderer.langgraph_dai.adapter` (IR -> BaseWorkflow adapter),
    - `optimizer.renderer.langgraph_dai.run` (CLI runtime execution),
    - `optimizer.codegen.agent_generator` (Graph IR -> generated runnable package),
-   - `optimizer.codegen.generate` (CLI code generation path).
+   - `optimizer.codegen.generate` (CLI code generation path),
+   - `optimizer.tracing.node_events` (structured node-level events),
+   - `optimizer.tracing.trace_store` (in-memory trace summary per run).
 2. Next:
-   - `optimizer.tracing` + node event capture (I2.S3).
+   - resume/checkpoint contract path (I2.S4).
 
 ## Decision Records
 

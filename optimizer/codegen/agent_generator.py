@@ -234,12 +234,16 @@ class GeneratedAgent:
 
         final_state = self._runtime.invoke(payload=payload, task_id=task_id)
         return {
+            "run_id": final_state.task_context.get("run_id"),
+            "task_id": final_state.task_context.get("task_id"),
             "executed_nodes": final_state.executed_nodes,
             "skipped_nodes": final_state.skipped_nodes,
             "errors": final_state.errors,
             "payload": final_state.payload,
             "node_outputs": final_state.node_outputs,
             "trace": final_state.trace,
+            "node_events": final_state.node_events,
+            "trace_summary": final_state.trace_summary,
         }
 '''
 
@@ -335,8 +339,11 @@ if __name__ == "__main__":
 ## Запуск
 
 ```powershell
-python .\\run_generated_agent.py --payload-json "{{\\"query\\": \\"Explain result\\"}}" --pretty
+'{{"query":"Explain result"}}' | Set-Content .\\payload.json -Encoding UTF8
+python .\\run_generated_agent.py --payload-file .\\payload.json --pretty
 ```
+
+Примечание: для PowerShell рекомендуется `--payload-file`, чтобы избежать проблем экранирования JSON-строки.
 
 ## Что нужно доработать вручную
 

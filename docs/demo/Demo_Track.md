@@ -54,7 +54,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_compile_dsl_to_ir.ps1
 Пока в работе:
 
 1. resume/checkpoint сценарий;
-2. node-level white-box trace слой.
+2. расширение trace в сторону checkpoint-aware run history.
 
 Команды:
 
@@ -62,6 +62,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_compile_dsl_to_ir.ps1
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_runtime_demo.ps1
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_generate_agent_code.ps1
 ```
+
+В runtime выводе ожидаем поля `node_events` и `trace_summary`.
 
 ### Stage D2 (I3) - Evaluation Demo
 

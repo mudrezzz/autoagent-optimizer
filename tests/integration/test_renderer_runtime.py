@@ -68,6 +68,11 @@ def test_renderer_executes_low_risk_branch() -> None:
     assert "execute_safe" in result.executed_nodes
     assert "finish" in result.executed_nodes
     assert "need_review" in result.skipped_nodes
+    assert result.trace_summary["task_id"] == "it-low-risk"
+    assert result.trace_summary["run_id"]
+    assert result.trace_summary["events_total"] >= len(result.executed_nodes)
+    assert any(event["status"] == "started" for event in result.node_events)
+    assert any(event["status"] == "completed" for event in result.node_events)
 
 
 @pytest.mark.integration
@@ -85,3 +90,5 @@ def test_renderer_executes_high_risk_branch_with_review() -> None:
     assert "need_review" in result.executed_nodes
     assert "execute_safe" in result.executed_nodes
     assert "finish" in result.executed_nodes
+    assert result.trace_summary["task_id"] == "it-high-risk"
+    assert result.trace_summary["started"] >= 1

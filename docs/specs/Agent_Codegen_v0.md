@@ -49,6 +49,15 @@
 python -m optimizer.codegen.generate --dsl-file .\examples\dsl\direct_llm.yaml --output-dir .\tmp\demo_codegen --package-name support_agent_v1 --pretty
 ```
 
+Рекомендуемый запуск сгенерированного агента в PowerShell:
+
+```powershell
+'{"query":"Что умеет агент?"}' | Set-Content .\tmp\demo_codegen\payload.json -Encoding UTF8
+python .\tmp\demo_codegen\run_generated_agent.py --payload-file .\tmp\demo_codegen\payload.json --pretty
+```
+
+Примечание: вариант с `--payload-json` в PowerShell чувствителен к экранированию, поэтому стандартом демо считается `--payload-file`.
+
 ## Demo
 
 ```powershell
@@ -60,4 +69,3 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_generate_agent_code.ps1
 1. Сгенерирован пакет агента в `tmp/generated_agent_demo`.
 2. Выполнен запуск `run_generated_agent.py`.
 3. В консоли виден JSON с `executed_nodes`, `node_outputs`, `trace`.
-

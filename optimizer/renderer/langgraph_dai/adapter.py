@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any
+from uuid import uuid4
 
 from infra.openrouter.chat_gateway import OpenRouterChatModelGateway
 
@@ -16,6 +17,7 @@ from optimizer.renderer.langgraph_dai.node_executor import (
 )
 from optimizer.renderer.langgraph_dai.runtime_state import RenderedGraphState
 from optimizer.renderer.langgraph_dai.workflow import RenderedGraphIRWorkflow
+from optimizer.tracing.trace_store import InMemoryTraceStore
 
 
 @dataclass
@@ -36,12 +38,19 @@ class RenderedWorkflowRuntime:
     workflow: RenderedGraphIRWorkflow
     graph_ir: GraphIRSpec
 
-    def invoke(self, payload: dict[str, Any], *, task_id: str = "demo-task") -> RenderedGraphState:
+    def invoke(
+        self,
+        payload: dict[str, Any],
+        *,
+        task_id: str = "demo-task",
+        run_id: str | None = None,
+    ) -> RenderedGraphState:
         """Запускает workflow с входным payload и возвращает финальное состояние."""
 
+        resolved_run_id = run_id or f"run-{uuid4()}"
         initial_state = RenderedGraphState(
             payload=dict(payload),
-            task_context={"task_id": task_id},
+            task_context={"task_id": task_id, "run_id": resolved_run_id},
             active_nodes=[self.graph_ir.entry_node],
         )
         result_state = self.workflow.invoke(initial_state)
@@ -65,7 +74,12 @@ class GraphIRToLangGraphRenderer:
             hitl_registry=resolved_bindings.hitl_registry,
         )
         node_executor = GraphIRNodeExecutor(context=context)
-        workflow = RenderedGraphIRWorkflow(graph_ir=graph_ir, node_executor=node_executor, use_langgraph_runtime=True)
+        workflow = RenderedGraphIRWorkflow(
+            graph_ir=graph_ir,
+            node_executor=node_executor,
+            trace_store=InMemoryTraceStore(),
+            use_langgraph_runtime=True,
+        )
         return RenderedWorkflowRuntime(workflow=workflow, graph_ir=graph_ir)
 
     def _build_llm_gateway_if_available(self) -> OpenRouterChatModelGateway | None:

@@ -11,6 +11,8 @@ from optimizer.graph_ir.models import GraphIREdge, GraphIRNode, GraphIRSpec
 from optimizer.renderer.langgraph_dai.condition_eval import ConditionEvaluator
 from optimizer.renderer.langgraph_dai.node_executor import GraphIRNodeExecutor
 from optimizer.renderer.langgraph_dai.runtime_state import RenderedGraphState
+from optimizer.tracing.node_events import NodeEventStatus, NodeExecutionEvent, utc_now_iso
+from optimizer.tracing.trace_store import InMemoryTraceStore
 
 
 class RenderedGraphIRWorkflow(BaseWorkflow):
@@ -21,6 +23,7 @@ class RenderedGraphIRWorkflow(BaseWorkflow):
         graph_ir: GraphIRSpec,
         node_executor: GraphIRNodeExecutor,
         *,
+        trace_store: InMemoryTraceStore | None = None,
         use_langgraph_runtime: bool = True,
     ) -> None:
         """Инициализирует workflow по Graph IR и компилирует invoke/resume графы."""
@@ -28,6 +31,7 @@ class RenderedGraphIRWorkflow(BaseWorkflow):
         self._graph_ir = graph_ir
         self._node_executor = node_executor
         self._condition_evaluator = ConditionEvaluator()
+        self._trace_store = trace_store or InMemoryTraceStore()
         self._nodes_by_id: dict[str, GraphIRNode] = {node.id: node for node in graph_ir.nodes}
         self._edges_by_source: dict[str, list[GraphIREdge]] = defaultdict(list)
         for edge in graph_ir.edges:
@@ -68,13 +72,22 @@ class RenderedGraphIRWorkflow(BaseWorkflow):
             active_set.add(self._graph_ir.entry_node)
 
         if node_id not in active_set:
+            self._record_event(state, node_id=node_id, status=NodeEventStatus.SKIPPED)
             skipped_nodes = list(state.skipped_nodes)
             skipped_nodes.append(node_id)
             trace = list(state.trace)
             trace.append({"node_id": node_id, "status": "skipped"})
-            return state.model_copy(update={"skipped_nodes": skipped_nodes, "trace": trace})
+            return state.model_copy(
+                update={
+                    "skipped_nodes": skipped_nodes,
+                    "trace": trace,
+                    "node_events": self._render_node_events(state),
+                    "trace_summary": self._render_trace_summary(state),
+                }
+            )
 
         node = self._nodes_by_id[node_id]
+        self._record_event(state, node_id=node_id, status=NodeEventStatus.STARTED)
         node_outputs = dict(state.node_outputs)
         payload = dict(state.payload)
         errors = list(state.errors)
@@ -89,9 +102,11 @@ class RenderedGraphIRWorkflow(BaseWorkflow):
             if isinstance(output, dict):
                 payload.update(output)
             status = "completed"
+            self._record_event(state, node_id=node_id, status=NodeEventStatus.COMPLETED)
         except Exception as exc:
             errors.append(f"{node_id}: {exc}")
             status = "failed"
+            self._record_event(state, node_id=node_id, status=NodeEventStatus.FAILED, error=str(exc))
             if node.on_fail == "fallback":
                 fallback_output = {"status": "fallback", "error": str(exc)}
                 node_outputs[node_id] = fallback_output
@@ -102,7 +117,10 @@ class RenderedGraphIRWorkflow(BaseWorkflow):
                 trace.append({"node_id": node_id, "status": status, "error": str(exc)})
                 raise
 
-        next_nodes = self._resolve_next_nodes(node_id=node_id, state=state.model_copy(update={"payload": payload, "node_outputs": node_outputs}))
+        next_nodes = self._resolve_next_nodes(
+            node_id=node_id,
+            state=state.model_copy(update={"payload": payload, "node_outputs": node_outputs}),
+        )
         active_set.update(next_nodes)
 
         executed_nodes = list(state.executed_nodes)
@@ -117,6 +135,8 @@ class RenderedGraphIRWorkflow(BaseWorkflow):
                 "node_outputs": node_outputs,
                 "trace": trace,
                 "errors": errors,
+                "node_events": self._render_node_events(state),
+                "trace_summary": self._render_trace_summary(state),
             }
         )
 
@@ -126,12 +146,12 @@ class RenderedGraphIRWorkflow(BaseWorkflow):
         if node.on_fail != "retry":
             return self._node_executor.execute_node(node, state)
 
-        # Для retry в I2.S1 делаем одну повторную попытку.
+        # Для retry в I2.S1+ делаем одну повторную попытку.
         first_error: Exception | None = None
         for _attempt in (1, 2):
             try:
                 return self._node_executor.execute_node(node, state)
-            except Exception as exc:  # pragma: no cover - поведение подтверждается интеграционными тестами.
+            except Exception as exc:  # pragma: no cover - подтверждается интеграционными тестами.
                 if first_error is None:
                     first_error = exc
                 continue
@@ -167,6 +187,48 @@ class RenderedGraphIRWorkflow(BaseWorkflow):
                     queue.append(nxt)
 
         if len(order) != len(graph_ir.nodes):
-            raise ValueError("Graph IR содержит цикл; циклические графы в I2.S1 не поддерживаются.")
+            raise ValueError("Graph IR содержит цикл; циклические графы в I2 не поддерживаются.")
         return order
+
+    def _record_event(
+        self,
+        state: RenderedGraphState,
+        *,
+        node_id: str,
+        status: NodeEventStatus,
+        error: str | None = None,
+    ) -> None:
+        """Регистрирует node-level событие в trace store."""
+
+        run_id, task_id = _resolve_run_context(state)
+        event = NodeExecutionEvent(
+            run_id=run_id,
+            task_id=task_id,
+            node_id=node_id,
+            status=status,
+            timestamp_utc=utc_now_iso(),
+            error=error,
+        )
+        self._trace_store.record(event)
+
+    def _render_node_events(self, state: RenderedGraphState) -> list[dict[str, Any]]:
+        """Возвращает сериализованные события текущего run из trace store."""
+
+        run_id, _task_id = _resolve_run_context(state)
+        events = self._trace_store.get_run_events(run_id)
+        return [event.to_payload() for event in events]
+
+    def _render_trace_summary(self, state: RenderedGraphState) -> dict[str, Any]:
+        """Возвращает агрегированную сводку trace для текущего run."""
+
+        run_id, task_id = _resolve_run_context(state)
+        return self._trace_store.get_run_summary(run_id=run_id, task_id=task_id)
+
+
+def _resolve_run_context(state: RenderedGraphState) -> tuple[str, str]:
+    """Извлекает `run_id` и `task_id` из `task_context` с безопасными fallback."""
+
+    run_id = str(state.task_context.get("run_id", "run-unknown")).strip() or "run-unknown"
+    task_id = str(state.task_context.get("task_id", "task-unknown")).strip() or "task-unknown"
+    return run_id, task_id
 

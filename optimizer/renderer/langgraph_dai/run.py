@@ -1,4 +1,4 @@
-"""CLI запуска рендеренного workflow поверх Graph IR/Dsl."""
+"""CLI запуска рендеренного workflow поверх Graph IR/DSL."""
 
 from __future__ import annotations
 
@@ -28,6 +28,7 @@ class RendererRunCli:
         parser.add_argument("--payload-json", default="{}", help="JSON-объект входного payload.")
         parser.add_argument("--payload-file", default="", help="Путь до JSON-файла payload.")
         parser.add_argument("--task-id", default="demo-task", help="task_id для runtime state.")
+        parser.add_argument("--run-id", default="", help="run_id для трассировки; если пусто, генерируется автоматически.")
         parser.add_argument("--pretty", action="store_true", help="Печатать результат в pretty JSON.")
         return parser
 
@@ -47,7 +48,11 @@ class RendererRunCli:
 
         renderer = GraphIRToLangGraphRenderer()
         runtime = renderer.render(graph_ir=graph_ir, bindings=_build_demo_bindings())
-        final_state = runtime.invoke(payload=payload, task_id=args.task_id)
+        final_state = runtime.invoke(
+            payload=payload,
+            task_id=args.task_id,
+            run_id=(args.run_id.strip() or None),
+        )
 
         rendered = _render_state_summary(final_state)
         if args.pretty:
@@ -93,17 +98,21 @@ def _render_state_summary(state: RenderedGraphState) -> dict[str, Any]:
     """Формирует компактное summary финального состояния workflow."""
 
     return {
+        "run_id": state.task_context.get("run_id"),
+        "task_id": state.task_context.get("task_id"),
         "executed_nodes": state.executed_nodes,
         "skipped_nodes": state.skipped_nodes,
         "errors": state.errors,
         "payload": state.payload,
         "node_outputs": state.node_outputs,
         "trace": state.trace,
+        "node_events": state.node_events,
+        "trace_summary": state.trace_summary,
     }
 
 
 def _build_demo_bindings() -> RendererBindings:
-    """Создает базовые биндинги для демо-примеров текущего этапа."""
+    """Создает базовые биндинги для demo-примеров текущего этапа."""
 
     def _always_valid(_state: RenderedGraphState, _node) -> dict[str, Any]:
         """Универсальный validator для demo сценариев."""
@@ -152,3 +161,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
