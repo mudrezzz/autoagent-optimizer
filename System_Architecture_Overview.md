@@ -83,9 +83,12 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `examples/graph_ir/*` (3 референсных Graph IR сценария),
    - `optimizer.dsl.compiler` (DSL -> Graph IR compile),
    - `optimizer.dsl.compile_report` (node mapping + issues),
-   - `optimizer.dsl.compile` (CLI compile path).
+   - `optimizer.dsl.compile` (CLI compile path),
+   - `optimizer.renderer.langgraph_dai.workflow` (исполняемый runtime workflow),
+   - `optimizer.renderer.langgraph_dai.adapter` (IR -> BaseWorkflow adapter),
+   - `optimizer.renderer.langgraph_dai.run` (CLI runtime execution).
 2. Next:
-   - `optimizer.renderer.langgraph_dai` (I2.S1).
+   - `optimizer.tracing` + node event capture (I2.S2).
 
 ## Decision Records
 

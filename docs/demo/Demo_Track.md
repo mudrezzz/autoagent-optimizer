@@ -43,12 +43,17 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_compile_dsl_to_ir.ps1
 
 ### Stage D1 (I2) - Runtime Demo
 
-План показа:
+Что уже показываем:
 
 1. компиляция DSL -> IR;
 2. рендер IR -> исполняемый workflow;
-3. invoke/resume сценарий на одном наборе примеров;
-4. node-level white-box traces.
+3. invoke path на нескольких сценариях (`direct_llm`, `hitl_gate low/high risk`);
+4. реальный OpenRouter-вызов в LLM узлах при наличии `OPENROUTER_API_KEY`.
+
+Пока в работе:
+
+1. resume/checkpoint сценарий;
+2. node-level white-box trace слой.
 
 ### Stage D2 (I3) - Evaluation Demo
 
@@ -77,6 +82,6 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_compile_dsl_to_ir.ps1
 
 ## Current Demo Status
 
-- Active stage: `D0 (I1)`
+- Active stage: `D1 (I2)`
 - Demo readiness: `Green`
-- Next demo milestone: `D1 (I2)` after completion of `I2.S1`
+- Next demo milestone: `D2 (I3)` after completion of evaluation slices

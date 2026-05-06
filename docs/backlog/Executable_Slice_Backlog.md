@@ -16,7 +16,7 @@
 ## Active Window (Now)
 
 - `Current Focus`: MVP-1 / I1-I2
-- `Active Next Slice`: I2.S1
+- `Active Next Slice`: I2.S2
 
 ---
 
@@ -71,7 +71,7 @@
 
 ### I2.S1 - LangGraph renderer adapter on top of langgraph-dai
 
-- Status: Planned
+- Status: Done
 - Goal: превратить IR в исполняемый workflow через `BaseWorkflow`.
 - Inputs: FR-6, ADR-0001.
 - Deliverables:
@@ -167,4 +167,11 @@
 - Реализован компилятор DSL -> Graph IR с compile report.
 - Добавлены CLI компиляции и smoke-скрипт сквозной компиляции DSL-примеров.
 - Добавлены unit/integration/e2e тесты на success/failure compile path.
+- Commit: tracked in git history.
+
+### I2.S1 - Done
+
+- Реализован runtime renderer Graph IR -> BaseWorkflow (langgraph-dai).
+- Добавлен runtime CLI и smoke demo запуск workflow.
+- Добавлены unit/integration/e2e тесты рендерера и branch-логики.
 - Commit: tracked in git history.

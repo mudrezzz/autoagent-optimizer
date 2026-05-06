@@ -43,7 +43,7 @@
 
 | Slice | Description | Status | Output |
 |---|---|---|---|
-| I2.S1 | LangGraph renderer adapter on top of `langgraph-dai` | Planned | IR -> BaseWorkflow |
+| I2.S1 | LangGraph renderer adapter on top of `langgraph-dai` | Done | IR -> BaseWorkflow |
 | I2.S2 | Node event capture + white-box trace v0 | Planned | node-level events/logs |
 | I2.S3 | Resume/checkpoint contract path | Planned | invoke/resume reliability |
 
