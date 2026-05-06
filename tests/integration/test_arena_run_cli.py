@@ -41,6 +41,10 @@ def test_arena_run_cli_support_tournament_success() -> None:
     assert payload["winner_id"] == "direct_llm_candidate"
     assert payload["ranking"] == ["direct_llm_candidate", "ocr_first_candidate", "hitl_gate_candidate"]
     assert payload["cases_budget"] == 3
+    assert payload["budget_policy"] == "equal_cases"
+    assert payload["budget_unit"] == "cases"
+    assert payload["budget_selector"] == "head"
+    assert payload["ranking_policy"][0] == {"name": "pass_rate", "direction": "desc"}
     assert len(payload["participants"]) == 3
 
 
@@ -77,4 +81,3 @@ def test_arena_run_cli_fails_for_invalid_config(tmp_path: Path) -> None:
     )
     assert proc.returncode == 1
     assert "[ARENA ERROR]" in proc.stderr
-

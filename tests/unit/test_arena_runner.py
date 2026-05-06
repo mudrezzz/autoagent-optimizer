@@ -88,3 +88,63 @@ def test_arena_runner_applies_equal_case_budget_limit(tmp_path: Path) -> None:
     assert result.evaluated_records_total == 2
     assert all(participant.cases_total == 2 for participant in result.participants)
 
+
+@pytest.mark.unit
+def test_arena_runner_uses_config_driven_ranking_policy(tmp_path: Path) -> None:
+    """Проверяет, что winner определяется настройками ranking policy, а не фиксированным порядком."""
+
+    dataset_file = tmp_path / "dataset.jsonl"
+    _write_dataset(dataset_file)
+    spec = ArenaTournamentSpec(
+        dataset_file=dataset_file.name,
+        execution_mode="expected_stub",
+        ranking={
+            "metrics": [
+                {"name": "failed", "direction": "desc"},
+                {"name": "participant_id", "direction": "asc"},
+            ]
+        },
+        participants=[
+            ArenaParticipantSpec(participant_id="a", dsl_file="a.yaml", stub_behavior="perfect"),
+            ArenaParticipantSpec(participant_id="b", dsl_file="b.yaml", stub_behavior="fail_sensitive"),
+            ArenaParticipantSpec(participant_id="c", dsl_file="c.yaml", stub_behavior="fail_all"),
+        ],
+    )
+
+    runner = ArchitectureArenaRunner()
+    result = runner.run(spec=spec, arena_file_dir=tmp_path, include_details=False)
+
+    assert result.ranking == ["c", "b", "a"]
+    assert result.winner_id == "c"
+
+
+@pytest.mark.unit
+def test_arena_runner_applies_hash_stable_budget_selector_deterministically(tmp_path: Path) -> None:
+    """Проверяет детерминированность выбора кейсов при `hash_stable` budget selector."""
+
+    dataset_file = tmp_path / "dataset.jsonl"
+    _write_dataset(dataset_file)
+    spec = ArenaTournamentSpec(
+        dataset_file=dataset_file.name,
+        execution_mode="expected_stub",
+        budget={
+            "policy": "equal_cases",
+            "unit": "cases",
+            "selector": "hash_stable",
+            "limit": 2,
+            "random_seed": 7,
+        },
+        participants=[
+            ArenaParticipantSpec(participant_id="p1", dsl_file="a.yaml", stub_behavior="perfect"),
+            ArenaParticipantSpec(participant_id="p2", dsl_file="b.yaml", stub_behavior="perfect"),
+        ],
+    )
+
+    runner = ArchitectureArenaRunner()
+    result_1 = runner.run(spec=spec, arena_file_dir=tmp_path, include_details=False)
+    result_2 = runner.run(spec=spec, arena_file_dir=tmp_path, include_details=False)
+
+    assert result_1.cases_budget == 2
+    assert result_1.evaluated_records_total == 2
+    assert result_1.ranking == result_2.ranking
+    assert result_1.participants[0].passed == result_2.participants[0].passed

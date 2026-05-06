@@ -17,9 +17,11 @@ YAML-конфиг:
 1. `version: arena_v0`
 2. `dataset_file` — путь к golden dataset JSONL.
 3. `execution_mode` — `expected_stub` или `runtime`.
-4. `budget_policy: equal_cases`
-5. `cases_limit` — общий лимит кейсов на каждого участника (`0` = весь датасет).
-6. `participants` — список из 2-3 участников.
+4. `task_prefix` — префикс `task_id` для runtime режима.
+5. `budget` — config-first политика бюджета.
+6. `ranking` — config-first правила ранжирования.
+7. `evaluator` — evaluator policy.
+8. `participants` — список из 2-3 участников.
 
 Участник:
 
@@ -30,24 +32,50 @@ YAML-конфиг:
    - `fail_sensitive`
    - `fail_all`
 
-## Equal Budget Policy
+## Budget Policy
 
-В v0 используется политика `equal_cases`:
+`budget` контракт:
 
-1. Выбирается единый набор кейсов (весь датасет или первые `cases_limit`).
-2. Этот же набор запускается для каждого участника.
-3. Таким образом бюджет сравнения одинаков по числу кейсов.
+1. `policy` — сейчас поддержан `equal_cases`.
+2. `unit` — сейчас поддержан `cases`.
+3. `selector`:
+   - `head`
+   - `random_seeded`
+   - `hash_stable`
+4. `limit` — сколько кейсов брать на участника (`0` = весь датасет).
+5. `random_seed` — сид для `random_seeded` и `hash_stable`.
 
-## Ranking Rules
+## Ranking Policy
 
-Сортировка участников:
+`ranking.metrics` — упорядоченный список метрик с направлением сортировки.
 
-1. `pass_rate` (по убыванию),
-2. `passed` (по убыванию),
-3. `failed` (по возрастанию),
-4. `participant_id` (лексикографически, как стабильный tie-break).
+Поддержанные метрики:
 
-Первый в ранжировании — `winner_id`.
+1. `pass_rate`
+2. `passed`
+3. `failed`
+4. `participant_id`
+
+Пример:
+
+```yaml
+ranking:
+  metrics:
+    - name: pass_rate
+      direction: desc
+    - name: passed
+      direction: desc
+    - name: failed
+      direction: asc
+    - name: participant_id
+      direction: asc
+```
+
+## Evaluator Policy
+
+`evaluator.mode`:
+
+1. `rule_based_v0` — текущий rule-based oracle (`must_include`/`forbidden`).
 
 ## CLI
 
@@ -60,11 +88,11 @@ python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_t
 1. `winner_id`
 2. `ranking`
 3. `participants[]` с `cases_total/passed/failed/pass_rate`
-4. поля бюджета (`budget_policy`, `cases_budget`, `evaluated_records_total`)
+4. поля бюджета (`budget_policy`, `budget_unit`, `budget_selector`, `budget_limit`, `budget_seed`)
+5. `ranking_policy` (фактически примененная конфигурация ранжирования)
 
 ## Smoke
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena.ps1
 ```
-

@@ -59,6 +59,7 @@ OSS-first платформа для архитектурного поиска, w
 - `optimizer/arena` - equal-budget tournament runner и CLI сравнения 2-3 архитектур.
 - `examples/arena/support_tournament_v0.yaml` - эталонная конфигурация турнира.
 - `scripts/smoke_run_arena.ps1` - smoke-прогон Architecture Arena tournament.
+- `docs/specs/Architecture_Arena_v0.md` - config-first контракт `budget`/`ranking`/`evaluator` политик турнира.
 
 ## Definition of Done For a Slice
 

@@ -99,8 +99,8 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.evaluation.oracle_rules` (v0 правила `must_include/forbidden`),
    - `optimizer.evaluation.oracle_runner` (исполняемый runner и summary),
    - `optimizer.evaluation.run_oracle` (CLI oracle прогона),
-   - `optimizer.arena.tournament_schema` (typed contract конфига tournament),
-   - `optimizer.arena.runner` (equal-budget tournament execution),
+   - `optimizer.arena.tournament_schema` (typed contract config-driven `budget`/`ranking`/`evaluator` policies),
+   - `optimizer.arena.runner` (config-driven tournament execution и ranking),
    - `optimizer.arena.run_tournament` (CLI tournament compare path).
 2. Next:
    - Middle-metrics v0 (I4.S1).

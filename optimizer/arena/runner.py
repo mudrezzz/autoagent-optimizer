@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import hashlib
+import random
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
-from optimizer.arena.tournament_schema import ArenaParticipantSpec, ArenaTournamentSpec
+from optimizer.arena.tournament_schema import ArenaParticipantSpec, ArenaRankingMetricSpec, ArenaTournamentSpec
 from optimizer.dsl.compiler import DslToGraphIRCompiler
 from optimizer.evaluation.dataset_loader import GoldenDatasetLoader
 from optimizer.evaluation.dataset_schema import GoldenDatasetRecord
@@ -56,10 +58,16 @@ class ArenaTournamentResult:
 
     dataset_file: str
     execution_mode: str
+    evaluator_mode: str
     budget_policy: str
+    budget_unit: str
+    budget_selector: str
+    budget_limit: int
+    budget_seed: int
     cases_budget: int
     dataset_records_total: int
     evaluated_records_total: int
+    ranking_policy: list[dict[str, str]]
     winner_id: str
     ranking: list[str]
     participants: list[ArenaParticipantResult] = field(default_factory=list)
@@ -70,10 +78,16 @@ class ArenaTournamentResult:
         return {
             "dataset_file": self.dataset_file,
             "execution_mode": self.execution_mode,
+            "evaluator_mode": self.evaluator_mode,
             "budget_policy": self.budget_policy,
+            "budget_unit": self.budget_unit,
+            "budget_selector": self.budget_selector,
+            "budget_limit": self.budget_limit,
+            "budget_seed": self.budget_seed,
             "cases_budget": self.cases_budget,
             "dataset_records_total": self.dataset_records_total,
             "evaluated_records_total": self.evaluated_records_total,
+            "ranking_policy": self.ranking_policy,
             "winner_id": self.winner_id,
             "ranking": self.ranking,
             "participants": [participant.to_payload() for participant in self.participants],
@@ -91,6 +105,9 @@ class ArchitectureArenaRunner:
     ) -> ArenaTournamentResult:
         """Запускает турнир по конфигурации и возвращает итоговый отчет."""
 
+        if spec.evaluator.mode != "rule_based_v0":
+            raise ValueError(f"Неподдерживаемый evaluator mode: {spec.evaluator.mode}")
+
         dataset_path = _resolve_path(arena_file_dir, spec.dataset_file)
         loader = GoldenDatasetLoader()
         dataset_result = loader.load_file(dataset_path)
@@ -98,9 +115,9 @@ class ArchitectureArenaRunner:
             issues_text = "; ".join(f"line={item.line_number}: {item.message}" for item in dataset_result.issues)
             raise ValueError(f"Невалидный dataset для Arena: {issues_text}")
 
-        selected_records = _apply_case_budget(dataset_result.records, spec.cases_limit)
+        selected_records = _apply_case_budget(dataset_result.records, spec)
         if not selected_records:
-            raise ValueError("После применения `cases_limit` не осталось кейсов для турнира.")
+            raise ValueError("После применения budget policy не осталось кейсов для турнира.")
 
         participant_results: list[ArenaParticipantResult] = []
         oracle_runner = OracleRunner()
@@ -127,31 +144,92 @@ class ArchitectureArenaRunner:
                 )
             )
 
-        sorted_results = sorted(
-            participant_results,
-            key=lambda item: (-item.pass_rate, -item.passed, item.failed, item.participant_id),
-        )
+        sorted_results = _rank_participants(participant_results, spec.ranking.metrics)
         ranking = [item.participant_id for item in sorted_results]
         winner_id = ranking[0]
+
+        ranking_policy = [{"name": metric.name, "direction": metric.direction} for metric in spec.ranking.metrics]
         return ArenaTournamentResult(
             dataset_file=str(dataset_path),
             execution_mode=spec.execution_mode,
-            budget_policy=spec.budget_policy,
+            evaluator_mode=spec.evaluator.mode,
+            budget_policy=spec.budget.policy,
+            budget_unit=spec.budget.unit,
+            budget_selector=spec.budget.selector,
+            budget_limit=spec.budget.limit,
+            budget_seed=spec.budget.random_seed,
             cases_budget=len(selected_records),
             dataset_records_total=len(dataset_result.records),
             evaluated_records_total=len(selected_records),
+            ranking_policy=ranking_policy,
             winner_id=winner_id,
             ranking=ranking,
             participants=sorted_results,
         )
 
 
-def _apply_case_budget(records: list[GoldenDatasetRecord], cases_limit: int) -> list[GoldenDatasetRecord]:
-    """Применяет equal-budget по числу кейсов для каждого участника."""
+def _rank_participants(
+    participants: list[ArenaParticipantResult],
+    metrics: list[ArenaRankingMetricSpec],
+) -> list[ArenaParticipantResult]:
+    """Сортирует участников по config-driven ranking policy."""
 
-    if cases_limit <= 0:
+    sorted_results = list(participants)
+    for metric in reversed(metrics):
+        reverse = metric.direction == "desc"
+        sorted_results.sort(key=lambda item, metric_name=metric.name: _metric_value(item, metric_name), reverse=reverse)
+    return sorted_results
+
+
+def _metric_value(participant: ArenaParticipantResult, metric_name: str) -> Any:
+    """Возвращает значение конкретной метрики ранжирования участника."""
+
+    if metric_name == "pass_rate":
+        return participant.pass_rate
+    if metric_name == "passed":
+        return participant.passed
+    if metric_name == "failed":
+        return participant.failed
+    if metric_name == "participant_id":
+        return participant.participant_id
+    raise ValueError(f"Неподдерживаемая метрика ранжирования: {metric_name}")
+
+
+def _apply_case_budget(records: list[GoldenDatasetRecord], spec: ArenaTournamentSpec) -> list[GoldenDatasetRecord]:
+    """Применяет config-driven budget selector и limit к набору кейсов."""
+
+    if spec.budget.unit != "cases":
+        raise ValueError(f"Неподдерживаемая единица бюджета: {spec.budget.unit}")
+    if spec.budget.policy != "equal_cases":
+        raise ValueError(f"Неподдерживаемая budget policy: {spec.budget.policy}")
+
+    limit = spec.budget.limit
+    if limit <= 0 or limit >= len(records):
         return list(records)
-    return list(records[:cases_limit])
+
+    if spec.budget.selector == "head":
+        return list(records[:limit])
+
+    if spec.budget.selector == "random_seeded":
+        rng = random.Random(spec.budget.random_seed)
+        sampled_indexes = rng.sample(range(len(records)), k=limit)
+        sampled_indexes.sort()
+        return [records[index] for index in sampled_indexes]
+
+    if spec.budget.selector == "hash_stable":
+        keyed_records = sorted(
+            records,
+            key=lambda record: _stable_hash(f"{spec.budget.random_seed}:{record.case_id}"),
+        )
+        return list(keyed_records[:limit])
+
+    raise ValueError(f"Неподдерживаемый budget selector: {spec.budget.selector}")
+
+
+def _stable_hash(value: str) -> str:
+    """Возвращает стабильный sha256-хеш для детерминированной сортировки кейсов."""
+
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
 def _build_participant_executor(
@@ -246,4 +324,3 @@ def _resolve_path(base_dir: Path, path_value: str) -> Path:
     if path.is_absolute():
         return path
     return (base_dir / path).resolve()
-
