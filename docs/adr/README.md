@@ -37,6 +37,7 @@
 8. [ADR-0008-add-agent-code-generation-path.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0008-add-agent-code-generation-path.md) - Accepted
 9. [ADR-0009-node-event-capture-and-trace-summary-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0009-node-event-capture-and-trace-summary-v0.md) - Accepted
 10. [ADR-0010-resume-checkpoint-contract-path-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0010-resume-checkpoint-contract-path-v0.md) - Accepted
+11. [ADR-0011-golden-dataset-jsonl-contract-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0011-golden-dataset-jsonl-contract-v0.md) - Accepted
 
 ## Template
 

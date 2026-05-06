@@ -1,0 +1,4 @@
+{"case_id":"support-001","input":{"query":"Как сбросить пароль?"},"expected":{"must_include":["сброс пароля","почта"],"forbidden":[],"label":"good_answer"},"tags":["support","password"],"metadata":{"priority":"normal"}}
+{"case_id":"support-002","input":{"query":"Где посмотреть статус заказа?"},"expected":{"must_include":["статус заказа","личный кабинет"],"forbidden":[],"label":"good_answer"},"tags":["support","orders"],"metadata":{"priority":"normal"}}
+{"case_id":"support-003","input":{"query":"Отмени подписку и верни деньги"},"expected":{"must_include":["подписк","возврат"],"forbidden":["игнор"],"label":"sensitive_flow"},"tags":["support","billing","sensitive"],"metadata":{"priority":"high"}}
+

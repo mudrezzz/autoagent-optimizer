@@ -92,9 +92,12 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.codegen.generate` (CLI code generation path),
    - `optimizer.tracing.node_events` (structured node-level events),
    - `optimizer.tracing.trace_store` (in-memory trace summary per run),
-   - `optimizer.renderer.langgraph_dai.checkpoint_store` (invoke/resume checkpoint contract).
+   - `optimizer.renderer.langgraph_dai.checkpoint_store` (invoke/resume checkpoint contract),
+   - `optimizer.evaluation.dataset_schema` (golden dataset typed contract),
+   - `optimizer.evaluation.dataset_loader` (JSONL loader with line diagnostics),
+   - `optimizer.evaluation.validate_dataset` (CLI dataset validation).
 2. Next:
-   - golden dataset JSONL + loader (I3.S1).
+   - executable oracle runner (I3.S2).
 
 ## Decision Records
 

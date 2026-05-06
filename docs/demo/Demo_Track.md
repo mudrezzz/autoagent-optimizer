@@ -67,9 +67,14 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_generate_agent_code.ps1
 
 ### Stage D2 (I3) - Evaluation Demo
 
-План показа:
+Что уже показываем:
 
-1. прогон на golden dataset;
+1. валидацию golden dataset JSONL через typed loader и CLI;
+2. smoke-прогон dataset-контракта перед evaluation шагами.
+
+План показа (следующие слайсы D2):
+
+1. исполняемый прогон на golden dataset (oracle runner);
 2. output + middle metrics;
 3. equal-budget tournament между 2-3 архитектурами.
 
@@ -92,6 +97,6 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_generate_agent_code.ps1
 
 ## Current Demo Status
 
-- Active stage: `D1 (I2)`
+- Active stage: `D2 (I3)`
 - Demo readiness: `Green`
-- Next demo milestone: `D2 (I3)` after completion of evaluation slices
+- Next demo milestone: `D2 oracle + arena` after completion of `I3.S2-I3.S3`

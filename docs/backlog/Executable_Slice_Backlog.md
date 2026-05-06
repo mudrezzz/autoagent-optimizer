@@ -15,8 +15,8 @@
 
 ## Active Window (Now)
 
-- `Current Focus`: MVP-1 / I2-I3
-- `Active Next Slice`: I3.S1
+- `Current Focus`: MVP-1 / I3
+- `Active Next Slice`: I3.S2
 
 ---
 
@@ -134,16 +134,49 @@
 
 ---
 
-## Detailed Backlog: I3-I4 (Ready For Detailing Later)
+## Detailed Backlog: I3-I4
 
-- I3.S1 dataset JSONL loader
-- I3.S2 executable oracle runner
-- I3.S3 equal-budget arena
-- I4.S1 middle metrics v0
-- I4.S2 evidence pack generator
-- I4.S3 champion export bundle
+### I3.S1 - Golden dataset JSONL + loader
 
-Детальные acceptance criteria уточняются после завершения I2.
+- Status: Done
+- Goal: зафиксировать единый dataset-контракт и загрузчик для evaluation-итераций.
+- Inputs: FR-7, FR-8 (подготовка к oracle/arena).
+- Deliverables:
+  - `optimizer/evaluation/dataset_schema.py`,
+  - `optimizer/evaluation/dataset_loader.py`,
+  - `optimizer/evaluation/validate_dataset.py`,
+  - `examples/datasets/golden_support_v1.jsonl`.
+- Acceptance Criteria:
+  1. Валидный JSONL датасет загружается без ошибок.
+  2. Невалидные строки дают понятную ошибку с номером строки.
+  3. CLI валидации возвращает summary и корректный exit code.
+- Dependencies: I2.S4.
+- Risks: недоопределенный `expected` контракт для сложных доменных задач (будет уточнен в I3.S2).
+
+### I3.S2 - Executable oracle runner (schema/pytest)
+
+- Status: Planned
+- Goal: исполняемая oracle-проверка результата по `expected` контракту датасета.
+
+### I3.S3 - Architecture Arena equal-budget tournament v0
+
+- Status: Planned
+- Goal: сравнение 2-3 архитектур в равном бюджете с reproducible отчетом.
+
+### I4.S1 - Middle-metrics v0
+
+- Status: Planned
+- Goal: ввести промежуточные метрики качества/стоимости/латентности.
+
+### I4.S2 - Evidence pack generator
+
+- Status: Planned
+- Goal: собрать evidence pack champion/challenger.
+
+### I4.S3 - Champion export bundle
+
+- Status: Planned
+- Goal: сформировать экспортируемый пакет лучшей конфигурации.
 
 ---
 
@@ -214,4 +247,12 @@
 - Добавлен invoke/resume путь в runtime API и CLI (`--resume-task-id`, `--checkpoint-dir`).
 - Добавлены integration/negative тесты на missing/invalid task_id.
 - Добавлен smoke invoke->resume сценарий в runtime demo.
+- Commit: tracked in git history.
+
+### I3.S1 - Done
+
+- Введен Golden Dataset JSONL контракт (`case_id`, `input`, `expected`, `tags`, `metadata`).
+- Реализован typed loader с диагностикой ошибок по line number.
+- Добавлен CLI `python -m optimizer.evaluation.validate_dataset`.
+- Добавлен smoke-скрипт валидации датасета и покрытие unit/integration/e2e.
 - Commit: tracked in git history.

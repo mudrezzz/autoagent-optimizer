@@ -6,8 +6,8 @@ OSS-first платформа для архитектурного поиска, w
 
 - `Phase`: MVP-1 (foundation)
 - `Iteration`: I3 - Evaluation + Arena Lite
-- `Overall`: In Progress (I2.S1-I2.S4 done)
-- `Next Slice`: I3.S1 Golden dataset JSONL + loader
+- `Overall`: In Progress (I2.S1-I3.S1 done)
+- `Next Slice`: I3.S2 Executable oracle runner (schema/pytest)
 
 Подробный статус:
 
@@ -41,13 +41,16 @@ OSS-first платформа для архитектурного поиска, w
 - `optimizer/renderer/langgraph_dai` - runtime renderer и запуск Graph IR workflow.
 - `optimizer/codegen` - DSL/IR -> сгенерированный код агента (package + runner).
 - `optimizer/tracing` - node-level события исполнения и сводка trace по run.
+- `optimizer/evaluation` - golden dataset contract, loader и CLI-валидация.
 - `examples/dsl` - эталонные YAML-спеки (`direct_llm`, `ocr_first`, `hitl_gate`).
 - `examples/graph_ir` - эталонные Graph IR JSON-спеки.
+- `examples/datasets` - эталонные golden dataset JSONL кейсы.
 - `scripts/smoke_validate_dsl.ps1` - smoke-проверка всех DSL-примеров.
 - `scripts/smoke_validate_graph_ir.ps1` - smoke-проверка всех Graph IR-примеров.
 - `scripts/smoke_compile_dsl_to_ir.ps1` - smoke-компиляция DSL в IR.
 - `scripts/smoke_run_runtime_demo.ps1` - smoke runtime-демо исполнения workflow.
 - `scripts/smoke_generate_agent_code.ps1` - smoke-демо генерации и запуска кодового агента.
+- `scripts/smoke_validate_dataset.ps1` - smoke-валидация golden dataset.
 
 ## Definition of Done For a Slice
 
