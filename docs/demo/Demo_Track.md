@@ -108,11 +108,21 @@ python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_t
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live.ps1
 ```
 
+Full-budget команды Arena (дороже, для контрольных прогонов):
+
+```powershell
+python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_ci_full_v0.yaml --pretty
+python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_full_v0.yaml --pretty
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_full.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live_full.ps1
+```
+
 Что уже добавлено в D3:
 
 1. `middle_metrics` по каждому участнику (`coverage`, `violations`, `nodes`, `latency`, `llm_calls`);
 2. config-driven `scoring` policy с весами/направлениями;
 3. `composite_score` и `score_breakdown` в итоговом отчете турнира.
+4. расширенный stylizer dataset (12 длинных кейсов) + раздельные smoke/full budget профили.
 
 Следующий шаг:
 

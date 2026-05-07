@@ -117,6 +117,9 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.arena` scoring path (`composite_score`, `score_breakdown`, config-driven weights),
    - `optimizer.metrics.diagnostic_signals` (stage-level diagnostic signals и bottleneck score),
    - `optimizer.arena` dual output contract (`comparison` + `diagnostics`).
+   - stylizer demo dataset v1 expanded to multi-case full profile (`examples/datasets/golden_linkedin_stylizer_v1.jsonl`),
+   - arena budget profiles (`smoke`/`full`) via dedicated configs (`support_tournament*_v0.yaml`),
+   - economical live-default OpenRouter model profile for demo loops (`meta-llama/llama-3.1-8b-instruct`).
 2. Next:
    - Evidence Pack v0 + dual-metrics contract (I4.S2),
    - Evaluation Fabric & MetricOps (I5.*).

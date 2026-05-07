@@ -143,7 +143,10 @@ class GraphIRToLangGraphRenderer:
         api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
         if not api_key:
             return None
-        model_name = os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini").strip() or "openai/gpt-4o-mini"
+        model_name = (
+            os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct").strip()
+            or "meta-llama/llama-3.1-8b-instruct"
+        )
         base_url = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").strip() or "https://openrouter.ai/api/v1"
         return OpenRouterChatModelGateway(api_key=api_key, model_name=model_name, base_url=base_url)
 
@@ -155,4 +158,3 @@ def _validate_task_id(task_id: str) -> str:
     if not resolved:
         raise RuntimeCheckpointStoreError("task_id обязателен для invoke/resume.")
     return resolved
-

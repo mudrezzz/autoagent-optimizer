@@ -6,7 +6,7 @@ budget:
   policy: equal_cases
   unit: cases
   selector: head
-  limit: 0
+  limit: 4
   random_seed: 42
 ranking:
   metrics:

@@ -42,7 +42,7 @@ def test_oracle_run_cli_expected_stub_success() -> None:
     )
     assert proc.returncode == 0, proc.stderr
     payload = json.loads(proc.stdout)
-    assert payload["cases_total"] == 4
+    assert payload["cases_total"] == 12
     assert payload["failed"] == 0
     assert payload["execution_mode"] == "expected_stub"
 

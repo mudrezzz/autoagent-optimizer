@@ -150,6 +150,13 @@ Live runtime запуск (для демо/ручной проверки):
 python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_v0.yaml --pretty
 ```
 
+Full-budget запуск (весь dataset):
+
+```powershell
+python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_ci_full_v0.yaml --pretty
+python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_full_v0.yaml --pretty
+```
+
 Вывод включает:
 
 1. `winner_id`
@@ -182,4 +189,11 @@ Live smoke:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live.ps1
+```
+
+Full smoke:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_full.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live_full.ps1
 ```

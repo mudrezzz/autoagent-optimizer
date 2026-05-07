@@ -1,12 +1,12 @@
 version: arena_v0
 dataset_file: ../datasets/golden_linkedin_stylizer_v1.jsonl
-execution_mode: expected_stub
-task_prefix: arena-ci
+execution_mode: runtime
+task_prefix: arena-demo-full
 budget:
   policy: equal_cases
   unit: cases
   selector: head
-  limit: 4
+  limit: 0
   random_seed: 42
 ranking:
   metrics:

@@ -1,6 +1,6 @@
-# AutoAgent Optimizer
+﻿# AutoAgent Optimizer
 
-OSS-first платформа для архитектурного поиска, white-box оценки и итеративной оптимизации compound AI systems.
+OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…РёС‚РµРєС‚СѓСЂРЅРѕРіРѕ РїРѕРёСЃРєР°, white-box РѕС†РµРЅРєРё Рё РёС‚РµСЂР°С‚РёРІРЅРѕР№ РѕРїС‚РёРјРёР·Р°С†РёРё compound AI systems.
 
 ## Current Status
 
@@ -9,7 +9,7 @@ OSS-first платформа для архитектурного поиска, w
 - `Overall`: In Progress (I2.S1-I4.S2 in progress)
 - `Next Slice`: I4.S2 Evidence Pack v0 + dual-metrics contract
 
-Подробный статус:
+РџРѕРґСЂРѕР±РЅС‹Р№ СЃС‚Р°С‚СѓСЃ:
 
 - [Roadmap.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/Roadmap.md)
 - [System_Architecture_Overview.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/System_Architecture_Overview.md)
@@ -20,104 +20,107 @@ OSS-first платформа для архитектурного поиска, w
 
 ## Project Rules
 
-1. Развиваем продукт малыми слайсами, каждый слайс должен давать проверяемый инкремент.
-2. Все архитектурные решения фиксируются через ADR/ARD до или вместе с реализацией.
-3. `Roadmap.md`, `README.md`, `System_Architecture_Overview.md` всегда актуальны после каждого слайса.
-4. Новый разработчик должен за 10-15 минут понять текущий статус и взять следующий слайс.
-5. Каждый слайс завершается отдельным git commit.
-6. Развитие идет концентрическими MVP-кругами: MVP-1 -> MVP-2 -> MVP-3.
-7. Демо развивается синхронно с функционалом и обновляется на каждом слайсе.
+1. Р Р°Р·РІРёРІР°РµРј РїСЂРѕРґСѓРєС‚ РјР°Р»С‹РјРё СЃР»Р°Р№СЃР°РјРё, РєР°Р¶РґС‹Р№ СЃР»Р°Р№СЃ РґРѕР»Р¶РµРЅ РґР°РІР°С‚СЊ РїСЂРѕРІРµСЂСЏРµРјС‹Р№ РёРЅРєСЂРµРјРµРЅС‚.
+2. Р’СЃРµ Р°СЂС…РёС‚РµРєС‚СѓСЂРЅС‹Рµ СЂРµС€РµРЅРёСЏ С„РёРєСЃРёСЂСѓСЋС‚СЃСЏ С‡РµСЂРµР· ADR/ARD РґРѕ РёР»Рё РІРјРµСЃС‚Рµ СЃ СЂРµР°Р»РёР·Р°С†РёРµР№.
+3. `Roadmap.md`, `README.md`, `System_Architecture_Overview.md` РІСЃРµРіРґР° Р°РєС‚СѓР°Р»СЊРЅС‹ РїРѕСЃР»Рµ РєР°Р¶РґРѕРіРѕ СЃР»Р°Р№СЃР°.
+4. РќРѕРІС‹Р№ СЂР°Р·СЂР°Р±РѕС‚С‡РёРє РґРѕР»Р¶РµРЅ Р·Р° 10-15 РјРёРЅСѓС‚ РїРѕРЅСЏС‚СЊ С‚РµРєСѓС‰РёР№ СЃС‚Р°С‚СѓСЃ Рё РІР·СЏС‚СЊ СЃР»РµРґСѓСЋС‰РёР№ СЃР»Р°Р№СЃ.
+5. РљР°Р¶РґС‹Р№ СЃР»Р°Р№СЃ Р·Р°РІРµСЂС€Р°РµС‚СЃСЏ РѕС‚РґРµР»СЊРЅС‹Рј git commit.
+6. Р Р°Р·РІРёС‚РёРµ РёРґРµС‚ РєРѕРЅС†РµРЅС‚СЂРёС‡РµСЃРєРёРјРё MVP-РєСЂСѓРіР°РјРё: MVP-1 -> MVP-2 -> MVP-3.
+7. Р”РµРјРѕ СЂР°Р·РІРёРІР°РµС‚СЃСЏ СЃРёРЅС…СЂРѕРЅРЅРѕ СЃ С„СѓРЅРєС†РёРѕРЅР°Р»РѕРј Рё РѕР±РЅРѕРІР»СЏРµС‚СЃСЏ РЅР° РєР°Р¶РґРѕРј СЃР»Р°Р№СЃРµ.
 
 ## Repository Map
 
-- `auto_agent_optimizer_концепция_и_тз.md` - полное ТЗ и концепция.
-- `Roadmap.md` - план по итерациям, слайсам, статусам.
-- `System_Architecture_Overview.md` - текущая целевая архитектура.
-- `docs/adr` - журнал архитектурных решений.
-- `langgraph-document-ai-platform` - внешний framework-источник для изучения и переиспользования (read-only в рамках этого проекта).
-- `optimizer/dsl` - DSL v0 schema, loader и CLI-валидация.
-- `optimizer/graph_ir` - runtime-neutral Graph IR v0, валидаторы и CLI.
-- `optimizer/dsl/compiler.py` - компилятор DSL -> Graph IR и отчет компиляции.
-- `optimizer/renderer/langgraph_dai` - runtime renderer и запуск Graph IR workflow.
-- `optimizer/codegen` - DSL/IR -> сгенерированный код агента (package + runner).
-- `optimizer/tracing` - node-level события исполнения и сводка trace по run.
-- `optimizer/evaluation` - golden dataset contract, loader, oracle runner и CLI-валидация/прогон.
-- `optimizer/metrics` - middle-метрики и служебные агрегаторы для arena scoring.
-- `components` - deterministic demo-компоненты для пайплайнов (включая AI-pattern инструменты).
-- `validators` - python-валидаторы demo-сценариев (включая style output guard).
-- `docs/specs/Evaluation_Profile_v0.md` - концепт profile-driven оценки (task-specific metrics + pluggable evaluators).
-- `examples/dsl` - эталонные YAML-спеки, включая stylizer кандидатов (`style_direct_llm`, `style_pattern_cleaner`, `style_hitl_reviewer`).
-- `examples/graph_ir` - эталонные Graph IR JSON-спеки.
-- `examples/datasets` - эталонные golden dataset JSONL кейсы (включая `golden_linkedin_stylizer_v1.jsonl`).
-- `examples/resources/ai_style_patterns_ru_v1.json` - справочник известных AI-паттернов для stylizer-кейса.
-- `scripts/smoke_validate_dsl.ps1` - smoke-проверка всех DSL-примеров.
-- `scripts/smoke_validate_graph_ir.ps1` - smoke-проверка всех Graph IR-примеров.
-- `scripts/smoke_compile_dsl_to_ir.ps1` - smoke-компиляция DSL в IR.
-- `scripts/smoke_run_runtime_demo.ps1` - smoke runtime-демо исполнения workflow.
-- `scripts/smoke_generate_agent_code.ps1` - smoke-демо генерации и запуска кодового агента.
-- `scripts/smoke_validate_dataset.ps1` - smoke-валидация golden dataset.
-- `scripts/smoke_run_oracle.ps1` - smoke-прогон executable oracle runner.
+- `auto_agent_optimizer_РєРѕРЅС†РµРїС†РёСЏ_Рё_С‚Р·.md` - РїРѕР»РЅРѕРµ РўР— Рё РєРѕРЅС†РµРїС†РёСЏ.
+- `Roadmap.md` - РїР»Р°РЅ РїРѕ РёС‚РµСЂР°С†РёСЏРј, СЃР»Р°Р№СЃР°Рј, СЃС‚Р°С‚СѓСЃР°Рј.
+- `System_Architecture_Overview.md` - С‚РµРєСѓС‰Р°СЏ С†РµР»РµРІР°СЏ Р°СЂС…РёС‚РµРєС‚СѓСЂР°.
+- `docs/adr` - Р¶СѓСЂРЅР°Р» Р°СЂС…РёС‚РµРєС‚СѓСЂРЅС‹С… СЂРµС€РµРЅРёР№.
+- `langgraph-document-ai-platform` - РІРЅРµС€РЅРёР№ framework-РёСЃС‚РѕС‡РЅРёРє РґР»СЏ РёР·СѓС‡РµРЅРёСЏ Рё РїРµСЂРµРёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ (read-only РІ СЂР°РјРєР°С… СЌС‚РѕРіРѕ РїСЂРѕРµРєС‚Р°).
+- `optimizer/dsl` - DSL v0 schema, loader Рё CLI-РІР°Р»РёРґР°С†РёСЏ.
+- `optimizer/graph_ir` - runtime-neutral Graph IR v0, РІР°Р»РёРґР°С‚РѕСЂС‹ Рё CLI.
+- `optimizer/dsl/compiler.py` - РєРѕРјРїРёР»СЏС‚РѕСЂ DSL -> Graph IR Рё РѕС‚С‡РµС‚ РєРѕРјРїРёР»СЏС†РёРё.
+- `optimizer/renderer/langgraph_dai` - runtime renderer Рё Р·Р°РїСѓСЃРє Graph IR workflow.
+- `optimizer/codegen` - DSL/IR -> СЃРіРµРЅРµСЂРёСЂРѕРІР°РЅРЅС‹Р№ РєРѕРґ Р°РіРµРЅС‚Р° (package + runner).
+- `optimizer/tracing` - node-level СЃРѕР±С‹С‚РёСЏ РёСЃРїРѕР»РЅРµРЅРёСЏ Рё СЃРІРѕРґРєР° trace РїРѕ run.
+- `optimizer/evaluation` - golden dataset contract, loader, oracle runner Рё CLI-РІР°Р»РёРґР°С†РёСЏ/РїСЂРѕРіРѕРЅ.
+- `optimizer/metrics` - middle-РјРµС‚СЂРёРєРё Рё СЃР»СѓР¶РµР±РЅС‹Рµ Р°РіСЂРµРіР°С‚РѕСЂС‹ РґР»СЏ arena scoring.
+- `components` - deterministic demo-РєРѕРјРїРѕРЅРµРЅС‚С‹ РґР»СЏ РїР°Р№РїР»Р°Р№РЅРѕРІ (РІРєР»СЋС‡Р°СЏ AI-pattern РёРЅСЃС‚СЂСѓРјРµРЅС‚С‹).
+- `validators` - python-РІР°Р»РёРґР°С‚РѕСЂС‹ demo-СЃС†РµРЅР°СЂРёРµРІ (РІРєР»СЋС‡Р°СЏ style output guard).
+- `docs/specs/Evaluation_Profile_v0.md` - РєРѕРЅС†РµРїС‚ profile-driven РѕС†РµРЅРєРё (task-specific metrics + pluggable evaluators).
+- `examples/dsl` - СЌС‚Р°Р»РѕРЅРЅС‹Рµ YAML-СЃРїРµРєРё, РІРєР»СЋС‡Р°СЏ stylizer РєР°РЅРґРёРґР°С‚РѕРІ (`style_direct_llm`, `style_pattern_cleaner`, `style_hitl_reviewer`).
+- `examples/graph_ir` - СЌС‚Р°Р»РѕРЅРЅС‹Рµ Graph IR JSON-СЃРїРµРєРё.
+- `examples/datasets` - СЌС‚Р°Р»РѕРЅРЅС‹Рµ golden dataset JSONL РєРµР№СЃС‹ (РІРєР»СЋС‡Р°СЏ `golden_linkedin_stylizer_v1.jsonl`).
+- `examples/resources/ai_style_patterns_ru_v1.json` - СЃРїСЂР°РІРѕС‡РЅРёРє РёР·РІРµСЃС‚РЅС‹С… AI-РїР°С‚С‚РµСЂРЅРѕРІ РґР»СЏ stylizer-РєРµР№СЃР°.
+- `scripts/smoke_validate_dsl.ps1` - smoke-РїСЂРѕРІРµСЂРєР° РІСЃРµС… DSL-РїСЂРёРјРµСЂРѕРІ.
+- `scripts/smoke_validate_graph_ir.ps1` - smoke-РїСЂРѕРІРµСЂРєР° РІСЃРµС… Graph IR-РїСЂРёРјРµСЂРѕРІ.
+- `scripts/smoke_compile_dsl_to_ir.ps1` - smoke-РєРѕРјРїРёР»СЏС†РёСЏ DSL РІ IR.
+- `scripts/smoke_run_runtime_demo.ps1` - smoke runtime-РґРµРјРѕ РёСЃРїРѕР»РЅРµРЅРёСЏ workflow.
+- `scripts/smoke_generate_agent_code.ps1` - smoke-РґРµРјРѕ РіРµРЅРµСЂР°С†РёРё Рё Р·Р°РїСѓСЃРєР° РєРѕРґРѕРІРѕРіРѕ Р°РіРµРЅС‚Р°.
+- `scripts/smoke_validate_dataset.ps1` - smoke-РІР°Р»РёРґР°С†РёСЏ golden dataset.
+- `scripts/smoke_run_oracle.ps1` - smoke-РїСЂРѕРіРѕРЅ executable oracle runner.
 
 
 ## I3.S3 Artifacts
 
-- `optimizer/arena` - equal-budget tournament runner и CLI сравнения 2-3 архитектур.
-- `examples/arena/support_tournament_v0.yaml` - live-конфигурация турнира stylizer-кейса.
-- `examples/arena/support_tournament_ci_v0.yaml` - стабильная CI-конфигурация stylizer-турнира.
-- `scripts/smoke_run_arena.ps1` - smoke-прогон CI stylizer турнира.
-- `docs/specs/Architecture_Arena_v0.md` - config-first контракт `budget`/`ranking`/`evaluator` политик турнира.
+- `optimizer/arena` - equal-budget tournament runner Рё CLI СЃСЂР°РІРЅРµРЅРёСЏ 2-3 Р°СЂС…РёС‚РµРєС‚СѓСЂ.
+- `examples/arena/support_tournament_v0.yaml` - live-РєРѕРЅС„РёРіСѓСЂР°С†РёСЏ С‚СѓСЂРЅРёСЂР° stylizer-РєРµР№СЃР°.
+- `examples/arena/support_tournament_ci_v0.yaml` - СЃС‚Р°Р±РёР»СЊРЅР°СЏ CI-РєРѕРЅС„РёРіСѓСЂР°С†РёСЏ stylizer-С‚СѓСЂРЅРёСЂР°.
+- `examples/arena/support_tournament_full_v0.yaml` - live full-budget РєРѕРЅС„РёРіСѓСЂР°С†РёСЏ stylizer-С‚СѓСЂРЅРёСЂР°.
+- `examples/arena/support_tournament_ci_full_v0.yaml` - CI full-budget РєРѕРЅС„РёРіСѓСЂР°С†РёСЏ stylizer-С‚СѓСЂРЅРёСЂР°.
+- `scripts/smoke_run_arena.ps1` - smoke-РїСЂРѕРіРѕРЅ CI stylizer С‚СѓСЂРЅРёСЂР°.
+- `docs/specs/Architecture_Arena_v0.md` - config-first РєРѕРЅС‚СЂР°РєС‚ `budget`/`ranking`/`evaluator` РїРѕР»РёС‚РёРє С‚СѓСЂРЅРёСЂР°.
 
 ## I4.S1 Artifacts
 
-- `optimizer/metrics/middle_metrics.py` - расчет middle-метрик (`coverage`, `violations`, `nodes`, `latency`, `llm_calls`).
-- `optimizer/arena/tournament_schema.py` - расширенный контракт `scoring` policy и ranking по `composite_score`.
-- `optimizer/arena/runner.py` - расчет `middle_metrics`, `composite_score` и `score_breakdown` в tournament output.
-- `examples/arena/support_tournament_v0.yaml` - демо-конфиг с включенным `scoring`.
+- `optimizer/metrics/middle_metrics.py` - СЂР°СЃС‡РµС‚ middle-РјРµС‚СЂРёРє (`coverage`, `violations`, `nodes`, `latency`, `llm_calls`).
+- `optimizer/arena/tournament_schema.py` - СЂР°СЃС€РёСЂРµРЅРЅС‹Р№ РєРѕРЅС‚СЂР°РєС‚ `scoring` policy Рё ranking РїРѕ `composite_score`.
+- `optimizer/arena/runner.py` - СЂР°СЃС‡РµС‚ `middle_metrics`, `composite_score` Рё `score_breakdown` РІ tournament output.
+- `examples/arena/support_tournament_v0.yaml` - РґРµРјРѕ-РєРѕРЅС„РёРі СЃ РІРєР»СЋС‡РµРЅРЅС‹Рј `scoring`.
+- `examples/arena/support_tournament_full_v0.yaml` - full-budget РґРµРјРѕ-РєРѕРЅС„РёРі СЃ РІРєР»СЋС‡РµРЅРЅС‹Рј `scoring`.
 
 ## Dual Metrics Model
 
-В проекте закреплена модель двух типов метрик:
+Р’ РїСЂРѕРµРєС‚Рµ Р·Р°РєСЂРµРїР»РµРЅР° РјРѕРґРµР»СЊ РґРІСѓС… С‚РёРїРѕРІ РјРµС‚СЂРёРє:
 
-1. `Comparative Metrics` - только для сравнения архитектур и ranking.
-2. `Diagnostic Signals` - только для локализации bottleneck и планирования intervention.
+1. `Comparative Metrics` - С‚РѕР»СЊРєРѕ РґР»СЏ СЃСЂР°РІРЅРµРЅРёСЏ Р°СЂС…РёС‚РµРєС‚СѓСЂ Рё ranking.
+2. `Diagnostic Signals` - С‚РѕР»СЊРєРѕ РґР»СЏ Р»РѕРєР°Р»РёР·Р°С†РёРё bottleneck Рё РїР»Р°РЅРёСЂРѕРІР°РЅРёСЏ intervention.
 
-Фиксация решения: `ADR-0016`.
+Р¤РёРєСЃР°С†РёСЏ СЂРµС€РµРЅРёСЏ: `ADR-0016`.
 
 ## Configurable Evaluation Model
 
-Оценка в платформе развивается как `profile-driven` слой:
+РћС†РµРЅРєР° РІ РїР»Р°С‚С„РѕСЂРјРµ СЂР°Р·РІРёРІР°РµС‚СЃСЏ РєР°Рє `profile-driven` СЃР»РѕР№:
 
-1. Метрики comparative/diagnostic задаются под конкретный task type.
-2. Методы оценки подключаются как adapters (`golden_oracle`, `llm_judge`, `executable`, `render`, ...).
-3. Изменение профиля метрик рассматривается как agent workflow с обязательным HITL approve.
+1. РњРµС‚СЂРёРєРё comparative/diagnostic Р·Р°РґР°СЋС‚СЃСЏ РїРѕРґ РєРѕРЅРєСЂРµС‚РЅС‹Р№ task type.
+2. РњРµС‚РѕРґС‹ РѕС†РµРЅРєРё РїРѕРґРєР»СЋС‡Р°СЋС‚СЃСЏ РєР°Рє adapters (`golden_oracle`, `llm_judge`, `executable`, `render`, ...).
+3. РР·РјРµРЅРµРЅРёРµ РїСЂРѕС„РёР»СЏ РјРµС‚СЂРёРє СЂР°СЃСЃРјР°С‚СЂРёРІР°РµС‚СЃСЏ РєР°Рє agent workflow СЃ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рј HITL approve.
 
-Текущая спецификация направления:
+РўРµРєСѓС‰Р°СЏ СЃРїРµС†РёС„РёРєР°С†РёСЏ РЅР°РїСЂР°РІР»РµРЅРёСЏ:
 
 - [Evaluation_Profile_v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/specs/Evaluation_Profile_v0.md)
 
 ## Definition of Done For a Slice
 
-1. Реализация завершена и проверена локально.
-2. Обновлены `Roadmap.md`, `README.md`, `System_Architecture_Overview.md` (если затронуто).
-3. Добавлен/обновлен ADR при архитектурных изменениях.
-4. Сделан отдельный git commit с привязкой к слайсу (например `I1.S2`).
-5. Выполнен полный прогон автотестов (`unit + integration + e2e`).
+1. Р РµР°Р»РёР·Р°С†РёСЏ Р·Р°РІРµСЂС€РµРЅР° Рё РїСЂРѕРІРµСЂРµРЅР° Р»РѕРєР°Р»СЊРЅРѕ.
+2. РћР±РЅРѕРІР»РµРЅС‹ `Roadmap.md`, `README.md`, `System_Architecture_Overview.md` (РµСЃР»Рё Р·Р°С‚СЂРѕРЅСѓС‚Рѕ).
+3. Р”РѕР±Р°РІР»РµРЅ/РѕР±РЅРѕРІР»РµРЅ ADR РїСЂРё Р°СЂС…РёС‚РµРєС‚СѓСЂРЅС‹С… РёР·РјРµРЅРµРЅРёСЏС….
+4. РЎРґРµР»Р°РЅ РѕС‚РґРµР»СЊРЅС‹Р№ git commit СЃ РїСЂРёРІСЏР·РєРѕР№ Рє СЃР»Р°Р№СЃСѓ (РЅР°РїСЂРёРјРµСЂ `I1.S2`).
+5. Р’С‹РїРѕР»РЅРµРЅ РїРѕР»РЅС‹Р№ РїСЂРѕРіРѕРЅ Р°РІС‚РѕС‚РµСЃС‚РѕРІ (`unit + integration + e2e`).
 
 ## Test Policy
 
-Структура тестов:
+РЎС‚СЂСѓРєС‚СѓСЂР° С‚РµСЃС‚РѕРІ:
 
 1. `tests/unit`
 2. `tests/integration`
 3. `tests/e2e`
 
-Полный прогон (обязательно после каждого слайса):
+РџРѕР»РЅС‹Р№ РїСЂРѕРіРѕРЅ (РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ РїРѕСЃР»Рµ РєР°Р¶РґРѕРіРѕ СЃР»Р°Р№СЃР°):
 
 ```powershell
 python -m pytest
 ```
 
-Прогон по уровням:
+РџСЂРѕРіРѕРЅ РїРѕ СѓСЂРѕРІРЅСЏРј:
 
 ```powershell
 python -m pytest -m unit
@@ -125,7 +128,7 @@ python -m pytest -m integration
 python -m pytest -m e2e
 ```
 
-Live runtime-тесты (опционально, неблокирующие):
+Live runtime-С‚РµСЃС‚С‹ (РѕРїС†РёРѕРЅР°Р»СЊРЅРѕ, РЅРµР±Р»РѕРєРёСЂСѓСЋС‰РёРµ):
 
 ```powershell
 $env:RUN_LIVE_ARENA="1"
@@ -134,18 +137,18 @@ python -m pytest -m live
 
 ## PowerShell JSON Tip
 
-Для CLI-команд, где передается JSON payload, в PowerShell используйте `--payload-file` как основной способ запуска.
-Это исключает ошибки экранирования вида `unrecognized arguments`.
+Р”Р»СЏ CLI-РєРѕРјР°РЅРґ, РіРґРµ РїРµСЂРµРґР°РµС‚СЃСЏ JSON payload, РІ PowerShell РёСЃРїРѕР»СЊР·СѓР№С‚Рµ `--payload-file` РєР°Рє РѕСЃРЅРѕРІРЅРѕР№ СЃРїРѕСЃРѕР± Р·Р°РїСѓСЃРєР°.
+Р­С‚Рѕ РёСЃРєР»СЋС‡Р°РµС‚ РѕС€РёР±РєРё СЌРєСЂР°РЅРёСЂРѕРІР°РЅРёСЏ РІРёРґР° `unrecognized arguments`.
 
 ## Runtime Demo Quickstart (PowerShell)
 
 ```powershell
 New-Item -ItemType Directory -Force -Path .\tmp | Out-Null
-'{"draft_post":"В современном мире нельзя недооценивать роль редактуры. Давайте разберемся, как переписать пост живее и сохранить факты."}' | Set-Content -LiteralPath .\tmp\runtime_payload.json -Encoding UTF8
+'{"draft_post":"Р’ СЃРѕРІСЂРµРјРµРЅРЅРѕРј РјРёСЂРµ РЅРµР»СЊР·СЏ РЅРµРґРѕРѕС†РµРЅРёРІР°С‚СЊ СЂРѕР»СЊ СЂРµРґР°РєС‚СѓСЂС‹. Р”Р°РІР°Р№С‚Рµ СЂР°Р·Р±РµСЂРµРјСЃСЏ, РєР°Рє РїРµСЂРµРїРёСЃР°С‚СЊ РїРѕСЃС‚ Р¶РёРІРµРµ Рё СЃРѕС…СЂР°РЅРёС‚СЊ С„Р°РєС‚С‹."}' | Set-Content -LiteralPath .\tmp\runtime_payload.json -Encoding UTF8
 python -m optimizer.renderer.langgraph_dai.run --dsl-file .\examples\dsl\style_direct_llm.yaml --payload-file .\tmp\runtime_payload.json --pretty
 ```
 
-Полный smoke-прогон демо:
+РџРѕР»РЅС‹Р№ smoke-РїСЂРѕРіРѕРЅ РґРµРјРѕ:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_runtime_demo.ps1
@@ -153,13 +156,13 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_runtime_demo.ps1
 
 ## Oracle Demo Quickstart (PowerShell)
 
-Быстрая проверка исполняемой оценки на golden dataset (детерминированный режим для smoke/CI):
+Р‘С‹СЃС‚СЂР°СЏ РїСЂРѕРІРµСЂРєР° РёСЃРїРѕР»РЅСЏРµРјРѕР№ РѕС†РµРЅРєРё РЅР° golden dataset (РґРµС‚РµСЂРјРёРЅРёСЂРѕРІР°РЅРЅС‹Р№ СЂРµР¶РёРј РґР»СЏ smoke/CI):
 
 ```powershell
 python -m optimizer.evaluation.run_oracle --dsl-file .\examples\dsl\style_direct_llm.yaml --dataset-file .\examples\datasets\golden_linkedin_stylizer_v1.jsonl --execution-mode expected_stub --pretty
 ```
 
-Полный smoke-прогон oracle:
+РџРѕР»РЅС‹Р№ smoke-РїСЂРѕРіРѕРЅ oracle:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_oracle.ps1
@@ -168,36 +171,60 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_oracle.ps1
 
 ## Arena Demo Quickstart (PowerShell)
 
-Стабильный CI-турнир (deterministic `expected_stub`):
+РЎС‚Р°Р±РёР»СЊРЅС‹Р№ CI-С‚СѓСЂРЅРёСЂ (deterministic `expected_stub`):
 
 ```powershell
 python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_ci_v0.yaml --pretty
 ```
 
-В успешном выводе проверьте:
+Р’ СѓСЃРїРµС€РЅРѕРј РІС‹РІРѕРґРµ РїСЂРѕРІРµСЂСЊС‚Рµ:
 
 1. `scoring_enabled: true`
 2. `ranking_policy[0].name: composite_score`
-3. у каждого участника есть `middle_metrics`, `composite_score`, `score_breakdown`
-4. есть секции `comparison` и `diagnostics`
-5. в `diagnostics.participants[].signals` есть `top_bottlenecks` и `intervention_hints`
+3. Сѓ РєР°Р¶РґРѕРіРѕ СѓС‡Р°СЃС‚РЅРёРєР° РµСЃС‚СЊ `middle_metrics`, `composite_score`, `score_breakdown`
+4. РµСЃС‚СЊ СЃРµРєС†РёРё `comparison` Рё `diagnostics`
+5. РІ `diagnostics.participants[].signals` РµСЃС‚СЊ `top_bottlenecks` Рё `intervention_hints`
 
-Live runtime-демо (winner может меняться из-за LLM):
+Live runtime-РґРµРјРѕ (winner РјРѕР¶РµС‚ РјРµРЅСЏС‚СЊСЃСЏ РёР·-Р·Р° LLM):
 
 ```powershell
 python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_v0.yaml --pretty
 ```
 
-Полный smoke-прогон arena:
+CI full-budget турнир (весь dataset):
+
+```powershell
+python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_ci_full_v0.yaml --pretty
+```
+
+Live runtime full-budget турнир (весь dataset, дороже и дольше):
+
+```powershell
+python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_full_v0.yaml --pretty
+```
+
+РџРѕР»РЅС‹Р№ smoke-РїСЂРѕРіРѕРЅ arena:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena.ps1
 ```
 
-Live smoke-прогон arena:
+Live smoke-РїСЂРѕРіРѕРЅ arena:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live.ps1
+```
+
+Full smoke-прогон arena (CI full):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_full.ps1
+```
+
+Live full smoke-прогон arena:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live_full.ps1
 ```
 
 Resume quickstart:
@@ -212,10 +239,14 @@ python -m optimizer.renderer.langgraph_dai.run --dsl-file .\examples\dsl\hitl_ga
 
 ## OpenRouter Setup (For Real LLM Calls)
 
-Когда перейдем к runtime-слайсам (`I2.*`), можно включить реальные вызовы LLM.
+РљРѕРіРґР° РїРµСЂРµР№РґРµРј Рє runtime-СЃР»Р°Р№СЃР°Рј (`I2.*`), РјРѕР¶РЅРѕ РІРєР»СЋС‡РёС‚СЊ СЂРµР°Р»СЊРЅС‹Рµ РІС‹Р·РѕРІС‹ LLM.
 
-1. Скопируйте `.env.example` в `.env`.
-2. Заполните `OPENROUTER_API_KEY`.
-3. При необходимости смените `OPENROUTER_MODEL`.
+1. РЎРєРѕРїРёСЂСѓР№С‚Рµ `.env.example` РІ `.env`.
+2. Р—Р°РїРѕР»РЅРёС‚Рµ `OPENROUTER_API_KEY`.
+3. Для экономичного demo-цикла используйте более дешевую модель в `OPENROUTER_MODEL` (по умолчанию в `.env.example` задана `meta-llama/llama-3.1-8b-instruct`).
+4. Для более высокого качества на финальных full-прогонах можно временно переключаться на более сильную модель.
 
-Важно: `.env` добавлен в `.gitignore` и не должен попадать в git.
+Р’Р°Р¶РЅРѕ: `.env` РґРѕР±Р°РІР»РµРЅ РІ `.gitignore` Рё РЅРµ РґРѕР»Р¶РµРЅ РїРѕРїР°РґР°С‚СЊ РІ git.
+
+
+
