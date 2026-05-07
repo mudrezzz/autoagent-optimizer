@@ -49,6 +49,12 @@ def test_compute_diagnostic_signals_builds_stage_aggregates() -> None:
     top_stage = signals["stage_aggregates"][0]
     assert top_stage["bottleneck_score"] >= 0.0
     assert top_stage["executions_total"] >= 1
+    assert "top_bottlenecks" in signals
+    assert "intervention_hints" in signals
+    if signals["top_bottlenecks"]:
+        top_bottleneck = signals["top_bottlenecks"][0]
+        assert "reason" in top_bottleneck
+        assert "suggested_interventions" in top_bottleneck
 
 
 @pytest.mark.unit
@@ -61,4 +67,5 @@ def test_compute_diagnostic_signals_returns_empty_payload_for_missing_report() -
     assert signals["summary"]["failed_cases_total"] == 0
     assert signals["summary"]["failure_rate"] == 0.0
     assert signals["stage_aggregates"] == []
-
+    assert signals["top_bottlenecks"] == []
+    assert signals["intervention_hints"] == []

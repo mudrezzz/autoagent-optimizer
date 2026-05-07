@@ -157,7 +157,11 @@ python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_t
 5. поля scoring (`scoring_enabled`, `scoring_normalization`, `scoring_policy`)
 6. `ranking_policy` (фактически примененная конфигурация ранжирования)
 7. `comparison` — секция сравнительных метрик для ranking и winner selection
-8. `diagnostics` — секция диагностических сигналов (`summary` + `stage_aggregates`) по участникам
+8. `diagnostics` — секция диагностических сигналов по участникам:
+   - `summary`
+   - `stage_aggregates`
+   - `top_bottlenecks`
+   - `intervention_hints`
 
 Dual contract:
 

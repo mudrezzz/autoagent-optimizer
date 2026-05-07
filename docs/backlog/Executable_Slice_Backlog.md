@@ -218,6 +218,7 @@
 - Progress (2026-05-07):
   1. Введен dual output контракт в arena JSON: `comparison` + `diagnostics`.
   2. Добавлены базовые stage-level diagnostic signals с `bottleneck_score`.
+  3. Добавлены `top_bottlenecks` и `intervention_hints` для actionable диагностики.
 
 ### I4.S3 - Champion export bundle
 

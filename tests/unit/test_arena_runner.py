@@ -242,3 +242,6 @@ def test_arena_runner_emits_dual_metrics_contract(tmp_path: Path) -> None:
     assert len(payload["comparison"]["participants"]) == 2
     assert len(payload["diagnostics"]["participants"]) == 2
     assert "signals" in payload["diagnostics"]["participants"][0]
+    signals = payload["diagnostics"]["participants"][0]["signals"]
+    assert "top_bottlenecks" in signals
+    assert "intervention_hints" in signals

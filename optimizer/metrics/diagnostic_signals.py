@@ -30,6 +30,26 @@ class StageDiagnosticAggregate:
         }
 
 
+@dataclass
+class BottleneckCandidate:
+    """Приоритизированный bottleneck по стадии с explainable причиной и hints."""
+
+    stage: str
+    bottleneck_score: float
+    reason: str
+    suggested_interventions: list[str]
+
+    def to_payload(self) -> dict[str, Any]:
+        """Преобразует bottleneck-кандидат в JSON-совместимый словарь."""
+
+        return {
+            "stage": self.stage,
+            "bottleneck_score": self.bottleneck_score,
+            "reason": self.reason,
+            "suggested_interventions": self.suggested_interventions,
+        }
+
+
 def compute_diagnostic_signals(
     oracle_report: dict[str, Any] | None,
     node_stage_map: dict[str, str] | None = None,
@@ -110,6 +130,8 @@ def compute_diagnostic_signals(
         )
 
     stage_aggregates.sort(key=lambda item: item.bottleneck_score, reverse=True)
+    top_bottlenecks = _build_top_bottlenecks(stage_aggregates=stage_aggregates, top_k=3)
+    intervention_hints = _collect_intervention_hints(top_bottlenecks)
     return {
         "summary": {
             "cases_total": len(results),
@@ -118,6 +140,8 @@ def compute_diagnostic_signals(
             "rule_failures_total": total_rule_failures,
         },
         "stage_aggregates": [item.to_payload() for item in stage_aggregates],
+        "top_bottlenecks": [item.to_payload() for item in top_bottlenecks],
+        "intervention_hints": intervention_hints,
     }
 
 
@@ -132,6 +156,8 @@ def _empty_diagnostics() -> dict[str, Any]:
             "rule_failures_total": 0,
         },
         "stage_aggregates": [],
+        "top_bottlenecks": [],
+        "intervention_hints": [],
     }
 
 
@@ -160,3 +186,79 @@ def _count_rule_failures(rule_results: Any) -> int:
         return 0
     return sum(1 for item in rule_results if isinstance(item, dict) and not bool(item.get("passed", False)))
 
+
+def _build_top_bottlenecks(stage_aggregates: list[StageDiagnosticAggregate], top_k: int) -> list[BottleneckCandidate]:
+    """Строит top-k bottleneck список с объяснением причин и intervention подсказками."""
+
+    candidates: list[BottleneckCandidate] = []
+    for aggregate in stage_aggregates[:top_k]:
+        if aggregate.bottleneck_score <= 0.0:
+            continue
+        reason = (
+            f"stage `{aggregate.stage}` часто встречается в провальных кейсах "
+            f"({aggregate.touched_failed_cases}) и имеет rule_failures_total={aggregate.rule_failures_total}"
+        )
+        candidates.append(
+            BottleneckCandidate(
+                stage=aggregate.stage,
+                bottleneck_score=aggregate.bottleneck_score,
+                reason=reason,
+                suggested_interventions=_suggest_interventions_for_stage(aggregate.stage),
+            )
+        )
+    return candidates
+
+
+def _collect_intervention_hints(top_bottlenecks: list[BottleneckCandidate]) -> list[str]:
+    """Агрегирует и дедуплицирует intervention hints из top bottlenecks."""
+
+    hints: list[str] = []
+    for candidate in top_bottlenecks:
+        for hint in candidate.suggested_interventions:
+            if hint not in hints:
+                hints.append(hint)
+    return hints
+
+
+def _suggest_interventions_for_stage(stage: str) -> list[str]:
+    """Возвращает базовые рекомендации улучшения для конкретной стадии пайплайна."""
+
+    if stage == "retrieve":
+        return [
+            "Увеличить recall retrieval (top_k, query rewrite, дополнительные источники).",
+            "Добавить валидацию релевантности найденных документов до synthesize.",
+        ]
+    if stage == "rerank":
+        return [
+            "Скорректировать rerank-модель или prompt критерии ранжирования.",
+            "Добавить golden checks для попадания эталонных фактов в top-n.",
+        ]
+    if stage == "synthesize":
+        return [
+            "Уточнить prompt/template генерации и добавить anti-hallucination constraints.",
+            "Добавить post-generation validator на обязательные факты/формат.",
+        ]
+    if stage == "validate":
+        return [
+            "Ужесточить validator правила и диагностику ошибок по полям.",
+            "Добавить fallback branch при провале validator.",
+        ]
+    if stage == "tool_call":
+        return [
+            "Проверить контракт tool IO и таймауты/ретраи.",
+            "Добавить защиту от пустых/частичных tool-ответов перед следующей стадией.",
+        ]
+    if stage == "hitl":
+        return [
+            "Уточнить критерии эскалации в HITL и шаблоны review-инструкций.",
+            "Добавить SLA/timeout политику для human review этапа.",
+        ]
+    if stage == "transform":
+        return [
+            "Добавить инварианты на промежуточные transform-данные.",
+            "Разбить крупный transform на более диагностируемые шаги.",
+        ]
+    return [
+        "Добавить stage-specific telemetry и правила диагностики для неизвестной стадии.",
+        "Сопоставить node->stage taxonomy, чтобы убрать `unknown` из diagnostics.",
+    ]

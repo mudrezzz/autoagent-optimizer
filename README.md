@@ -176,6 +176,7 @@ python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_t
 2. `ranking_policy[0].name: composite_score`
 3. у каждого участника есть `middle_metrics`, `composite_score`, `score_breakdown`
 4. есть секции `comparison` и `diagnostics`
+5. в `diagnostics.participants[].signals` есть `top_bottlenecks` и `intervention_hints`
 
 Live runtime-демо (winner может меняться из-за LLM):
 

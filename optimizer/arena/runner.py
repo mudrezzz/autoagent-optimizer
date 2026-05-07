@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import random
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -159,8 +160,10 @@ class ArchitectureArenaRunner:
         participant_results: list[ArenaParticipantResult] = []
         oracle_runner = OracleRunner()
         for participant in spec.participants:
-            participant_graph_ir = (
-                _resolve_participant_graph_ir(participant, arena_file_dir) if spec.execution_mode == "runtime" else None
+            participant_graph_ir = _resolve_participant_graph_ir_for_diagnostics(
+                participant=participant,
+                arena_file_dir=arena_file_dir,
+                execution_mode=spec.execution_mode,
             )
             execute_fn = _build_participant_executor(
                 participant=participant,
@@ -457,6 +460,25 @@ def _resolve_participant_graph_ir(participant: ArenaParticipantSpec, arena_file_
             f"Не удалось скомпилировать DSL участника `{participant.participant_id}`: {compile_result.report.summary()}"
         )
     return compile_result.graph_ir
+
+
+def _resolve_participant_graph_ir_for_diagnostics(
+    *,
+    participant: ArenaParticipantSpec,
+    arena_file_dir: Path,
+    execution_mode: str,
+) -> GraphIRSpec | None:
+    """Best-effort резолвит Graph IR для stage diagnostics без риска уронить expected_stub unit-тесты."""
+
+    if execution_mode == "runtime":
+        return _resolve_participant_graph_ir(participant, arena_file_dir)
+
+    try:
+        return _resolve_participant_graph_ir(participant, arena_file_dir)
+    except (ValueError, FileNotFoundError, json.JSONDecodeError):
+        # В expected_stub режиме source-файлы могут быть фиктивными (unit-тесты);
+        # fallback на empty stage map допустим, чтобы не ломать deterministic проверки.
+        return None
 
 
 def _participant_source(participant: ArenaParticipantSpec, arena_file_dir: Path) -> tuple[str, str]:
