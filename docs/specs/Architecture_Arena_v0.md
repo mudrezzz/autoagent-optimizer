@@ -150,6 +150,13 @@ Live runtime запуск (для демо/ручной проверки):
 python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_v0.yaml --pretty
 ```
 
+Decision-profile запуск (для более надежного сравнения архитектур):
+
+```powershell
+python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_ci_decision_v0.yaml --pretty
+python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_decision_v0.yaml --pretty
+```
+
 Full-budget запуск (весь dataset):
 
 ```powershell
@@ -195,6 +202,13 @@ Live smoke:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live.ps1
+```
+
+Decision smoke:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_decision.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live_decision.ps1
 ```
 
 Full smoke:

@@ -119,6 +119,7 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.arena` dual output contract (`comparison` + `diagnostics`).
    - stylizer demo dataset v1 expanded to multi-case full profile (`examples/datasets/golden_linkedin_stylizer_v1.jsonl`),
    - arena budget profiles (`smoke`/`full`) via dedicated configs (`support_tournament*_v0.yaml`),
+   - arena run-policy split (`smoke-live` vs `decision-live`) for cheap signal vs architecture decision confidence,
    - economical live-default OpenRouter model profile for demo loops (`meta-llama/llama-3.1-8b-instruct`).
    - `optimizer.evidence` (Evidence Pack v0 JSON/Markdown artifacts with winner/challenger explainable diff).
 2. Next:

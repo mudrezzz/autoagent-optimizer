@@ -108,6 +108,15 @@ python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_t
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live.ps1
 ```
 
+Decision-profile команды Arena (для более надежного архитектурного решения):
+
+```powershell
+python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_ci_decision_v0.yaml --pretty
+python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_decision_v0.yaml --pretty
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_decision.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live_decision.ps1
+```
+
 Full-budget команды Arena (дороже, для контрольных прогонов):
 
 ```powershell
@@ -125,6 +134,9 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live_full.ps1
 4. расширенный stylizer dataset (12 длинных кейсов) + раздельные smoke/full budget профили.
 5. Evidence Pack v0 (`evidence_pack.json` + `evidence_pack.md`) с разделением `comparison` и `diagnostics`.
 6. explainable winner/challenger diff и приоритетные рекомендации для challenger.
+7. разделение run-policy:
+   - `smoke-live`: cheap model + 4 кейса,
+   - `decision-live`: quality model + 8 кейсов (`hash_stable`).
 
 Следующий шаг:
 

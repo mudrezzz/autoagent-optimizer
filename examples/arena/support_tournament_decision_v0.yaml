@@ -1,0 +1,47 @@
+version: arena_v0
+dataset_file: ../datasets/golden_linkedin_stylizer_v1.jsonl
+execution_mode: runtime
+task_prefix: arena-live-decision
+budget:
+  policy: equal_cases
+  unit: cases
+  selector: hash_stable
+  limit: 8
+  random_seed: 42
+ranking:
+  metrics:
+    - name: composite_score
+      direction: desc
+    - name: pass_rate
+      direction: desc
+    - name: passed
+      direction: desc
+    - name: failed
+      direction: asc
+    - name: participant_id
+      direction: asc
+scoring:
+  enabled: true
+  normalization: minmax
+  metrics:
+    - name: pass_rate
+      direction: desc
+      weight: 0.6
+    - name: rule_violations_total
+      direction: asc
+      weight: 0.3
+    - name: duration_ms_avg
+      direction: asc
+      weight: 0.1
+evaluator:
+  mode: rule_based_v0
+participants:
+  - participant_id: style_direct_candidate
+    dsl_file: ../dsl/style_direct_llm.yaml
+    stub_behavior: perfect
+  - participant_id: style_pattern_cleaner_candidate
+    dsl_file: ../dsl/style_pattern_cleaner.yaml
+    stub_behavior: fail_sensitive
+  - participant_id: style_hitl_reviewer_candidate
+    dsl_file: ../dsl/style_hitl_reviewer.yaml
+    stub_behavior: fail_all

@@ -66,9 +66,13 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 - `optimizer/arena` - equal-budget tournament runner Рё CLI СЃСЂР°РІРЅРµРЅРёСЏ 2-3 Р°СЂС…РёС‚РµРєС‚СѓСЂ.
 - `examples/arena/support_tournament_v0.yaml` - live-РєРѕРЅС„РёРіСѓСЂР°С†РёСЏ С‚СѓСЂРЅРёСЂР° stylizer-РєРµР№СЃР°.
 - `examples/arena/support_tournament_ci_v0.yaml` - СЃС‚Р°Р±РёР»СЊРЅР°СЏ CI-РєРѕРЅС„РёРіСѓСЂР°С†РёСЏ stylizer-С‚СѓСЂРЅРёСЂР°.
+- `examples/arena/support_tournament_decision_v0.yaml` - live decision-РїСЂРѕС„РёР»СЊ (8 кейсов, `hash_stable`) РґР»СЏ Р°СЂС…РёС‚РµРєС‚СѓСЂРЅС‹С… СЂРµС€РµРЅРёР№.
+- `examples/arena/support_tournament_ci_decision_v0.yaml` - CI decision-РїСЂРѕС„РёР»СЊ (8 кейсов, `hash_stable`).
 - `examples/arena/support_tournament_full_v0.yaml` - live full-budget РєРѕРЅС„РёРіСѓСЂР°С†РёСЏ stylizer-С‚СѓСЂРЅРёСЂР°.
 - `examples/arena/support_tournament_ci_full_v0.yaml` - CI full-budget РєРѕРЅС„РёРіСѓСЂР°С†РёСЏ stylizer-С‚СѓСЂРЅРёСЂР°.
 - `scripts/smoke_run_arena.ps1` - smoke-РїСЂРѕРіРѕРЅ CI stylizer С‚СѓСЂРЅРёСЂР°.
+- `scripts/smoke_run_arena_decision.ps1` - smoke-РїСЂРѕРіРѕРЅ CI decision-РїСЂРѕС„РёР»СЏ stylizer-С‚СѓСЂРЅРёСЂР°.
+- `scripts/smoke_run_arena_live_decision.ps1` - smoke-РїСЂРѕРіРѕРЅ live decision-РїСЂРѕС„РёР»СЏ stylizer-С‚СѓСЂРЅРёСЂР°.
 - `scripts/smoke_generate_evidence_pack.ps1` - smoke-РіРµРЅРµСЂР°С†РёСЏ Evidence Pack РїРѕ CI arena РєРѕРЅС„РёРіСѓ.
 - `docs/specs/Architecture_Arena_v0.md` - config-first РєРѕРЅС‚СЂР°РєС‚ `budget`/`ranking`/`evaluator` РїРѕР»РёС‚РёРє С‚СѓСЂРЅРёСЂР°.
 
@@ -201,6 +205,18 @@ Live runtime-РґРµРјРѕ (winner РјРѕР¶РµС‚ РјРµРЅСЏС�
 python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_v0.yaml --pretty
 ```
 
+Decision CI-турнир (deterministic, бюджет 8 кейсов, `hash_stable`):
+
+```powershell
+python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_ci_decision_v0.yaml --pretty
+```
+
+Decision LIVE-турнир (бюджет 8 кейсов, профиль для принятия решений):
+
+```powershell
+python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_decision_v0.yaml --pretty
+```
+
 CI full-budget турнир (весь dataset):
 
 ```powershell
@@ -223,6 +239,18 @@ Live smoke-РїСЂРѕРіРѕРЅ arena:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live.ps1
+```
+
+Decision smoke-прогон arena (CI):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_decision.ps1
+```
+
+Decision live smoke-прогон arena:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live_decision.ps1
 ```
 
 Full smoke-прогон arena (CI full):
@@ -278,6 +306,7 @@ python -m optimizer.renderer.langgraph_dai.run --dsl-file .\examples\dsl\hitl_ga
 4. Для более высокого качества на финальных full-прогонах можно временно переключаться на более сильную модель.
 
 Р’Р°Р¶РЅРѕ: `.env` РґРѕР±Р°РІР»РµРЅ РІ `.gitignore` Рё РЅРµ РґРѕР»Р¶РµРЅ РїРѕРїР°РґР°С‚СЊ РІ git.
+
 
 
 
