@@ -15,8 +15,8 @@
 
 ## Active Window (Now)
 
-- `Current Focus`: MVP-1 / I4
-- `Active Next Slice`: I4.S3
+- `Current Focus`: MVP-2 / I5
+- `Active Next Slice`: I5.S1
 
 ---
 
@@ -225,7 +225,7 @@
 
 ### I4.S3 - Champion export bundle
 
-- Status: Planned
+- Status: Done
 - Goal: сформировать экспортируемый пакет лучшей конфигурации и диагностической карты улучшений.
 - Deliverables:
   - bundle champion artifacts,
@@ -236,6 +236,11 @@
   3. Добавлены integration/e2e проверки экспортируемого комплекта.
 - Dependencies: I4.S2.
 - Risks: переизбыточный объем bundle без явной структуры.
+- Progress (2026-05-08):
+  1. Добавлен модуль `optimizer/champion` с CLI экспорта champion bundle.
+  2. Bundle включает arena result, evidence pack, diagnostic map, winner source, winner Graph IR и generated agent code.
+  3. Добавлен `bundle_manifest.json` для reproducible handoff артефактов.
+  4. Добавлены unit/integration/e2e тесты и smoke-скрипт `smoke_export_champion_bundle.ps1`.
 
 ---
 

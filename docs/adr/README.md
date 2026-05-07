@@ -44,6 +44,7 @@
 15. [ADR-0015-middle-metrics-and-composite-scoring-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0015-middle-metrics-and-composite-scoring-v0.md) - Accepted
 16. [ADR-0016-dual-metrics-model-comparative-vs-diagnostic.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0016-dual-metrics-model-comparative-vs-diagnostic.md) - Accepted
 17. [ADR-0017-evidence-pack-dual-output-contract-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0017-evidence-pack-dual-output-contract-v0.md) - Accepted
+18. [ADR-0018-champion-export-bundle-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0018-champion-export-bundle-v0.md) - Accepted
 
 ## Template
 

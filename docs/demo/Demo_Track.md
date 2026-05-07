@@ -140,15 +140,23 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live_full.ps1
 
 Следующий шаг:
 
-1. Champion export bundle v0 (I4.S3).
+1. Evaluation Fabric baseline (I5.S1).
 
 ### Stage D3 (I4) - Champion Demo
 
-План показа:
+Что уже показываем:
 
 1. формирование Evidence Pack;
 2. champion/challenger сравнение;
-3. export champion bundle.
+3. export champion bundle с `diagnostic_map.json`, `winner_graph_ir.json` и `generated_agent/*`;
+4. reproducible handoff через `bundle_manifest.json`.
+
+Команды:
+
+```powershell
+python -m optimizer.champion.export_bundle --arena-file .\examples\arena\support_tournament_ci_decision_v0.yaml --out-dir .\tmp\champion_bundle --bundle-name stylizer_ci_bundle --force --pretty
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_export_champion_bundle.ps1
+```
 
 ### Stage D4 (I5) - Evaluation Fabric Demo
 
@@ -171,6 +179,6 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live_full.ps1
 
 ## Current Demo Status
 
-- Active stage: `D3 (I4)`
+- Active stage: `D4 prep (I5)`
 - Demo readiness: `Green`
-- Next demo milestone: `D3 champion export` (`I4.S3`), затем `D4 evaluation fabric` (`I5.*`)
+- Next demo milestone: `D4 evaluation fabric` (`I5.S1`)

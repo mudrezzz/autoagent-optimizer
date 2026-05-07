@@ -80,6 +80,7 @@ Input (Task + Constraints + Data + Tools + Budget)
 7. `optimizer.metricops` (planned)
 8. `optimizer.components`
 9. `optimizer.evidence`
+10. `optimizer.champion`
 
 ## Implementation Status Snapshot
 
@@ -121,9 +122,9 @@ Input (Task + Constraints + Data + Tools + Budget)
    - arena budget profiles (`smoke`/`full`) via dedicated configs (`support_tournament*_v0.yaml`),
    - arena run-policy split (`smoke-live` vs `decision-live`) for cheap signal vs architecture decision confidence,
    - economical live-default OpenRouter model profile for demo loops (`meta-llama/llama-3.1-8b-instruct`).
-   - `optimizer.evidence` (Evidence Pack v0 JSON/Markdown artifacts with winner/challenger explainable diff).
+   - `optimizer.evidence` (Evidence Pack v0 JSON/Markdown artifacts with winner/challenger explainable diff),
+   - `optimizer.champion` (Champion Export Bundle v0: arena/evidence/diagnostic/codegen bundle + manifest).
 2. Next:
-   - Champion export bundle v0 (I4.S3),
    - Evaluation Fabric & MetricOps (I5.*).
 
 ## Decision Records

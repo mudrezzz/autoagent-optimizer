@@ -64,7 +64,7 @@
 | I4.S2a | Stylizer demo scale + budget profiles (smoke/full) | Done | dataset v1 expanded, arena smoke/full configs, cheap live defaults |
 | I4.S2 | Evidence Pack v0 + dual-metrics contract | Done | comparative vs diagnostic evidence report |
 | I4.S2b | Run-policy split: smoke-live vs decision-live | Done | dedicated decision budget profile + quality-model run path |
-| I4.S3 | Champion export bundle v0 | Planned | deployable artifact set |
+| I4.S3 | Champion export bundle v0 | Done | deployable artifact set |
 
 ---
 

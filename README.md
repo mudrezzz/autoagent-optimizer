@@ -5,9 +5,9 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 ## Current Status
 
 - `Phase`: MVP-1 (foundation)
-- `Iteration`: I4 - Evidence + Export
-- `Overall`: In Progress (I2.S1-I4.S3 in progress)
-- `Next Slice`: I4.S3 Champion export bundle v0
+- `Iteration`: I5 - Evaluation Fabric & MetricOps
+- `Overall`: In Progress (I1.S1-I4.S3 done)
+- `Next Slice`: I5.S1 Task Evaluation Profile v0
 
 РџРѕРґСЂРѕР±РЅС‹Р№ СЃС‚Р°С‚СѓСЃ:
 
@@ -44,10 +44,12 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 - `optimizer/evaluation` - golden dataset contract, loader, oracle runner Рё CLI-РІР°Р»РёРґР°С†РёСЏ/РїСЂРѕРіРѕРЅ.
 - `optimizer/metrics` - middle-РјРµС‚СЂРёРєРё Рё СЃР»СѓР¶РµР±РЅС‹Рµ Р°РіСЂРµРіР°С‚РѕСЂС‹ РґР»СЏ arena scoring.
 - `optimizer/evidence` - РіРµРЅРµСЂР°С†РёСЏ Evidence Pack (`comparison` + `diagnostics` + explainable diff).
+- `optimizer/champion` - export Champion Bundle (`diagnostic_map`, `winner_graph_ir`, `generated_agent`, `manifest`).
 - `components` - deterministic demo-РєРѕРјРїРѕРЅРµРЅС‚С‹ РґР»СЏ РїР°Р№РїР»Р°Р№РЅРѕРІ (РІРєР»СЋС‡Р°СЏ AI-pattern РёРЅСЃС‚СЂСѓРјРµРЅС‚С‹).
 - `validators` - python-РІР°Р»РёРґР°С‚РѕСЂС‹ demo-СЃС†РµРЅР°СЂРёРµРІ (РІРєР»СЋС‡Р°СЏ style output guard).
 - `docs/specs/Evaluation_Profile_v0.md` - РєРѕРЅС†РµРїС‚ profile-driven РѕС†РµРЅРєРё (task-specific metrics + pluggable evaluators).
 - `docs/specs/Evidence_Pack_v0.md` - РєРѕРЅС‚СЂР°РєС‚ Р°СЂС‚РµС„Р°РєС‚РѕРІ evidence РґР»СЏ winner/challenger Р°РЅР°Р»РёР·Р°.
+- `docs/specs/Champion_Export_Bundle_v0.md` - РєРѕРЅС‚СЂР°РєС‚ champion bundle v0.
 - `examples/dsl` - СЌС‚Р°Р»РѕРЅРЅС‹Рµ YAML-СЃРїРµРєРё, РІРєР»СЋС‡Р°СЏ stylizer РєР°РЅРґРёРґР°С‚РѕРІ (`style_direct_llm`, `style_pattern_cleaner`, `style_hitl_reviewer`).
 - `examples/graph_ir` - СЌС‚Р°Р»РѕРЅРЅС‹Рµ Graph IR JSON-СЃРїРµРєРё.
 - `examples/datasets` - СЌС‚Р°Р»РѕРЅРЅС‹Рµ golden dataset JSONL РєРµР№СЃС‹ (РІРєР»СЋС‡Р°СЏ `golden_linkedin_stylizer_v1.jsonl`).
@@ -59,6 +61,7 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 - `scripts/smoke_generate_agent_code.ps1` - smoke-РґРµРјРѕ РіРµРЅРµСЂР°С†РёРё Рё Р·Р°РїСѓСЃРєР° РєРѕРґРѕРІРѕРіРѕ Р°РіРµРЅС‚Р°.
 - `scripts/smoke_validate_dataset.ps1` - smoke-РІР°Р»РёРґР°С†РёСЏ golden dataset.
 - `scripts/smoke_run_oracle.ps1` - smoke-РїСЂРѕРіРѕРЅ executable oracle runner.
+- `scripts/smoke_export_champion_bundle.ps1` - smoke-РїСЂРѕРіРѕРЅ champion bundle export.
 
 
 ## I3.S3 Artifacts
@@ -90,6 +93,13 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 - `optimizer/evidence/generate_pack.py` - CLI РіРµРЅРµСЂР°С†РёРё `evidence_pack.json` + `evidence_pack.md`.
 - `docs/specs/Evidence_Pack_v0.md` - РєРѕРЅС‚СЂР°РєС‚ СЃС‚СЂСѓРєС‚СѓСЂС‹ evidence pack РґР»СЏ MVP v0.
 - `scripts/smoke_generate_evidence_pack.ps1` - smoke-РїСЂРѕРіРѕРЅ РіРµРЅРµСЂР°С†РёРё evidence pack.
+
+## I4.S3 Artifacts
+
+- `optimizer/champion/diagnostic_map.py` - builder РїСЂРёРѕСЂРёС‚РёР·РёСЂРѕРІР°РЅРЅРѕР№ diagnostic map РґР»СЏ winner.
+- `optimizer/champion/export_bundle.py` - CLI СЌРєСЃРїРѕСЂС‚Р° champion bundle РёР· arena СЂРµР·СѓР»СЊС‚Р°С‚Р°.
+- `docs/specs/Champion_Export_Bundle_v0.md` - РєРѕРЅС‚СЂР°РєС‚ bundle Р°СЂС‚РµС„Р°РєС‚РѕРІ Рё СЃС‚СЂСѓРєС‚СѓСЂР° РєР°С‚Р°Р»РѕРіР°.
+- `scripts/smoke_export_champion_bundle.ps1` - smoke-РїСЂРѕРІРµСЂРєР° champion bundle export.
 
 ## Dual Metrics Model
 
@@ -284,6 +294,20 @@ Smoke-прогон evidence pack:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_generate_evidence_pack.ps1
+```
+
+## Champion Bundle Quickstart (PowerShell)
+
+Экспорт champion bundle напрямую из CI decision arena-конфига:
+
+```powershell
+python -m optimizer.champion.export_bundle --arena-file .\examples\arena\support_tournament_ci_decision_v0.yaml --out-dir .\tmp\champion_bundle --bundle-name stylizer_ci_bundle --force --pretty
+```
+
+Smoke-прогон champion bundle export:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_export_champion_bundle.ps1
 ```
 
 Resume quickstart:
