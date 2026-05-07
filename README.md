@@ -6,8 +6,8 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 
 - `Phase`: MVP-1 (foundation)
 - `Iteration`: I4 - Evidence + Export
-- `Overall`: In Progress (I2.S1-I4.S2 in progress)
-- `Next Slice`: I4.S2 Evidence Pack v0 + dual-metrics contract
+- `Overall`: In Progress (I2.S1-I4.S3 in progress)
+- `Next Slice`: I4.S3 Champion export bundle v0
 
 РџРѕРґСЂРѕР±РЅС‹Р№ СЃС‚Р°С‚СѓСЃ:
 
@@ -43,9 +43,11 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 - `optimizer/tracing` - node-level СЃРѕР±С‹С‚РёСЏ РёСЃРїРѕР»РЅРµРЅРёСЏ Рё СЃРІРѕРґРєР° trace РїРѕ run.
 - `optimizer/evaluation` - golden dataset contract, loader, oracle runner Рё CLI-РІР°Р»РёРґР°С†РёСЏ/РїСЂРѕРіРѕРЅ.
 - `optimizer/metrics` - middle-РјРµС‚СЂРёРєРё Рё СЃР»СѓР¶РµР±РЅС‹Рµ Р°РіСЂРµРіР°С‚РѕСЂС‹ РґР»СЏ arena scoring.
+- `optimizer/evidence` - РіРµРЅРµСЂР°С†РёСЏ Evidence Pack (`comparison` + `diagnostics` + explainable diff).
 - `components` - deterministic demo-РєРѕРјРїРѕРЅРµРЅС‚С‹ РґР»СЏ РїР°Р№РїР»Р°Р№РЅРѕРІ (РІРєР»СЋС‡Р°СЏ AI-pattern РёРЅСЃС‚СЂСѓРјРµРЅС‚С‹).
 - `validators` - python-РІР°Р»РёРґР°С‚РѕСЂС‹ demo-СЃС†РµРЅР°СЂРёРµРІ (РІРєР»СЋС‡Р°СЏ style output guard).
 - `docs/specs/Evaluation_Profile_v0.md` - РєРѕРЅС†РµРїС‚ profile-driven РѕС†РµРЅРєРё (task-specific metrics + pluggable evaluators).
+- `docs/specs/Evidence_Pack_v0.md` - РєРѕРЅС‚СЂР°РєС‚ Р°СЂС‚РµС„Р°РєС‚РѕРІ evidence РґР»СЏ winner/challenger Р°РЅР°Р»РёР·Р°.
 - `examples/dsl` - СЌС‚Р°Р»РѕРЅРЅС‹Рµ YAML-СЃРїРµРєРё, РІРєР»СЋС‡Р°СЏ stylizer РєР°РЅРґРёРґР°С‚РѕРІ (`style_direct_llm`, `style_pattern_cleaner`, `style_hitl_reviewer`).
 - `examples/graph_ir` - СЌС‚Р°Р»РѕРЅРЅС‹Рµ Graph IR JSON-СЃРїРµРєРё.
 - `examples/datasets` - СЌС‚Р°Р»РѕРЅРЅС‹Рµ golden dataset JSONL РєРµР№СЃС‹ (РІРєР»СЋС‡Р°СЏ `golden_linkedin_stylizer_v1.jsonl`).
@@ -67,6 +69,7 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 - `examples/arena/support_tournament_full_v0.yaml` - live full-budget РєРѕРЅС„РёРіСѓСЂР°С†РёСЏ stylizer-С‚СѓСЂРЅРёСЂР°.
 - `examples/arena/support_tournament_ci_full_v0.yaml` - CI full-budget РєРѕРЅС„РёРіСѓСЂР°С†РёСЏ stylizer-С‚СѓСЂРЅРёСЂР°.
 - `scripts/smoke_run_arena.ps1` - smoke-РїСЂРѕРіРѕРЅ CI stylizer С‚СѓСЂРЅРёСЂР°.
+- `scripts/smoke_generate_evidence_pack.ps1` - smoke-РіРµРЅРµСЂР°С†РёСЏ Evidence Pack РїРѕ CI arena РєРѕРЅС„РёРіСѓ.
 - `docs/specs/Architecture_Arena_v0.md` - config-first РєРѕРЅС‚СЂР°РєС‚ `budget`/`ranking`/`evaluator` РїРѕР»РёС‚РёРє С‚СѓСЂРЅРёСЂР°.
 
 ## I4.S1 Artifacts
@@ -76,6 +79,13 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 - `optimizer/arena/runner.py` - СЂР°СЃС‡РµС‚ `middle_metrics`, `composite_score` Рё `score_breakdown` РІ tournament output.
 - `examples/arena/support_tournament_v0.yaml` - РґРµРјРѕ-РєРѕРЅС„РёРі СЃ РІРєР»СЋС‡РµРЅРЅС‹Рј `scoring`.
 - `examples/arena/support_tournament_full_v0.yaml` - full-budget РґРµРјРѕ-РєРѕРЅС„РёРі СЃ РІРєР»СЋС‡РµРЅРЅС‹Рј `scoring`.
+
+## I4.S2 Artifacts
+
+- `optimizer/evidence/pack_builder.py` - СЃР±РѕСЂРєР° Evidence Pack payload Рё explainable winner/challenger diff.
+- `optimizer/evidence/generate_pack.py` - CLI РіРµРЅРµСЂР°С†РёРё `evidence_pack.json` + `evidence_pack.md`.
+- `docs/specs/Evidence_Pack_v0.md` - РєРѕРЅС‚СЂР°РєС‚ СЃС‚СЂСѓРєС‚СѓСЂС‹ evidence pack РґР»СЏ MVP v0.
+- `scripts/smoke_generate_evidence_pack.ps1` - smoke-РїСЂРѕРіРѕРЅ РіРµРЅРµСЂР°С†РёРё evidence pack.
 
 ## Dual Metrics Model
 
@@ -225,6 +235,27 @@ Live full smoke-прогон arena:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live_full.ps1
+```
+
+## Evidence Pack Quickstart (PowerShell)
+
+Генерация evidence pack напрямую из CI arena-конфига:
+
+```powershell
+python -m optimizer.evidence.generate_pack --arena-file .\examples\arena\support_tournament_ci_v0.yaml --out-dir .\tmp\evidence_pack --pretty
+```
+
+Генерация evidence pack из уже сохраненного arena JSON:
+
+```powershell
+python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_tournament_ci_v0.yaml --pretty | Out-File -LiteralPath .\tmp\arena_result.json -Encoding utf8
+python -m optimizer.evidence.generate_pack --arena-result-file .\tmp\arena_result.json --out-dir .\tmp\evidence_pack --pretty
+```
+
+Smoke-прогон evidence pack:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_generate_evidence_pack.ps1
 ```
 
 Resume quickstart:

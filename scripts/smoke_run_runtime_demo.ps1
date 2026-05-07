@@ -5,6 +5,13 @@ $ErrorActionPreference = "Stop"
 
 # Resolve repository root.
 $repoRoot = Split-Path -Parent $PSScriptRoot
+$env:PYTHONIOENCODING = "utf-8"
+
+# Для экономичного smoke-цикла задаем недорогую модель, если модель не определена явно.
+if (-not $env:OPENROUTER_MODEL) {
+  $env:OPENROUTER_MODEL = "meta-llama/llama-3.1-8b-instruct"
+}
+
 $tmpDir = Join-Path $repoRoot "tmp\runtime_demo"
 if (Test-Path -LiteralPath $tmpDir) {
   Remove-Item -LiteralPath $tmpDir -Recurse -Force

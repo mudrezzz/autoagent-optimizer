@@ -16,7 +16,7 @@
 ## Active Window (Now)
 
 - `Current Focus`: MVP-1 / I4
-- `Active Next Slice`: I4.S2
+- `Active Next Slice`: I4.S3
 
 ---
 
@@ -198,7 +198,7 @@
 
 ### I4.S2 - Evidence pack generator
 
-- Status: In Progress
+- Status: Done
 - Goal: собрать evidence pack champion/challenger с разделением comparative и diagnostic метрик.
 - Deliverables:
   - `optimizer/evidence/*` (генератор отчетов),
@@ -219,6 +219,9 @@
   1. Введен dual output контракт в arena JSON: `comparison` + `diagnostics`.
   2. Добавлены базовые stage-level diagnostic signals с `bottleneck_score`.
   3. Добавлены `top_bottlenecks` и `intervention_hints` для actionable диагностики.
+  4. Реализован модуль `optimizer/evidence` и CLI генерации Evidence Pack (`json` + `md`).
+  5. Добавлен explainable winner/challenger diff и рекомендации для challenger.
+  6. Добавлены unit/integration/e2e тесты + smoke сценарий `smoke_generate_evidence_pack.ps1`.
 
 ### I4.S3 - Champion export bundle
 

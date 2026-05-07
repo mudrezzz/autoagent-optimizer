@@ -120,8 +120,9 @@ Input (Task + Constraints + Data + Tools + Budget)
    - stylizer demo dataset v1 expanded to multi-case full profile (`examples/datasets/golden_linkedin_stylizer_v1.jsonl`),
    - arena budget profiles (`smoke`/`full`) via dedicated configs (`support_tournament*_v0.yaml`),
    - economical live-default OpenRouter model profile for demo loops (`meta-llama/llama-3.1-8b-instruct`).
+   - `optimizer.evidence` (Evidence Pack v0 JSON/Markdown artifacts with winner/challenger explainable diff).
 2. Next:
-   - Evidence Pack v0 + dual-metrics contract (I4.S2),
+   - Champion export bundle v0 (I4.S3),
    - Evaluation Fabric & MetricOps (I5.*).
 
 ## Decision Records

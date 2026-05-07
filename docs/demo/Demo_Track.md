@@ -123,10 +123,12 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live_full.ps1
 2. config-driven `scoring` policy с весами/направлениями;
 3. `composite_score` и `score_breakdown` в итоговом отчете турнира.
 4. расширенный stylizer dataset (12 длинных кейсов) + раздельные smoke/full budget профили.
+5. Evidence Pack v0 (`evidence_pack.json` + `evidence_pack.md`) с разделением `comparison` и `diagnostics`.
+6. explainable winner/challenger diff и приоритетные рекомендации для challenger.
 
 Следующий шаг:
 
-1. Evidence Pack v0 (I4.S2).
+1. Champion export bundle v0 (I4.S3).
 
 ### Stage D3 (I4) - Champion Demo
 
@@ -159,4 +161,4 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live_full.ps1
 
 - Active stage: `D3 (I4)`
 - Demo readiness: `Green`
-- Next demo milestone: `D3 evidence pack` (`I4.S2`), затем `D4 evaluation fabric` (`I5.*`)
+- Next demo milestone: `D3 champion export` (`I4.S3`), затем `D4 evaluation fabric` (`I5.*`)

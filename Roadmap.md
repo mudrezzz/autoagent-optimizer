@@ -62,7 +62,7 @@
 |---|---|---|---|
 | I4.S1 | Middle-metrics v0 | Done | per-node quality/cost/latency metrics + composite scoring |
 | I4.S2a | Stylizer demo scale + budget profiles (smoke/full) | Done | dataset v1 expanded, arena smoke/full configs, cheap live defaults |
-| I4.S2 | Evidence Pack v0 + dual-metrics contract | In Progress | comparative vs diagnostic evidence report |
+| I4.S2 | Evidence Pack v0 + dual-metrics contract | Done | comparative vs diagnostic evidence report |
 | I4.S3 | Champion export bundle v0 | Planned | deployable artifact set |
 
 ---

@@ -172,6 +172,12 @@ python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_t
    - `top_bottlenecks`
    - `intervention_hints`
 
+Для упаковки результата в читаемый артефакт используйте Evidence Pack CLI:
+
+```powershell
+python -m optimizer.evidence.generate_pack --arena-file .\examples\arena\support_tournament_ci_v0.yaml --out-dir .\tmp\evidence_pack --pretty
+```
+
 Dual contract:
 
 1. `comparison` отвечает на вопрос "кто лучше".
