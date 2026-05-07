@@ -215,3 +215,30 @@ def test_arena_runner_rejects_composite_ranking_without_scoring(tmp_path: Path) 
                 ArenaParticipantSpec(participant_id="b", dsl_file="b.yaml", stub_behavior="perfect"),
             ],
         )
+
+
+@pytest.mark.unit
+def test_arena_runner_emits_dual_metrics_contract(tmp_path: Path) -> None:
+    """Проверяет наличие секций `comparison` и `diagnostics` в итоговом JSON турнира."""
+
+    dataset_file = tmp_path / "dataset.jsonl"
+    _write_dataset(dataset_file)
+    spec = ArenaTournamentSpec(
+        dataset_file=dataset_file.name,
+        execution_mode="expected_stub",
+        participants=[
+            ArenaParticipantSpec(participant_id="a", dsl_file="a.yaml", stub_behavior="perfect"),
+            ArenaParticipantSpec(participant_id="b", dsl_file="b.yaml", stub_behavior="fail_all"),
+        ],
+    )
+
+    runner = ArchitectureArenaRunner()
+    result = runner.run(spec=spec, arena_file_dir=tmp_path, include_details=False)
+    payload = result.to_payload()
+
+    assert "comparison" in payload
+    assert "diagnostics" in payload
+    assert payload["comparison"]["winner_id"] == payload["winner_id"]
+    assert len(payload["comparison"]["participants"]) == 2
+    assert len(payload["diagnostics"]["participants"]) == 2
+    assert "signals" in payload["diagnostics"]["participants"][0]

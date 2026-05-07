@@ -19,7 +19,8 @@ from optimizer.evaluation.dataset_loader import GoldenDatasetLoader
 from optimizer.evaluation.dataset_schema import GoldenDatasetRecord
 from optimizer.evaluation.oracle_runner import OracleRunner
 from optimizer.graph_ir.io import load_graph_ir_spec
-from optimizer.graph_ir.models import GraphNodeKind
+from optimizer.graph_ir.models import GraphIRSpec, GraphNodeKind
+from optimizer.metrics.diagnostic_signals import compute_diagnostic_signals
 from optimizer.metrics.middle_metrics import compute_middle_metrics
 from optimizer.renderer.langgraph_dai.adapter import GraphIRToLangGraphRenderer
 from optimizer.renderer.langgraph_dai.run import _build_demo_bindings
@@ -42,6 +43,7 @@ class ArenaParticipantResult:
     middle_metrics: dict[str, float | int]
     composite_score: float | None = None
     score_breakdown: dict[str, Any] | None = None
+    diagnostic_signals: dict[str, Any] | None = None
     oracle_report: dict[str, Any] | None = None
 
     def to_payload(self) -> dict[str, Any]:
@@ -62,6 +64,8 @@ class ArenaParticipantResult:
             payload["composite_score"] = self.composite_score
         if self.score_breakdown is not None:
             payload["score_breakdown"] = self.score_breakdown
+        if self.diagnostic_signals is not None:
+            payload["diagnostic_signals"] = self.diagnostic_signals
         if self.oracle_report is not None:
             payload["oracle_report"] = self.oracle_report
         return payload
@@ -93,6 +97,9 @@ class ArenaTournamentResult:
     def to_payload(self) -> dict[str, Any]:
         """Преобразует итог турнира в JSON-совместимую структуру."""
 
+        participant_payloads = [participant.to_payload() for participant in self.participants]
+        comparison_participants = [_build_comparison_participant_payload(item) for item in self.participants]
+        diagnostics_participants = [_build_diagnostics_participant_payload(item) for item in self.participants]
         return {
             "dataset_file": self.dataset_file,
             "execution_mode": self.execution_mode,
@@ -111,7 +118,16 @@ class ArenaTournamentResult:
             "ranking_policy": self.ranking_policy,
             "winner_id": self.winner_id,
             "ranking": self.ranking,
-            "participants": [participant.to_payload() for participant in self.participants],
+            "participants": participant_payloads,
+            "comparison": {
+                "winner_id": self.winner_id,
+                "ranking": self.ranking,
+                "ranking_policy": self.ranking_policy,
+                "participants": comparison_participants,
+            },
+            "diagnostics": {
+                "participants": diagnostics_participants,
+            },
         }
 
 
@@ -143,15 +159,21 @@ class ArchitectureArenaRunner:
         participant_results: list[ArenaParticipantResult] = []
         oracle_runner = OracleRunner()
         for participant in spec.participants:
+            participant_graph_ir = (
+                _resolve_participant_graph_ir(participant, arena_file_dir) if spec.execution_mode == "runtime" else None
+            )
             execute_fn = _build_participant_executor(
                 participant=participant,
                 execution_mode=spec.execution_mode,
                 arena_file_dir=arena_file_dir,
                 task_prefix=spec.task_prefix,
+                graph_ir=participant_graph_ir,
             )
             run_result = oracle_runner.run(selected_records, execute_fn)
             full_report = run_result.full_payload()
             middle_metrics = compute_middle_metrics(full_report).to_payload()
+            node_stage_map = _build_node_stage_map(participant_graph_ir) if participant_graph_ir is not None else {}
+            diagnostic_signals = compute_diagnostic_signals(full_report, node_stage_map=node_stage_map)
             source_kind, source_path = _participant_source(participant, arena_file_dir)
             participant_results.append(
                 ArenaParticipantResult(
@@ -164,6 +186,7 @@ class ArchitectureArenaRunner:
                     failed=run_result.failed,
                     pass_rate=run_result.pass_rate,
                     middle_metrics=middle_metrics,
+                    diagnostic_signals=diagnostic_signals,
                     oracle_report=(full_report if include_details else None),
                 )
             )
@@ -357,13 +380,15 @@ def _build_participant_executor(
     execution_mode: str,
     arena_file_dir: Path,
     task_prefix: str,
+    graph_ir: GraphIRSpec | None = None,
 ) -> ArenaExecutionFn:
     """Строит функцию исполнения одного кейса для конкретного участника."""
 
     if execution_mode == "expected_stub":
         return _build_stub_executor(participant)
 
-    graph_ir = _resolve_participant_graph_ir(participant, arena_file_dir)
+    if graph_ir is None:
+        graph_ir = _resolve_participant_graph_ir(participant, arena_file_dir)
     llm_node_ids = {node.id for node in graph_ir.nodes if node.kind == GraphNodeKind.LLM}
     renderer = GraphIRToLangGraphRenderer()
     runtime = renderer.render(graph_ir=graph_ir, bindings=_build_demo_bindings())
@@ -449,3 +474,54 @@ def _resolve_path(base_dir: Path, path_value: str) -> Path:
     if path.is_absolute():
         return path
     return (base_dir / path).resolve()
+
+
+def _build_node_stage_map(graph_ir: GraphIRSpec) -> dict[str, str]:
+    """Строит map `node_id -> stage` для вычисления диагностических сигналов."""
+
+    stage_map: dict[str, str] = {}
+    for node in graph_ir.nodes:
+        stage_map[node.id] = _stage_for_node_kind(node.kind)
+    return stage_map
+
+
+def _stage_for_node_kind(node_kind: GraphNodeKind) -> str:
+    """Маппит тип узла Graph IR в унифицированную stage taxonomy."""
+
+    if node_kind == GraphNodeKind.LLM:
+        return "synthesize"
+    if node_kind == GraphNodeKind.DETERMINISTIC:
+        return "transform"
+    if node_kind == GraphNodeKind.TOOL:
+        return "tool_call"
+    if node_kind == GraphNodeKind.VALIDATOR:
+        return "validate"
+    if node_kind == GraphNodeKind.HITL_GATE:
+        return "hitl"
+    return "unknown"
+
+
+def _build_comparison_participant_payload(participant: ArenaParticipantResult) -> dict[str, Any]:
+    """Возвращает comparison-часть участника (только сравнительные метрики)."""
+
+    payload: dict[str, Any] = {
+        "participant_id": participant.participant_id,
+        "passed": participant.passed,
+        "failed": participant.failed,
+        "pass_rate": participant.pass_rate,
+        "middle_metrics": participant.middle_metrics,
+    }
+    if participant.composite_score is not None:
+        payload["composite_score"] = participant.composite_score
+    if participant.score_breakdown is not None:
+        payload["score_breakdown"] = participant.score_breakdown
+    return payload
+
+
+def _build_diagnostics_participant_payload(participant: ArenaParticipantResult) -> dict[str, Any]:
+    """Возвращает diagnostics-часть участника (stage-агрегаты и failure-сигналы)."""
+
+    return {
+        "participant_id": participant.participant_id,
+        "signals": participant.diagnostic_signals or {"summary": {}, "stage_aggregates": []},
+    }

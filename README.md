@@ -6,8 +6,8 @@ OSS-first платформа для архитектурного поиска, w
 
 - `Phase`: MVP-1 (foundation)
 - `Iteration`: I4 - Evidence + Export
-- `Overall`: In Progress (I2.S1-I4.S1 done)
-- `Next Slice`: I4.S2 Evidence Pack v0
+- `Overall`: In Progress (I2.S1-I4.S2 in progress)
+- `Next Slice`: I4.S2 Evidence Pack v0 + dual-metrics contract
 
 Подробный статус:
 
@@ -162,6 +162,7 @@ python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_t
 1. `scoring_enabled: true`
 2. `ranking_policy[0].name: composite_score`
 3. у каждого участника есть `middle_metrics`, `composite_score`, `score_breakdown`
+4. есть секции `comparison` и `diagnostics`
 
 Live runtime-демо (winner может меняться из-за LLM):
 

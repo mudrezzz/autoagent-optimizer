@@ -156,6 +156,13 @@ python -m optimizer.arena.run_tournament --arena-file .\examples\arena\support_t
 4. поля бюджета (`budget_policy`, `budget_unit`, `budget_selector`, `budget_limit`, `budget_seed`)
 5. поля scoring (`scoring_enabled`, `scoring_normalization`, `scoring_policy`)
 6. `ranking_policy` (фактически примененная конфигурация ранжирования)
+7. `comparison` — секция сравнительных метрик для ranking и winner selection
+8. `diagnostics` — секция диагностических сигналов (`summary` + `stage_aggregates`) по участникам
+
+Dual contract:
+
+1. `comparison` отвечает на вопрос "кто лучше".
+2. `diagnostics` отвечает на вопрос "где ломается пайплайн и что чинить".
 
 ## Smoke
 

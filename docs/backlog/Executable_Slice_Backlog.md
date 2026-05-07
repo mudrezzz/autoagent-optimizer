@@ -198,7 +198,7 @@
 
 ### I4.S2 - Evidence pack generator
 
-- Status: Planned
+- Status: In Progress
 - Goal: собрать evidence pack champion/challenger с разделением comparative и diagnostic метрик.
 - Deliverables:
   - `optimizer/evidence/*` (генератор отчетов),
@@ -215,6 +215,9 @@
   4. Добавлены unit/integration/e2e тесты и зеленый полный `python -m pytest`.
 - Dependencies: I4.S1.
 - Risks: смешение ranking-метрик и root-cause сигналов в одной шкале.
+- Progress (2026-05-07):
+  1. Введен dual output контракт в arena JSON: `comparison` + `diagnostics`.
+  2. Добавлены базовые stage-level diagnostic signals с `bottleneck_score`.
 
 ### I4.S3 - Champion export bundle
 

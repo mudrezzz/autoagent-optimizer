@@ -106,7 +106,9 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.arena.runner` (config-driven tournament execution и ranking),
    - `optimizer.arena.run_tournament` (CLI tournament compare path),
    - `optimizer.metrics.middle_metrics` (middle-метрики и latency/cost агрегаты),
-   - `optimizer.arena` scoring path (`composite_score`, `score_breakdown`, config-driven weights).
+   - `optimizer.arena` scoring path (`composite_score`, `score_breakdown`, config-driven weights),
+   - `optimizer.metrics.diagnostic_signals` (stage-level diagnostic signals и bottleneck score),
+   - `optimizer.arena` dual output contract (`comparison` + `diagnostics`).
 2. Next:
    - Evidence Pack v0 + dual-metrics contract (I4.S2).
 

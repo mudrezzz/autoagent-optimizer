@@ -50,6 +50,10 @@ def test_arena_run_cli_support_tournament_success() -> None:
     assert len(payload["participants"]) == 3
     assert "composite_score" in payload["participants"][0]
     assert "middle_metrics" in payload["participants"][0]
+    assert "comparison" in payload
+    assert "diagnostics" in payload
+    assert payload["comparison"]["winner_id"] == payload["winner_id"]
+    assert len(payload["diagnostics"]["participants"]) == 3
 
 
 @pytest.mark.integration
