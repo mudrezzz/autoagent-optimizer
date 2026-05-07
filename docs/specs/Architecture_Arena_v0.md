@@ -4,6 +4,8 @@
 
 `Architecture Arena v0` добавляет турнирное сравнение 2-3 архитектур в одинаковом бюджете кейсов.
 
+Текущий демо-домен Arena: `LinkedIn/Telegram style rewrite` с golden dataset и AI-pattern справочником.
+
 Ключевые модули:
 
 1. [optimizer/arena/tournament_schema.py](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/optimizer/arena/tournament_schema.py)

@@ -46,6 +46,7 @@ def test_arena_run_cli_support_tournament_runtime_invariants() -> None:
     assert payload["scoring_enabled"] is True
     assert payload["ranking_policy"][0] == {"name": "composite_score", "direction": "desc"}
     assert len(payload["participants"]) == 3
+    assert payload["cases_budget"] == 4
     assert len(payload["ranking"]) == 3
     assert sorted(payload["ranking"]) == sorted([item["participant_id"] for item in payload["participants"]])
     assert payload["winner_id"] in payload["ranking"]
@@ -53,4 +54,3 @@ def test_arena_run_cli_support_tournament_runtime_invariants() -> None:
         assert "middle_metrics" in participant
         assert "composite_score" in participant
         assert participant["middle_metrics"]["llm_calls_total"] >= 0
-

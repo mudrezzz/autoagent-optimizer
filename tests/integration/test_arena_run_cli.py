@@ -38,9 +38,13 @@ def test_arena_run_cli_support_tournament_success() -> None:
     assert proc.returncode == 0, proc.stderr
 
     payload = json.loads(proc.stdout)
-    assert payload["winner_id"] == "direct_llm_candidate"
-    assert payload["ranking"] == ["direct_llm_candidate", "ocr_first_candidate", "hitl_gate_candidate"]
-    assert payload["cases_budget"] == 3
+    assert payload["winner_id"] == "style_direct_candidate"
+    assert payload["ranking"] == [
+        "style_direct_candidate",
+        "style_pattern_cleaner_candidate",
+        "style_hitl_reviewer_candidate",
+    ]
+    assert payload["cases_budget"] == 4
     assert payload["budget_policy"] == "equal_cases"
     assert payload["budget_unit"] == "cases"
     assert payload["budget_selector"] == "head"

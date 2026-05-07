@@ -39,5 +39,4 @@ def test_arena_smoke_script_passes() -> None:
     )
 
     assert proc.returncode == 0, proc.stderr
-    assert "[SMOKE] arena tournament completed successfully." in proc.stdout
-
+    assert "[SMOKE] stylizer arena tournament completed successfully." in proc.stdout

@@ -1,0 +1,74 @@
+schema_version: "0.1"
+
+project:
+  id: "style-direct-llm-v0"
+  name: "Direct LLM Style Rewriter"
+  description: "Базовый кандидат: прямой LLM-рефакторинг поста без промежуточной очистки."
+
+mission:
+  task_type: "style_rewrite_social_post"
+  objective: "Переписать пост в более человечном стиле без потери фактов и структуры."
+  success_definition: "Сохранены ключевые факты, снижены AI-паттерны, длина близка к исходной."
+
+constraints:
+  max_cost_usd: 60
+  max_latency_ms: 3500
+  allowed_model_providers:
+    - "openrouter"
+  require_human_approval: false
+
+datasets:
+  - id: "linkedin_stylizer_test_v1"
+    format: "jsonl"
+    path: "datasets/social/linkedin_stylizer_test.jsonl"
+    split: "test"
+
+components:
+  - id: "style_writer"
+    kind: "llm"
+    implementation: "provider://openrouter/openai/gpt-4o-mini"
+  - id: "style_guard"
+    kind: "validator"
+    implementation: "python://validators.style_output_guard:validate"
+
+graph:
+  entry_node: "rewrite_post"
+  nodes:
+    - id: "rewrite_post"
+      type: "llm"
+      component_id: "style_writer"
+      prompt_id: "style_rewrite_direct_v1"
+      on_fail: "retry"
+    - id: "validate_style"
+      type: "validator"
+      component_id: "style_guard"
+      on_fail: "stop"
+  edges:
+    - source: "rewrite_post"
+      target: "validate_style"
+
+metrics:
+  - id: "style_pass_rate"
+    kind: "output"
+    direction: "maximize"
+    description: "Доля постов без запрещенных AI-паттернов и с сохранением фабулы."
+  - id: "ai_pattern_leak_rate"
+    kind: "middle"
+    direction: "minimize"
+    description: "Остаточная доля характерных AI-паттернов в финальном тексте."
+  - id: "length_ratio_delta"
+    kind: "middle"
+    direction: "minimize"
+    description: "Отклонение длины итогового текста от исходного."
+
+budget:
+  max_trials: 20
+  max_total_cost_usd: 60
+  max_wall_time_minutes: 90
+
+architecture_space:
+  selection_policy: "equal_budget_tournament"
+  candidates:
+    - id: "style_direct_llm_v1"
+      template: "style_direct_llm"
+      enabled: true

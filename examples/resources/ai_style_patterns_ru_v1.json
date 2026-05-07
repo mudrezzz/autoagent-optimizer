@@ -1,0 +1,67 @@
+{
+  "version": "1.0",
+  "language": "ru",
+  "description": "Справочник характерных речевых паттернов AI-стиля для демо стилизатора постов.",
+  "patterns": [
+    {
+      "pattern": "в современном мире",
+      "category": "cliched_intro",
+      "note": "Шаблонное вступление без конкретики."
+    },
+    {
+      "pattern": "давайте разберемся",
+      "category": "instructional_transition",
+      "note": "Псевдо-методическая связка."
+    },
+    {
+      "pattern": "нельзя недооценивать",
+      "category": "generic_emphasis",
+      "note": "Универсальная риторическая вставка."
+    },
+    {
+      "pattern": "это не просто",
+      "category": "generic_emphasis",
+      "note": "Типовая усилительная конструкция."
+    },
+    {
+      "pattern": "важно отметить",
+      "category": "meta_marker",
+      "note": "Метакомментарий, часто не добавляющий содержания."
+    },
+    {
+      "pattern": "в конечном итоге",
+      "category": "conclusion_cliche",
+      "note": "Штамп финального абзаца."
+    },
+    {
+      "pattern": "подводя итог",
+      "category": "conclusion_cliche",
+      "note": "Шаблонный вывод."
+    },
+    {
+      "pattern": "таким образом",
+      "category": "transition_cliche",
+      "note": "Избыточная связка в AI-тексте."
+    },
+    {
+      "pattern": "следует понимать",
+      "category": "didactic_tone",
+      "note": "Сигнал назидательного тона."
+    },
+    {
+      "pattern": "позволяет значительно повысить эффективность",
+      "category": "empty_benefit_claim",
+      "note": "Обещание без конкретного механизма."
+    },
+    {
+      "pattern": "как показывает практика",
+      "category": "vague_evidence",
+      "note": "Ссылка на практику без источника."
+    },
+    {
+      "pattern": "стоит подчеркнуть",
+      "category": "meta_marker",
+      "note": "Повторяющийся речевой маркер."
+    }
+  ]
+}

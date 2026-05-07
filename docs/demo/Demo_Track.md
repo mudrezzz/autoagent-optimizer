@@ -13,28 +13,22 @@
 
 Базовый сценарий демо (из MVP-вертикали ТЗ):
 
-`Complex PDF/OCR extraction -> structured database rows`
+`AI style rewrite for LinkedIn/Telegram posts`
 
 Почему выбран:
 
-1. хорошо виден эффект от архитектурных решений;
-2. естественно включает deterministic и LLM-компоненты;
-3. легко показывать метрики качества/стоимости/латентности;
-4. хорошо подходит для HITL и policy-gates в следующих MVP.
+1. можно быстро увидеть логические провалы на понятном человеку результате;
+2. метрики явно task-specific (смысл, энергия, факты, длина, AI-паттерны);
+3. естественно показывает разницу comparative vs diagnostic слоев;
+4. хорошо подходит для будущего MetricOps + HITL цикла.
 
-## Secondary Demo Scenario (MetricOps Candidate)
+## Secondary Demo Scenario
 
-Дополнительный развиваемый демо-кейс:
+Дополнительный сценарий:
 
-`AI style rewrite for LinkedIn/Telegram posts`
+`Complex PDF/OCR extraction -> structured database rows`
 
-Задача: убрать навязчивые AI-паттерны без потери смысла, энергии и фактов.
-
-Почему добавляем:
-
-1. метрики сильно task-specific и проверяют необходимость `Evaluation Profile`;
-2. хорошо демонстрирует mixed evaluation methods (LLM judge + golden-like checks + HITL review);
-3. хорошо показывает различие comparative vs diagnostic слоев.
+Его сохраняем как расширенный enterprise-кейс для следующих MVP.
 
 ## Demo Evolution By Iteration
 
@@ -90,7 +84,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_generate_agent_code.ps1
 Команды:
 
 ```powershell
-python -m optimizer.evaluation.run_oracle --dsl-file .\examples\dsl\direct_llm.yaml --dataset-file .\examples\datasets\golden_support_v1.jsonl --execution-mode expected_stub --pretty
+python -m optimizer.evaluation.run_oracle --dsl-file .\examples\dsl\style_direct_llm.yaml --dataset-file .\examples\datasets\golden_linkedin_stylizer_v1.jsonl --execution-mode expected_stub --pretty
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_oracle.ps1
 ```
 

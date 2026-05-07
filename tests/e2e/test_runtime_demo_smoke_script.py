@@ -34,10 +34,11 @@ def test_runtime_demo_smoke_script_passes() -> None:
         [shell_bin, "-ExecutionPolicy", "Bypass", "-File", str(script_path)],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         cwd=_project_root(),
         check=False,
     )
 
     assert proc.returncode == 0, proc.stderr
     assert "[SMOKE] runtime renderer demo completed successfully." in proc.stdout
-

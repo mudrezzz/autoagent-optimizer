@@ -1,0 +1,107 @@
+schema_version: "0.1"
+
+project:
+  id: "style-hitl-reviewer-v0"
+  name: "Style Rewriter With HITL Review"
+  description: "Кандидат с human review на рискованных стилевых правках."
+
+mission:
+  task_type: "style_rewrite_social_post"
+  objective: "Переписать пост и эскалировать правки в HITL, если остаточный AI-риск высокий."
+  success_definition: "Сохранена фабула, снижен AI-паттерн шум, контролируемая доля HITL."
+
+constraints:
+  max_cost_usd: 95
+  max_latency_ms: 7000
+  allowed_model_providers:
+    - "openrouter"
+  require_human_approval: true
+
+datasets:
+  - id: "linkedin_stylizer_test_v1"
+    format: "jsonl"
+    path: "datasets/social/linkedin_stylizer_test.jsonl"
+    split: "test"
+
+components:
+  - id: "pattern_detector"
+    kind: "deterministic"
+    implementation: "python://components.style_pattern_tools:detect_ai_patterns"
+  - id: "style_writer"
+    kind: "llm"
+    implementation: "provider://openrouter/openai/gpt-4o-mini"
+  - id: "style_guard"
+    kind: "validator"
+    implementation: "python://validators.style_output_guard:validate"
+  - id: "human_editor"
+    kind: "hitl_gate"
+    implementation: "workflow://hitl/style_reviewer_v1"
+  - id: "final_editor"
+    kind: "llm"
+    implementation: "provider://openrouter/openai/gpt-4o-mini"
+
+graph:
+  entry_node: "detect_patterns"
+  nodes:
+    - id: "detect_patterns"
+      type: "deterministic"
+      component_id: "pattern_detector"
+      on_fail: "fallback"
+    - id: "rewrite_post"
+      type: "llm"
+      component_id: "style_writer"
+      prompt_id: "style_rewrite_with_patterns_v1"
+      on_fail: "retry"
+    - id: "validate_style"
+      type: "validator"
+      component_id: "style_guard"
+      on_fail: "stop"
+    - id: "human_review"
+      type: "hitl_gate"
+      component_id: "human_editor"
+      on_fail: "stop"
+    - id: "finalize_post"
+      type: "llm"
+      component_id: "final_editor"
+      prompt_id: "style_finalize_v1"
+      on_fail: "retry"
+  edges:
+    - source: "detect_patterns"
+      target: "rewrite_post"
+    - source: "rewrite_post"
+      target: "validate_style"
+    - source: "validate_style"
+      target: "human_review"
+      condition: "style_risk == high"
+    - source: "validate_style"
+      target: "finalize_post"
+      condition: "style_risk == low"
+    - source: "human_review"
+      target: "finalize_post"
+      condition: "review_decision == approve"
+
+metrics:
+  - id: "style_pass_rate"
+    kind: "output"
+    direction: "maximize"
+    description: "Доля успешных правок с сохранением фактуры исходного поста."
+  - id: "hitl_review_rate"
+    kind: "middle"
+    direction: "minimize"
+    description: "Доля кейсов, ушедших на human review."
+  - id: "remaining_ai_pattern_rate"
+    kind: "middle"
+    direction: "minimize"
+    description: "Доля кейсов с заметными AI-паттернами после финализации."
+
+budget:
+  max_trials: 25
+  max_total_cost_usd: 95
+  max_wall_time_minutes: 140
+
+architecture_space:
+  selection_policy: "equal_budget_tournament"
+  candidates:
+    - id: "style_hitl_reviewer_v1"
+      template: "style_hitl_reviewer"
+      enabled: true

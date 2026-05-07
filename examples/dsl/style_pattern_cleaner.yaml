@@ -1,0 +1,92 @@
+schema_version: "0.1"
+
+project:
+  id: "style-pattern-cleaner-v0"
+  name: "Pattern Cleaner + LLM Rewriter"
+  description: "Гибридный кандидат: сначала deterministic очистка AI-паттернов, затем LLM-переписывание."
+
+mission:
+  task_type: "style_rewrite_social_post"
+  objective: "Убирать шаблонные AI-маркеры, сохраняя факты, цифры и нить поста."
+  success_definition: "Минимум AI-паттернов при сохранении контекста и конкретики."
+
+constraints:
+  max_cost_usd: 80
+  max_latency_ms: 4500
+  allowed_model_providers:
+    - "openrouter"
+  require_human_approval: false
+
+datasets:
+  - id: "linkedin_stylizer_test_v1"
+    format: "jsonl"
+    path: "datasets/social/linkedin_stylizer_test.jsonl"
+    split: "test"
+
+components:
+  - id: "pattern_detector"
+    kind: "deterministic"
+    implementation: "python://components.style_pattern_tools:detect_ai_patterns"
+  - id: "pattern_cleaner"
+    kind: "deterministic"
+    implementation: "python://components.style_pattern_tools:strip_ai_patterns"
+  - id: "style_writer"
+    kind: "llm"
+    implementation: "provider://openrouter/openai/gpt-4o-mini"
+  - id: "style_guard"
+    kind: "validator"
+    implementation: "python://validators.style_output_guard:validate"
+
+graph:
+  entry_node: "detect_patterns"
+  nodes:
+    - id: "detect_patterns"
+      type: "deterministic"
+      component_id: "pattern_detector"
+      on_fail: "fallback"
+    - id: "clean_patterns"
+      type: "deterministic"
+      component_id: "pattern_cleaner"
+      on_fail: "fallback"
+    - id: "rewrite_post"
+      type: "llm"
+      component_id: "style_writer"
+      prompt_id: "style_rewrite_with_patterns_v1"
+      on_fail: "retry"
+    - id: "validate_style"
+      type: "validator"
+      component_id: "style_guard"
+      on_fail: "stop"
+  edges:
+    - source: "detect_patterns"
+      target: "clean_patterns"
+    - source: "clean_patterns"
+      target: "rewrite_post"
+    - source: "rewrite_post"
+      target: "validate_style"
+
+metrics:
+  - id: "style_pass_rate"
+    kind: "output"
+    direction: "maximize"
+    description: "Доля постов с сохраненной фабулой и сниженным AI-лейксигналом."
+  - id: "ai_pattern_density"
+    kind: "middle"
+    direction: "minimize"
+    description: "Плотность остаточных AI-паттернов в финальном тексте."
+  - id: "latency_p95_ms"
+    kind: "middle"
+    direction: "minimize"
+    description: "95-й перцентиль времени обработки поста."
+
+budget:
+  max_trials: 24
+  max_total_cost_usd: 80
+  max_wall_time_minutes: 120
+
+architecture_space:
+  selection_policy: "equal_budget_tournament"
+  candidates:
+    - id: "style_pattern_cleaner_v1"
+      template: "style_pattern_cleaner"
+      enabled: true

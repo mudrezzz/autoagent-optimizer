@@ -20,8 +20,8 @@ def _project_root() -> Path:
 def test_oracle_run_cli_expected_stub_success() -> None:
     """Проверяет успешный deterministic oracle-прогон через expected_stub."""
 
-    dsl_file = _project_root() / "examples" / "dsl" / "direct_llm.yaml"
-    dataset_file = _project_root() / "examples" / "datasets" / "golden_support_v1.jsonl"
+    dsl_file = _project_root() / "examples" / "dsl" / "style_direct_llm.yaml"
+    dataset_file = _project_root() / "examples" / "datasets" / "golden_linkedin_stylizer_v1.jsonl"
     proc = subprocess.run(
         [
             sys.executable,
@@ -42,7 +42,7 @@ def test_oracle_run_cli_expected_stub_success() -> None:
     )
     assert proc.returncode == 0, proc.stderr
     payload = json.loads(proc.stdout)
-    assert payload["cases_total"] == 3
+    assert payload["cases_total"] == 4
     assert payload["failed"] == 0
     assert payload["execution_mode"] == "expected_stub"
 
@@ -53,7 +53,7 @@ def test_oracle_run_cli_fails_for_invalid_dataset(tmp_path: Path) -> None:
 
     bad_dataset = tmp_path / "bad_dataset.jsonl"
     bad_dataset.write_text('{"case_id":"","input":{},"expected":{}}', encoding="utf-8")
-    dsl_file = _project_root() / "examples" / "dsl" / "direct_llm.yaml"
+    dsl_file = _project_root() / "examples" / "dsl" / "style_direct_llm.yaml"
     proc = subprocess.run(
         [
             sys.executable,
@@ -71,4 +71,3 @@ def test_oracle_run_cli_fails_for_invalid_dataset(tmp_path: Path) -> None:
     )
     assert proc.returncode == 1
     assert "[ORACLE DATASET ERROR]" in proc.stderr
-

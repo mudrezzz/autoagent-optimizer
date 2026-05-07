@@ -43,10 +43,13 @@ OSS-first платформа для архитектурного поиска, w
 - `optimizer/tracing` - node-level события исполнения и сводка trace по run.
 - `optimizer/evaluation` - golden dataset contract, loader, oracle runner и CLI-валидация/прогон.
 - `optimizer/metrics` - middle-метрики и служебные агрегаторы для arena scoring.
+- `components` - deterministic demo-компоненты для пайплайнов (включая AI-pattern инструменты).
+- `validators` - python-валидаторы demo-сценариев (включая style output guard).
 - `docs/specs/Evaluation_Profile_v0.md` - концепт profile-driven оценки (task-specific metrics + pluggable evaluators).
-- `examples/dsl` - эталонные YAML-спеки (`direct_llm`, `ocr_first`, `hitl_gate`).
+- `examples/dsl` - эталонные YAML-спеки, включая stylizer кандидатов (`style_direct_llm`, `style_pattern_cleaner`, `style_hitl_reviewer`).
 - `examples/graph_ir` - эталонные Graph IR JSON-спеки.
-- `examples/datasets` - эталонные golden dataset JSONL кейсы.
+- `examples/datasets` - эталонные golden dataset JSONL кейсы (включая `golden_linkedin_stylizer_v1.jsonl`).
+- `examples/resources/ai_style_patterns_ru_v1.json` - справочник известных AI-паттернов для stylizer-кейса.
 - `scripts/smoke_validate_dsl.ps1` - smoke-проверка всех DSL-примеров.
 - `scripts/smoke_validate_graph_ir.ps1` - smoke-проверка всех Graph IR-примеров.
 - `scripts/smoke_compile_dsl_to_ir.ps1` - smoke-компиляция DSL в IR.
@@ -59,8 +62,9 @@ OSS-first платформа для архитектурного поиска, w
 ## I3.S3 Artifacts
 
 - `optimizer/arena` - equal-budget tournament runner и CLI сравнения 2-3 архитектур.
-- `examples/arena/support_tournament_v0.yaml` - эталонная конфигурация турнира.
-- `scripts/smoke_run_arena.ps1` - smoke-прогон Architecture Arena tournament.
+- `examples/arena/support_tournament_v0.yaml` - live-конфигурация турнира stylizer-кейса.
+- `examples/arena/support_tournament_ci_v0.yaml` - стабильная CI-конфигурация stylizer-турнира.
+- `scripts/smoke_run_arena.ps1` - smoke-прогон CI stylizer турнира.
 - `docs/specs/Architecture_Arena_v0.md` - config-first контракт `budget`/`ranking`/`evaluator` политик турнира.
 
 ## I4.S1 Artifacts
@@ -137,8 +141,8 @@ python -m pytest -m live
 
 ```powershell
 New-Item -ItemType Directory -Force -Path .\tmp | Out-Null
-'{"query":"Кратко опиши цель проекта"}' | Set-Content -LiteralPath .\tmp\runtime_payload.json -Encoding UTF8
-python -m optimizer.renderer.langgraph_dai.run --dsl-file .\examples\dsl\direct_llm.yaml --payload-file .\tmp\runtime_payload.json --pretty
+'{"draft_post":"В современном мире нельзя недооценивать роль редактуры. Давайте разберемся, как переписать пост живее и сохранить факты."}' | Set-Content -LiteralPath .\tmp\runtime_payload.json -Encoding UTF8
+python -m optimizer.renderer.langgraph_dai.run --dsl-file .\examples\dsl\style_direct_llm.yaml --payload-file .\tmp\runtime_payload.json --pretty
 ```
 
 Полный smoke-прогон демо:
@@ -152,7 +156,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_runtime_demo.ps1
 Быстрая проверка исполняемой оценки на golden dataset (детерминированный режим для smoke/CI):
 
 ```powershell
-python -m optimizer.evaluation.run_oracle --dsl-file .\examples\dsl\direct_llm.yaml --dataset-file .\examples\datasets\golden_support_v1.jsonl --execution-mode expected_stub --pretty
+python -m optimizer.evaluation.run_oracle --dsl-file .\examples\dsl\style_direct_llm.yaml --dataset-file .\examples\datasets\golden_linkedin_stylizer_v1.jsonl --execution-mode expected_stub --pretty
 ```
 
 Полный smoke-прогон oracle:

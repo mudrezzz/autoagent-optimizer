@@ -1,6 +1,6 @@
 version: arena_v0
-dataset_file: ../datasets/golden_support_v1.jsonl
-execution_mode: runtime # expected_stub
+dataset_file: ../datasets/golden_linkedin_stylizer_v1.jsonl
+execution_mode: runtime
 task_prefix: arena-demo
 budget:
   policy: equal_cases
@@ -36,12 +36,12 @@ scoring:
 evaluator:
   mode: rule_based_v0
 participants:
-  - participant_id: direct_llm_candidate
-    dsl_file: ../dsl/direct_llm.yaml
+  - participant_id: style_direct_candidate
+    dsl_file: ../dsl/style_direct_llm.yaml
     stub_behavior: perfect
-  - participant_id: ocr_first_candidate
-    dsl_file: ../dsl/ocr_first.yaml
+  - participant_id: style_pattern_cleaner_candidate
+    dsl_file: ../dsl/style_pattern_cleaner.yaml
     stub_behavior: fail_sensitive
-  - participant_id: hitl_gate_candidate
-    dsl_file: ../dsl/hitl_gate.yaml
+  - participant_id: style_hitl_reviewer_candidate
+    dsl_file: ../dsl/style_hitl_reviewer.yaml
     stub_behavior: fail_all

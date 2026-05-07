@@ -1,4 +1,4 @@
-# Smoke-скрипт турнира Architecture Arena.
+# Smoke-скрипт CI-турнира демо-кейса LinkedIn/Telegram post stylizer.
 param()
 
 $ErrorActionPreference = "Stop"
@@ -7,7 +7,7 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $arenaFile = Join-Path $repoRoot "examples\arena\support_tournament_ci_v0.yaml"
 
-Write-Host "[SMOKE] run architecture arena tournament"
+Write-Host "[SMOKE] run stylizer architecture arena tournament"
 python -m optimizer.arena.run_tournament `
   --arena-file $arenaFile `
   --pretty
@@ -15,4 +15,4 @@ if ($LASTEXITCODE -ne 0) {
     throw "Arena smoke run failed"
 }
 
-Write-Host "[SMOKE] arena tournament completed successfully."
+Write-Host "[SMOKE] stylizer arena tournament completed successfully."
