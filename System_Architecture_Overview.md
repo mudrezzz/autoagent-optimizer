@@ -25,7 +25,8 @@ Input (Task + Constraints + Data + Tools + Budget)
   -> Renderer (LangGraph first)
   -> Execution Runtime
   -> White-box Trace + Metrics
-  -> Evaluation + Tournament + Optimization
+  -> Evaluation Fabric (configurable evaluators + metrics)
+  -> Tournament + Optimization
   -> Evidence Pack + Champion Export
 ```
 
@@ -43,8 +44,13 @@ Input (Task + Constraints + Data + Tools + Budget)
    - invoke/resume path.
    - fallback-safe execution mode.
 5. `Evaluation Layer`
-   - deterministic oracles first (schema/pytest).
-   - optional LLM-as-judge as auxiliary signal.
+   - task-specific `Evaluation Profile` (config-driven metrics, judges, gates).
+   - pluggable evaluator adapters:
+     - golden dataset oracle,
+     - LLM-as-judge,
+     - executable validator (tests/code/run),
+     - render validator.
+   - Metric-Crafting Agent loop with HITL approval for metric/profile evolution.
 6. `Optimization Layer`
    - equal-budget baseline tournament.
    - dual-metrics model:
@@ -71,8 +77,9 @@ Input (Task + Constraints + Data + Tools + Budget)
 4. `optimizer.codegen`
 5. `optimizer.arena`
 6. `optimizer.evaluation`
-7. `optimizer.components`
-8. `optimizer.evidence`
+7. `optimizer.metricops` (planned)
+8. `optimizer.components`
+9. `optimizer.evidence`
 
 ## Implementation Status Snapshot
 
@@ -102,6 +109,7 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.evaluation.oracle_rules` (v0 правила `must_include/forbidden`),
    - `optimizer.evaluation.oracle_runner` (исполняемый runner и summary),
    - `optimizer.evaluation.run_oracle` (CLI oracle прогона),
+   - `Evaluation Profile` design direction (task-specific metrics/evaluator contracts),
    - `optimizer.arena.tournament_schema` (typed contract config-driven `budget`/`ranking`/`evaluator` policies),
    - `optimizer.arena.runner` (config-driven tournament execution и ranking),
    - `optimizer.arena.run_tournament` (CLI tournament compare path),
@@ -110,7 +118,8 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.metrics.diagnostic_signals` (stage-level diagnostic signals и bottleneck score),
    - `optimizer.arena` dual output contract (`comparison` + `diagnostics`).
 2. Next:
-   - Evidence Pack v0 + dual-metrics contract (I4.S2).
+   - Evidence Pack v0 + dual-metrics contract (I4.S2),
+   - Evaluation Fabric & MetricOps (I5.*).
 
 ## Decision Records
 

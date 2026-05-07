@@ -235,6 +235,59 @@
 
 ---
 
+## Detailed Backlog: I5-I7
+
+### I5.S1 - Task Evaluation Profile v0
+
+- Status: Planned
+- Goal: ввести config-driven профиль оценки под каждый task type.
+- Deliverables:
+  - `docs/specs/Evaluation_Profile_v0.md`,
+  - typed profile schema + validator (`optimizer/evaluation/profile_*`),
+  - examples профилей для минимум 2 task types.
+- Acceptance Criteria:
+  1. Можно задать разные comparative/diagnostic метрики для разных задач.
+  2. Можно задать разные evaluator chains без code changes.
+  3. Есть валидация profile contract и понятные ошибки.
+- Dependencies: I4.S2.
+- Risks: избыточная сложность профиля на v0.
+
+### I5.S2 - Evaluator Adapter Layer v0
+
+- Status: Planned
+- Goal: подключать разные методы оценки через единый adapter contract.
+- Deliverables:
+  - evaluator adapter interface,
+  - базовые adapters:
+    - golden_oracle,
+    - llm_judge,
+    - executable,
+    - render,
+  - aggregation pipeline profile-driven метрик.
+- Acceptance Criteria:
+  1. Один и тот же турнир может использовать разные evaluator compositions.
+  2. Для evaluator можно задавать budget/limits в profile.
+  3. Есть integration tests на mixed evaluator pipeline.
+- Dependencies: I5.S1.
+- Risks: несогласованность шкал между evaluator types.
+
+### I5.S3 - Metric-Crafting Agent + HITL loop v0
+
+- Status: Planned
+- Goal: сделать настройку/эволюцию метрик агентной задачей с human approval.
+- Deliverables:
+  - metric-crafting workflow (draft -> critique -> approve),
+  - HITL checkpoint contract для profile activation,
+  - change log профилей метрик.
+- Acceptance Criteria:
+  1. Агент может предложить profile draft для нового кейса.
+  2. Без HITL approve профиль не активируется для ranking.
+  3. Есть audit trail: кто/когда/почему изменил профиль.
+- Dependencies: I5.S1, I5.S2.
+- Risks: высокая вариативность качества auto-generated метрик.
+
+---
+
 ## Done Slices
 
 ### I0.S1 - Done

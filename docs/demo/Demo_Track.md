@@ -22,6 +22,20 @@
 3. легко показывать метрики качества/стоимости/латентности;
 4. хорошо подходит для HITL и policy-gates в следующих MVP.
 
+## Secondary Demo Scenario (MetricOps Candidate)
+
+Дополнительный развиваемый демо-кейс:
+
+`AI style rewrite for LinkedIn/Telegram posts`
+
+Задача: убрать навязчивые AI-паттерны без потери смысла, энергии и фактов.
+
+Почему добавляем:
+
+1. метрики сильно task-specific и проверяют необходимость `Evaluation Profile`;
+2. хорошо демонстрирует mixed evaluation methods (LLM judge + golden-like checks + HITL review);
+3. хорошо показывает различие comparative vs diagnostic слоев.
+
 ## Demo Evolution By Iteration
 
 ### Stage D0 (I1) - Spec Demo
@@ -118,6 +132,16 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live.ps1
 2. champion/challenger сравнение;
 3. export champion bundle.
 
+### Stage D4 (I5) - Evaluation Fabric Demo
+
+План показа:
+
+1. profile-driven оценка для двух разных задач:
+   - OCR/support,
+   - style rewrite social post.
+2. переключение evaluator methods без правки кода (`golden_oracle`, `llm_judge`, `executable`, `render`).
+3. metric-crafting agent draft + HITL approve для активации profile.
+
 ## Demo Contract For Every Slice
 
 Для каждого слайса обязательно:
@@ -131,4 +155,4 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live.ps1
 
 - Active stage: `D3 (I4)`
 - Demo readiness: `Green`
-- Next demo milestone: `D3 evidence pack` (`I4.S2`)
+- Next demo milestone: `D3 evidence pack` (`I4.S2`), затем `D4 evaluation fabric` (`I5.*`)

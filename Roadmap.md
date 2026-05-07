@@ -66,25 +66,33 @@
 
 ---
 
-## MVP-2 (Optimization & Components)
+## MVP-2 (Evaluation Fabric, Optimization & Components)
 
-Цель: углубить оптимизацию и внедрить контрактную компонентную модель.
+Цель: сделать оценку конфигурируемой под задачу, добавить MetricOps/HITL контур и углубить оптимизацию.
 
-### Iteration I5 - Component Contracts
-
-| Slice | Description | Status | Output |
-|---|---|---|---|
-| I5.S1 | Component contract spec v0 | Planned | IO schema + invariants + permissions |
-| I5.S2 | Component registry lite | Planned | versions + test status + approvals |
-| I5.S3 | User component intake (python/http/mcp wrappers) | Planned | candidate component onboarding |
-
-### Iteration I6 - Optimizer Depth
+### Iteration I5 - Evaluation Fabric & MetricOps
 
 | Slice | Description | Status | Output |
 |---|---|---|---|
-| I6.S1 | Config search policies (random/grid/optuna) | Planned | deep optimization rounds |
-| I6.S2 | Promote/prune + budget allocator | Planned | architecture family progression |
-| I6.S3 | Intervention operators v0 (diagnostic-driven) | Planned | targeted bottleneck fixes from diagnostic signals |
+| I5.S1 | Task Evaluation Profile v0 | Planned | config contract for task-specific metrics/evaluators/gates |
+| I5.S2 | Evaluator Adapter Layer v0 | Planned | pluggable evaluators (golden / llm_judge / executable / render) |
+| I5.S3 | Metric-Crafting Agent + HITL loop v0 | Planned | agent-proposed metrics with human approval checkpoints |
+
+### Iteration I6 - Component Contracts
+
+| Slice | Description | Status | Output |
+|---|---|---|---|
+| I6.S1 | Component contract spec v0 | Planned | IO schema + invariants + permissions |
+| I6.S2 | Component registry lite | Planned | versions + test status + approvals |
+| I6.S3 | User component intake (python/http/mcp wrappers) | Planned | candidate component onboarding |
+
+### Iteration I7 - Optimizer Depth
+
+| Slice | Description | Status | Output |
+|---|---|---|---|
+| I7.S1 | Config search policies (random/grid/optuna) | Planned | deep optimization rounds |
+| I7.S2 | Promote/prune + budget allocator | Planned | architecture family progression |
+| I7.S3 | Intervention operators v0 (diagnostic-driven) | Planned | targeted bottleneck fixes from diagnostic signals |
 
 ---
 
@@ -92,21 +100,21 @@
 
 Цель: сделать систему удобной для командной и длительной эксплуатации.
 
-### Iteration I7 - Team Readiness
+### Iteration I8 - Team Readiness
 
 | Slice | Description | Status | Output |
 |---|---|---|---|
-| I7.S1 | HITL checkpoints orchestration hardening | Planned | explicit approval flow |
-| I7.S2 | Policy gates + permission enforcement | Planned | governance/security constraints |
-| I7.S3 | Reproducible run manifests | Planned | deterministic reruns |
+| I8.S1 | HITL checkpoints orchestration hardening | Planned | explicit approval flow |
+| I8.S2 | Policy gates + permission enforcement | Planned | governance/security constraints |
+| I8.S3 | Reproducible run manifests | Planned | deterministic reruns |
 
-### Iteration I8 - UX & Operability
+### Iteration I9 - UX & Operability
 
 | Slice | Description | Status | Output |
 |---|---|---|---|
-| I8.S1 | CLI ergonomics for full lifecycle | Planned | create/run/compare/export commands |
-| I8.S2 | Observability summaries + dashboards (lite) | Planned | quick diagnosis surface |
-| I8.S3 | Onboarding quickstart for new developers | Planned | 15-minute project entry |
+| I9.S1 | CLI ergonomics for full lifecycle | Planned | create/run/compare/export commands |
+| I9.S2 | Observability summaries + dashboards (lite) | Planned | quick diagnosis surface |
+| I9.S3 | Onboarding quickstart for new developers | Planned | 15-minute project entry |
 
 ---
 

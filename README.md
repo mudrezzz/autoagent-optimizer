@@ -43,6 +43,7 @@ OSS-first платформа для архитектурного поиска, w
 - `optimizer/tracing` - node-level события исполнения и сводка trace по run.
 - `optimizer/evaluation` - golden dataset contract, loader, oracle runner и CLI-валидация/прогон.
 - `optimizer/metrics` - middle-метрики и служебные агрегаторы для arena scoring.
+- `docs/specs/Evaluation_Profile_v0.md` - концепт profile-driven оценки (task-specific metrics + pluggable evaluators).
 - `examples/dsl` - эталонные YAML-спеки (`direct_llm`, `ocr_first`, `hitl_gate`).
 - `examples/graph_ir` - эталонные Graph IR JSON-спеки.
 - `examples/datasets` - эталонные golden dataset JSONL кейсы.
@@ -77,6 +78,18 @@ OSS-first платформа для архитектурного поиска, w
 2. `Diagnostic Signals` - только для локализации bottleneck и планирования intervention.
 
 Фиксация решения: `ADR-0016`.
+
+## Configurable Evaluation Model
+
+Оценка в платформе развивается как `profile-driven` слой:
+
+1. Метрики comparative/diagnostic задаются под конкретный task type.
+2. Методы оценки подключаются как adapters (`golden_oracle`, `llm_judge`, `executable`, `render`, ...).
+3. Изменение профиля метрик рассматривается как agent workflow с обязательным HITL approve.
+
+Текущая спецификация направления:
+
+- [Evaluation_Profile_v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/specs/Evaluation_Profile_v0.md)
 
 ## Definition of Done For a Slice
 
