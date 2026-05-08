@@ -69,3 +69,19 @@ def test_agent_generator_fails_if_package_exists_without_force(tmp_path: Path) -
     with pytest.raises(ValueError):
         generator.generate(graph_ir=graph_ir, output_dir=tmp_path, package_name="existing_agent", force=False)
 
+
+@pytest.mark.unit
+def test_agent_generator_injects_prompt_template_overrides(tmp_path: Path) -> None:
+    """Проверяет, что генератор подставляет переданные prompt templates в bindings.py."""
+
+    graph_ir = load_graph_ir_spec(_project_root() / "examples" / "graph_ir" / "direct_llm.ir.json")
+    generator = AgentCodeGenerator()
+    result = generator.generate(
+        graph_ir=graph_ir,
+        output_dir=tmp_path,
+        package_name="prompt_override_agent",
+        prompt_templates_override={"support_answer_v1": "Тестовый prompt шаблон: {query}"},
+    )
+
+    bindings_text = (result.package_dir / "bindings.py").read_text(encoding="utf-8")
+    assert "Тестовый prompt шаблон: {query}" in bindings_text

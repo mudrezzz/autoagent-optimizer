@@ -304,6 +304,11 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_generate_evidence_pack.
 python -m optimizer.champion.export_bundle --arena-file .\examples\arena\support_tournament_ci_decision_v0.yaml --out-dir .\tmp\champion_bundle --bundle-name stylizer_ci_bundle --force --pretty
 ```
 
+После запуска проверьте:
+
+1. `README.bundle.md` в каталоге bundle (инструкция для разработчика),
+2. `parity_report.json` (`is_equivalent_agent=true` для структурного parity DSL vs generated path).
+
 Smoke-прогон champion bundle export:
 
 ```powershell

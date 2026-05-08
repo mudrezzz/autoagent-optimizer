@@ -27,6 +27,8 @@ python -m optimizer.champion.export_bundle --arena-result-file .\tmp\arena_resul
   arena_result.json
   bundle_manifest.json
   diagnostic_map.json
+  parity_report.json
+  README.bundle.md
   evidence_pack.json
   evidence_pack.md
   winner_graph_ir.json
@@ -57,9 +59,16 @@ python -m optimizer.champion.export_bundle --arena-result-file .\tmp\arena_resul
      - `comparison_diff`: cross-metric gaps, где winner уступает challenger.
 4. `winner_graph_ir.json`:
    - нормализованный Graph IR winner (из DSL компиляции или прямого graph_ir источника).
-5. `generated_agent/*`:
+5. `parity_report.json`:
+   - автоматическая проверка эквивалентности `DSL path` и `generated code path`:
+     - совпадение Graph IR,
+     - структурный parity runtime (`executed_nodes`, `skipped_nodes`, `node_output_keys`, `errors`, `trace_nodes_total`).
+   - проверка выполняется в `mock_llm_for_stability` режиме, чтобы исключить вариативность LLM текста.
+6. `README.bundle.md`:
+   - инструкция для разработчика: как запустить сгенерированного агента и как интерпретировать parity report.
+7. `generated_agent/*`:
    - runnable кодовый артефакт winner (codegen-путь I2.S2).
-6. `bundle_manifest.json`:
+8. `bundle_manifest.json`:
    - индекс всех файлов bundle и путь до entrypoint сгенерированного агента.
 
 ## Success Output Contract
@@ -74,6 +83,8 @@ CLI возвращает JSON:
   "winner_id": "...",
   "manifest_file": "...",
   "diagnostic_map_file": "...",
+  "parity_report_file": "...",
+  "bundle_readme_file": "...",
   "evidence_pack_json_file": "...",
   "evidence_pack_markdown_file": "...",
   "generated_agent_entrypoint_file": "..."
@@ -90,4 +101,3 @@ CLI возвращает JSON:
    - `tests/e2e/test_champion_export_bundle_smoke_script.py`
 4. Smoke script:
    - `scripts/smoke_export_champion_bundle.ps1`
-

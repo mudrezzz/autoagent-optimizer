@@ -44,6 +44,7 @@ class AgentCodeGenerator:
         output_dir: Path,
         package_name: str,
         force: bool = False,
+        prompt_templates_override: dict[str, str] | None = None,
     ) -> AgentCodegenResult:
         """Генерирует пакет агента и скрипт запуска в указанный каталог."""
 
@@ -69,7 +70,13 @@ class AgentCodeGenerator:
         init_file.write_text(self._render_package_init(), encoding="utf-8")
 
         bindings_file = package_dir / "bindings.py"
-        bindings_file.write_text(self._render_bindings(graph_ir), encoding="utf-8")
+        bindings_file.write_text(
+            self._render_bindings(
+                graph_ir=graph_ir,
+                prompt_templates_override=prompt_templates_override or {},
+            ),
+            encoding="utf-8",
+        )
 
         agent_file = package_dir / "agent.py"
         agent_file.write_text(self._render_agent_class(), encoding="utf-8")
@@ -99,7 +106,12 @@ class AgentCodeGenerator:
             '__all__ = ["GeneratedAgent"]\n'
         )
 
-    def _render_bindings(self, graph_ir: GraphIRSpec) -> str:
+    def _render_bindings(
+        self,
+        *,
+        graph_ir: GraphIRSpec,
+        prompt_templates_override: dict[str, str],
+    ) -> str:
         """Формирует модуль биндингов с fallback-логикой по component_ref."""
 
         prompt_ids = sorted(_collect_prompt_ids(graph_ir))
@@ -109,7 +121,7 @@ class AgentCodeGenerator:
         hitl_refs = sorted(_collect_component_refs(graph_ir, GraphNodeKind.HITL_GATE))
 
         prompt_lines = "\n".join(
-            [f'        "{prompt_id}": "TODO: Опишите prompt шаблон для {prompt_id}.",' for prompt_id in prompt_ids]
+            [_render_prompt_line(prompt_id, prompt_templates_override.get(prompt_id, "")) for prompt_id in prompt_ids]
         )
         if not prompt_lines:
             prompt_lines = "        # В этом графе нет узлов с prompt_id."
@@ -404,3 +416,20 @@ def _render_registry_lines(component_refs: Iterable[str], fallback_name: str) ->
     if not lines:
         lines.append("        # Для этого типа узлов component_ref отсутствуют.")
     return "\n".join(lines)
+
+
+def _render_prompt_line(prompt_id: str, template: str) -> str:
+    """Рендерит строку prompt_templates с экранированием для Python-кода."""
+
+    escaped_prompt_id = _escape_python_string(prompt_id)
+    if template.strip():
+        escaped_template = _escape_python_string(template)
+    else:
+        escaped_template = f"TODO: Опишите prompt шаблон для {prompt_id}."
+    return f'        "{escaped_prompt_id}": "{escaped_template}",'
+
+
+def _escape_python_string(value: str) -> str:
+    """Экранирует строку для безопасной вставки в Python-литерал с двойными кавычками."""
+
+    return value.replace("\\", "\\\\").replace('"', '\\"').replace("\r", "\\r").replace("\n", "\\n")

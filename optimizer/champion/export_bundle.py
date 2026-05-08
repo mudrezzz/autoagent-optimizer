@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import os
 import json
 import re
 import shutil
 import sys
+import importlib.util
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +20,7 @@ from optimizer.codegen.agent_generator import AgentCodeGenerator, sanitize_packa
 from optimizer.common.env_loader import load_env_file
 from optimizer.dsl.compiler import DslToGraphIRCompiler
 from optimizer.dsl.compile_report import CompileStatus
+from optimizer.evaluation.dataset_loader import GoldenDatasetLoader
 from optimizer.evidence.pack_builder import (
     EvidencePackBuildError,
     build_evidence_pack_payload,
@@ -24,6 +28,8 @@ from optimizer.evidence.pack_builder import (
 )
 from optimizer.graph_ir.io import load_graph_ir_spec
 from optimizer.graph_ir.models import GraphIRSpec
+from optimizer.renderer.langgraph_dai.adapter import GraphIRToLangGraphRenderer, RendererBindings
+from optimizer.renderer.langgraph_dai.run import _build_demo_bindings
 
 
 class ChampionBundleExportError(ValueError):
@@ -177,11 +183,13 @@ def _build_bundle(
     winner_graph_ir_file.write_text(winner_graph_ir.model_dump_json(indent=2), encoding="utf-8")
 
     generated_agent_dir = bundle_dir / "generated_agent"
+    demo_bindings = _build_demo_bindings()
     generated = AgentCodeGenerator().generate(
         graph_ir=winner_graph_ir,
         output_dir=generated_agent_dir,
         package_name=sanitize_package_name(f"{winner_id}_agent"),
         force=True,
+        prompt_templates_override=demo_bindings.prompt_templates,
     )
 
     evidence_payload = build_evidence_pack_payload(arena_payload)
@@ -194,6 +202,29 @@ def _build_bundle(
     diagnostic_map_file = bundle_dir / "diagnostic_map.json"
     diagnostic_map_file.write_text(json.dumps(diagnostic_map_payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
+    parity_payload = _resolve_parity_payload(arena_payload)
+    parity_report_payload = _build_parity_report(
+        winner_id=winner_id,
+        winner_graph_ir=winner_graph_ir,
+        source_kind=source_kind,
+        generated_package_dir=generated.package_dir,
+        parity_payload=parity_payload,
+    )
+    parity_report_file = bundle_dir / "parity_report.json"
+    parity_report_file.write_text(json.dumps(parity_report_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    bundle_readme_file = bundle_dir / "README.bundle.md"
+    bundle_readme_file.write_text(
+        _render_bundle_readme(
+            winner_id=winner_id,
+            winner_source_kind=source_kind,
+            winner_source_file=copied_winner_source_file,
+            generated_entrypoint_file=generated.entrypoint_file,
+            parity_report_file=parity_report_file,
+        ),
+        encoding="utf-8",
+    )
+
     manifest_payload = {
         "version": "champion_bundle_v0",
         "winner_id": winner_id,
@@ -203,6 +234,8 @@ def _build_bundle(
         "diagnostic_map_file": str(diagnostic_map_file),
         "evidence_pack_json_file": str(evidence_json_file),
         "evidence_pack_markdown_file": str(evidence_md_file),
+        "parity_report_file": str(parity_report_file),
+        "bundle_readme_file": str(bundle_readme_file),
         "winner_graph_ir_file": str(winner_graph_ir_file),
         "generated_agent_dir": str(generated_agent_dir),
         "generated_agent_entrypoint_file": str(generated.entrypoint_file),
@@ -219,6 +252,8 @@ def _build_bundle(
         "diagnostic_map_file": str(diagnostic_map_file),
         "evidence_pack_json_file": str(evidence_json_file),
         "evidence_pack_markdown_file": str(evidence_md_file),
+        "parity_report_file": str(parity_report_file),
+        "bundle_readme_file": str(bundle_readme_file),
         "generated_agent_entrypoint_file": str(generated.entrypoint_file),
     }
 
@@ -265,6 +300,196 @@ def _resolve_winner_graph_ir(*, source_kind: str, source_path: Path, winner_id: 
     return compile_result.graph_ir
 
 
+def _resolve_parity_payload(arena_payload: dict[str, Any]) -> dict[str, Any]:
+    """Подбирает payload для parity-run из dataset файла или возвращает fallback."""
+
+    dataset_file = arena_payload.get("dataset_file")
+    if not isinstance(dataset_file, str) or not dataset_file.strip():
+        return {"query": "Parity check payload"}
+
+    try:
+        loader = GoldenDatasetLoader()
+        result = loader.load_file(Path(dataset_file).resolve())
+    except (FileNotFoundError, ValueError):
+        return {"query": "Parity check payload"}
+
+    if not result.records:
+        return {"query": "Parity check payload"}
+    sample_input = result.records[0].input
+    if isinstance(sample_input, dict):
+        return dict(sample_input)
+    return {"query": "Parity check payload"}
+
+
+def _build_parity_report(
+    *,
+    winner_id: str,
+    winner_graph_ir: GraphIRSpec,
+    source_kind: str,
+    generated_package_dir: Path,
+    parity_payload: dict[str, Any],
+) -> dict[str, Any]:
+    """Строит parity-report между DSL path и generated-code path в mock-LLM режиме."""
+
+    graph_ir_same = _is_graph_ir_same(winner_graph_ir=winner_graph_ir, generated_package_dir=generated_package_dir)
+    runtime_comparison = _compare_runtime_paths(
+        winner_graph_ir=winner_graph_ir,
+        generated_package_dir=generated_package_dir,
+        parity_payload=parity_payload,
+    )
+    return {
+        "version": "parity_report_v0",
+        "winner_id": winner_id,
+        "winner_source_kind": source_kind,
+        "mode": "mock_llm_for_stability",
+        "payload_used": parity_payload,
+        "graph_ir_equivalent": graph_ir_same,
+        "runtime_structural_parity": runtime_comparison,
+        "is_equivalent_agent": bool(graph_ir_same and runtime_comparison.get("passed", False)),
+        "notes": [
+            "Проверка выполняется в mock LLM режиме для стабильности CI и исключения вариативности ответов модели.",
+            "Для live LLM допускаются различия в `payload.text`, но не в структуре исполнения.",
+        ],
+    }
+
+
+def _is_graph_ir_same(*, winner_graph_ir: GraphIRSpec, generated_package_dir: Path) -> bool:
+    """Проверяет, что winner Graph IR совпадает с graph_ir внутри generated package."""
+
+    generated_graph_ir_file = generated_package_dir / "graph_ir.json"
+    if not generated_graph_ir_file.exists():
+        return False
+    try:
+        generated_graph_ir = load_graph_ir_spec(generated_graph_ir_file)
+    except (ValueError, FileNotFoundError, json.JSONDecodeError):
+        return False
+    return winner_graph_ir.model_dump() == generated_graph_ir.model_dump()
+
+
+def _compare_runtime_paths(
+    *,
+    winner_graph_ir: GraphIRSpec,
+    generated_package_dir: Path,
+    parity_payload: dict[str, Any],
+) -> dict[str, Any]:
+    """Сравнивает структурный runtime результат DSL-path и generated-code path."""
+
+    dsl_bindings = _build_demo_bindings()
+    generated_bindings = _load_generated_bindings(generated_package_dir)
+
+    with _without_openrouter_api_key():
+        renderer = GraphIRToLangGraphRenderer()
+        dsl_runtime = renderer.render(graph_ir=winner_graph_ir, bindings=dsl_bindings)
+        code_runtime = renderer.render(graph_ir=winner_graph_ir, bindings=generated_bindings)
+
+        dsl_state = dsl_runtime.invoke(payload=dict(parity_payload), task_id="parity-dsl")
+        code_state = code_runtime.invoke(payload=dict(parity_payload), task_id="parity-codegen")
+
+    checks = {
+        "executed_nodes_equal": dsl_state.executed_nodes == code_state.executed_nodes,
+        "skipped_nodes_equal": dsl_state.skipped_nodes == code_state.skipped_nodes,
+        "node_output_keys_equal": sorted(dsl_state.node_outputs.keys()) == sorted(code_state.node_outputs.keys()),
+        "errors_equal": dsl_state.errors == code_state.errors,
+        "trace_nodes_total_equal": (
+            (dsl_state.trace_summary or {}).get("nodes_total") == (code_state.trace_summary or {}).get("nodes_total")
+        ),
+    }
+
+    dsl_text = _resolve_payload_text(dsl_state.payload)
+    code_text = _resolve_payload_text(code_state.payload)
+    return {
+        "passed": all(checks.values()),
+        "checks": checks,
+        "dsl_output_text_sample": dsl_text[:500],
+        "generated_output_text_sample": code_text[:500],
+        "text_equal": dsl_text == code_text,
+    }
+
+
+def _load_generated_bindings(generated_package_dir: Path) -> RendererBindings:
+    """Загружает RendererBindings из сгенерированного `bindings.py`."""
+
+    bindings_file = generated_package_dir / "bindings.py"
+    if not bindings_file.exists():
+        raise ChampionBundleExportError(f"В generated package отсутствует файл bindings.py: {bindings_file}")
+
+    module_name = f"_generated_bindings_{sanitize_package_name(generated_package_dir.name)}"
+    module_spec = importlib.util.spec_from_file_location(module_name, bindings_file)
+    if module_spec is None or module_spec.loader is None:
+        raise ChampionBundleExportError(f"Не удалось загрузить generated bindings module: {bindings_file}")
+    module = importlib.util.module_from_spec(module_spec)
+    module_spec.loader.exec_module(module)
+    build_bindings = getattr(module, "build_bindings", None)
+    if not callable(build_bindings):
+        raise ChampionBundleExportError("В generated bindings отсутствует callable `build_bindings()`.")
+    bindings = build_bindings()
+    if not isinstance(bindings, RendererBindings):
+        raise ChampionBundleExportError("`build_bindings()` должен возвращать RendererBindings.")
+    return bindings
+
+
+@contextlib.contextmanager
+def _without_openrouter_api_key():
+    """Временно отключает OPENROUTER_API_KEY, чтобы parity-проверка была детерминированной."""
+
+    previous = os.environ.get("OPENROUTER_API_KEY")
+    os.environ["OPENROUTER_API_KEY"] = ""
+    try:
+        yield
+    finally:
+        if previous is None:
+            os.environ.pop("OPENROUTER_API_KEY", None)
+        else:
+            os.environ["OPENROUTER_API_KEY"] = previous
+
+
+def _resolve_payload_text(payload: Any) -> str:
+    """Извлекает текст результата из payload или возвращает пустую строку."""
+
+    if not isinstance(payload, dict):
+        return ""
+    text = payload.get("text")
+    if isinstance(text, str):
+        return text
+    return ""
+
+
+def _render_bundle_readme(
+    *,
+    winner_id: str,
+    winner_source_kind: str,
+    winner_source_file: Path,
+    generated_entrypoint_file: Path,
+    parity_report_file: Path,
+) -> str:
+    """Рендерит README для разработчика по запуску и проверке champion bundle."""
+
+    return (
+        "# Champion Bundle README\n\n"
+        f"- winner_id: `{winner_id}`\n"
+        f"- winner_source_kind: `{winner_source_kind}`\n"
+        f"- winner_source_file: `{winner_source_file}`\n\n"
+        "## 1) Запуск сгенерированного агента\n\n"
+        "```powershell\n"
+        "New-Item -ItemType Directory -Force -Path .\\tmp | Out-Null\n"
+        "'{\"draft_post\":\"Тестовый пост для проверки champion bundle\"}' | "
+        "Set-Content -LiteralPath .\\tmp\\bundle_payload.json -Encoding UTF8\n"
+        f"python {generated_entrypoint_file} --payload-file .\\tmp\\bundle_payload.json --pretty\n"
+        "```\n\n"
+        "## 2) Эквивалентность к DSL-path\n\n"
+        "В bundle уже сохранен `parity_report.json` с автоматической проверкой:\n"
+        "1. `graph_ir_equivalent=true` — Graph IR в generated package совпадает с winner Graph IR.\n"
+        "2. `runtime_structural_parity.passed=true` — совпадает структура выполнения "
+        "(executed/skipped nodes, node outputs keys, errors, trace nodes total).\n\n"
+        "Проверить отчет:\n\n"
+        "```powershell\n"
+        f"Get-Content -LiteralPath {parity_report_file}\n"
+        "```\n\n"
+        "Важно: `payload.text` может отличаться в live LLM режиме. Для этого parity check выполняется "
+        "в mock LLM режиме и оценивает структурную эквивалентность исполнения.\n"
+    )
+
+
 def main() -> None:
     """Точка входа для `python -m optimizer.champion.export_bundle`."""
 
@@ -273,4 +498,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

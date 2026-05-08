@@ -60,9 +60,12 @@
 1. Добавлен модуль `optimizer/champion`:
    - `diagnostic_map.py`,
    - `export_bundle.py`.
-2. Добавлен smoke-скрипт:
+2. В bundle добавлены:
+   - `README.bundle.md`,
+   - `parity_report.json` (DSL path vs generated-code path).
+3. Добавлен smoke-скрипт:
    - `scripts/smoke_export_champion_bundle.ps1`.
-3. Добавлено тестовое покрытие:
+4. Добавлено тестовое покрытие:
    - unit/integration/e2e.
 
 ## Verification
@@ -76,4 +79,3 @@
 1. `docs/specs/Champion_Export_Bundle_v0.md`
 2. `optimizer/champion/export_bundle.py`
 3. `optimizer/champion/diagnostic_map.py`
-
