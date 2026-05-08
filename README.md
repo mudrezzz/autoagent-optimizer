@@ -5,9 +5,9 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 ## Current Status
 
 - `Phase`: MVP-1 (foundation)
-- `Iteration`: I5 - Evaluation Fabric & MetricOps
+- `Iteration`: I4 - Native Export Independence
 - `Overall`: In Progress (I1.S1-I4.S3 done)
-- `Next Slice`: I5.S1 Task Evaluation Profile v0
+- `Next Slice`: I4.S4 Native export contract (`langgraph_dai_native`) v0
 
 РџРѕРґСЂРѕР±РЅС‹Р№ СЃС‚Р°С‚СѓСЃ:
 
@@ -50,6 +50,7 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 - `docs/specs/Evaluation_Profile_v0.md` - РєРѕРЅС†РµРїС‚ profile-driven РѕС†РµРЅРєРё (task-specific metrics + pluggable evaluators).
 - `docs/specs/Evidence_Pack_v0.md` - РєРѕРЅС‚СЂР°РєС‚ Р°СЂС‚РµС„Р°РєС‚РѕРІ evidence РґР»СЏ winner/challenger Р°РЅР°Р»РёР·Р°.
 - `docs/specs/Champion_Export_Bundle_v0.md` - РєРѕРЅС‚СЂР°РєС‚ champion bundle v0.
+- `docs/specs/Native_Langgraph_DAI_Export_v0.md` - standalone native export contract Р±РµР· runtime-зависимости от optimizer.
 - `examples/dsl` - СЌС‚Р°Р»РѕРЅРЅС‹Рµ YAML-СЃРїРµРєРё, РІРєР»СЋС‡Р°СЏ stylizer РєР°РЅРґРёРґР°С‚РѕРІ (`style_direct_llm`, `style_pattern_cleaner`, `style_hitl_reviewer`).
 - `examples/graph_ir` - СЌС‚Р°Р»РѕРЅРЅС‹Рµ Graph IR JSON-СЃРїРµРєРё.
 - `examples/datasets` - СЌС‚Р°Р»РѕРЅРЅС‹Рµ golden dataset JSONL РєРµР№СЃС‹ (РІРєР»СЋС‡Р°СЏ `golden_linkedin_stylizer_v1.jsonl`).
@@ -100,6 +101,12 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 - `optimizer/champion/export_bundle.py` - CLI СЌРєСЃРїРѕСЂС‚Р° champion bundle РёР· arena СЂРµР·СѓР»СЊС‚Р°С‚Р°.
 - `docs/specs/Champion_Export_Bundle_v0.md` - РєРѕРЅС‚СЂР°РєС‚ bundle Р°СЂС‚РµС„Р°РєС‚РѕРІ Рё СЃС‚СЂСѓРєС‚СѓСЂР° РєР°С‚Р°Р»РѕРіР°.
 - `scripts/smoke_export_champion_bundle.ps1` - smoke-РїСЂРѕРІРµСЂРєР° champion bundle export.
+
+## I4.S4 Direction (Planned)
+
+- native export target `langgraph_dai_native` (standalone runtime artifact).
+- parity contract `DSL path vs native exported path`.
+- champion bundle default switch to native runtime artifact.
 
 ## Dual Metrics Model
 

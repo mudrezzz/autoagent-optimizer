@@ -15,8 +15,8 @@
 
 ## Active Window (Now)
 
-- `Current Focus`: MVP-2 / I5
-- `Active Next Slice`: I5.S1
+- `Current Focus`: MVP-1 hardening / I4 native export independence
+- `Active Next Slice`: I4.S4
 
 ---
 
@@ -234,13 +234,84 @@
   1. Bundle включает runnable config/code и evidence pack.
   2. Диагностическая карта содержит приоритизированные точки оптимизации.
   3. Добавлены integration/e2e проверки экспортируемого комплекта.
-- Dependencies: I4.S2.
+- Dependencies: I4.S8.
 - Risks: переизбыточный объем bundle без явной структуры.
 - Progress (2026-05-08):
   1. Добавлен модуль `optimizer/champion` с CLI экспорта champion bundle.
   2. Bundle включает arena result, evidence pack, diagnostic map, winner source, winner Graph IR и generated agent code.
   3. Добавлен `bundle_manifest.json` для reproducible handoff артефактов.
   4. Добавлены unit/integration/e2e тесты и smoke-скрипт `smoke_export_champion_bundle.ps1`.
+
+### I4.S4 - Native export contract (`langgraph_dai_native`) v0
+
+- Status: Planned
+- Goal: зафиксировать контракт standalone runtime-артефакта без зависимости от `optimizer.*`.
+- Deliverables:
+  - `docs/adr/ADR-0019-native-langgraph-dai-export-without-optimizer-runtime.md`,
+  - `docs/specs/Native_Langgraph_DAI_Export_v0.md`,
+  - mapping table `Graph IR -> native langgraph-dai`.
+- Acceptance Criteria:
+  1. Контракт явно запрещает `optimizer` runtime-импорты в exported package.
+  2. Описана структура standalone package и entrypoint запуска.
+  3. Описан parity-контракт `DSL path vs native exported path`.
+- Dependencies: I4.S3.
+- Risks: неполное покрытие graph features в v0 mapping.
+
+### I4.S5 - Native renderer/codegen minimal path
+
+- Status: Planned
+- Goal: сгенерировать runnable standalone агента на `langgraph-dai` для `linear + conditional` графов.
+- Deliverables:
+  - native export target в codegen/export pipeline,
+  - standalone smoke runner.
+- Acceptance Criteria:
+  1. Экспортируемый агент запускается без установки `optimizer`.
+  2. Поддерживаются минимум `linear + one conditional branch`.
+  3. Есть integration/e2e smoke проверка standalone запуска.
+- Dependencies: I4.S4.
+- Risks: drift между internal renderer и native runtime-путем.
+
+### I4.S6 - Native component binding layer v0
+
+- Status: Planned
+- Goal: поддержать node kinds (`llm/deterministic/tool/validator/hitl_gate`) в native exported runtime.
+- Deliverables:
+  - bindings/nodes layout для standalone runtime,
+  - explicit contracts для `python://` и `mcp://` refs в export.
+- Acceptance Criteria:
+  1. Каждый поддержанный node kind имеет native binding path.
+  2. Ошибки unresolved refs explainable и не маскируются.
+  3. Добавлены unit/integration тесты binding layer.
+- Dependencies: I4.S5.
+- Risks: чрезмерная fallback-магия и потеря наблюдаемости проблем.
+
+### I4.S7 - DSL-vs-native parity harness + CI gate
+
+- Status: Planned
+- Goal: автоматизировать проверку эквивалентности исполнения между DSL path и native exported path.
+- Deliverables:
+  - parity runner/report (`dsl_vs_native`),
+  - CI gate на структурные сигналы выполнения.
+- Acceptance Criteria:
+  1. parity проверяет `executed/skipped nodes`, `node output keys`, `errors`, `trace topology`.
+  2. LLM text variability не ломает gate (структурная проверка).
+  3. Regression drift ловится в CI.
+- Dependencies: I4.S6.
+- Risks: ложные positive/negative при расширении runtime-возможностей.
+
+### I4.S8 - Champion bundle default switch to native target
+
+- Status: Planned
+- Goal: сделать native export дефолтом champion bundle.
+- Deliverables:
+  - bundle включает `native_agent/` как основной runtime artifact,
+  - legacy runtime export доступен только как optional debug fallback.
+- Acceptance Criteria:
+  1. В bundle по умолчанию нет runtime-зависимости от `optimizer`.
+  2. `README.bundle.md` описывает standalone запуск native-агента.
+  3. Полный прогон `unit + integration + e2e` green.
+- Dependencies: I4.S7.
+- Risks: обратная совместимость с уже созданными bundle.
 
 ---
 

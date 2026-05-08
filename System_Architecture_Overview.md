@@ -14,6 +14,7 @@
 4. Contract-first components.
 5. Human-in-the-loop at decision checkpoints.
 6. Budget-aware optimization.
+7. Runtime artifact independence from control plane.
 
 ## High-Level Layers
 
@@ -60,6 +61,7 @@ Input (Task + Constraints + Data + Tools + Budget)
 7. `Evidence Layer`
    - champion/challenger comparison.
    - reproducible artifact bundle.
+   - native standalone export package on `langgraph-dai`.
 
 ## External Dependency Strategy
 
@@ -68,6 +70,7 @@ Input (Task + Constraints + Data + Tools + Budget)
 - Integration mode: `Install as a Library` (`langgraph-dai` package).
 - Version policy: pin to explicit tag for reproducibility.
 - Coupling rule: избегаем прямой зависимости на нестабильные internal API через adapter boundary в нашем коде.
+- Export rule: winner runtime artifact не должен зависеть от `optimizer.*` в production запуске.
 
 ## Core Internal Modules (Planned)
 
@@ -125,7 +128,8 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.evidence` (Evidence Pack v0 JSON/Markdown artifacts with winner/challenger explainable diff),
    - `optimizer.champion` (Champion Export Bundle v0: arena/evidence/diagnostic/codegen bundle + manifest).
 2. Next:
-   - Evaluation Fabric & MetricOps (I5.*).
+   - Native export independence track (`I4.S4`-`I4.S8`),
+   - Evaluation Fabric & MetricOps (`I5.*`) после закрытия native export track.
 
 ## Decision Records
 

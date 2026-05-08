@@ -140,7 +140,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live_full.ps1
 
 Следующий шаг:
 
-1. Evaluation Fabric baseline (I5.S1).
+1. Native standalone champion export baseline (I4.S4).
 
 ### Stage D3 (I4) - Champion Demo
 
@@ -168,6 +168,15 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_export_champion_bundle.
 2. переключение evaluator methods без правки кода (`golden_oracle`, `llm_judge`, `executable`, `render`).
 3. metric-crafting agent draft + HITL approve для активации profile.
 
+### Stage D3.5 (I4.S4-I4.S8) - Native Export Independence Demo
+
+План показа:
+
+1. export native standalone агента на `langgraph-dai` без импортов `optimizer.*`;
+2. запуск standalone runtime из bundle в отдельном окружении;
+3. parity report `dsl_vs_native` по структурным сигналам исполнения;
+4. переключение champion bundle default на native target.
+
 ## Demo Contract For Every Slice
 
 Для каждого слайса обязательно:
@@ -179,6 +188,6 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_export_champion_bundle.
 
 ## Current Demo Status
 
-- Active stage: `D4 prep (I5)`
+- Active stage: `D3.5 prep (I4 native export independence)`
 - Demo readiness: `Green`
-- Next demo milestone: `D4 evaluation fabric` (`I5.S1`)
+- Next demo milestone: `D3.5 native standalone export` (`I4.S4`)
