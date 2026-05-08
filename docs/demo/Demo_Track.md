@@ -140,7 +140,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live_full.ps1
 
 Следующий шаг:
 
-1. Native standalone champion export baseline (I4.S4).
+1. Native component bindings expansion (I4.S6).
 
 ### Stage D3 (I4) - Champion Demo
 
@@ -177,6 +177,12 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_export_champion_bundle.
 3. parity report `dsl_vs_native` по структурным сигналам исполнения;
 4. переключение champion bundle default на native target.
 
+Что уже показываем:
+
+1. champion bundle содержит `native_agent/` standalone runtime пакет;
+2. smoke сценарий запускает standalone native runner из bundle;
+3. `parity_report.json` включает `native_runtime_smoke`.
+
 ## Demo Contract For Every Slice
 
 Для каждого слайса обязательно:
@@ -190,4 +196,4 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_export_champion_bundle.
 
 - Active stage: `D3.5 prep (I4 native export independence)`
 - Demo readiness: `Green`
-- Next demo milestone: `D3.5 native standalone export` (`I4.S4`)
+- Next demo milestone: `D3.5 native component bindings` (`I4.S6`)

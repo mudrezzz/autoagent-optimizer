@@ -51,6 +51,7 @@ def test_champion_export_bundle_cli_builds_artifacts_from_arena_file(tmp_path: P
     diagnostic_map_file = Path(payload["diagnostic_map_file"])
     evidence_json_file = Path(payload["evidence_pack_json_file"])
     generated_entrypoint_file = Path(payload["generated_agent_entrypoint_file"])
+    native_entrypoint_file = Path(payload["native_agent_entrypoint_file"])
     parity_report_file = Path(payload["parity_report_file"])
     bundle_readme_file = Path(payload["bundle_readme_file"])
 
@@ -59,6 +60,7 @@ def test_champion_export_bundle_cli_builds_artifacts_from_arena_file(tmp_path: P
     assert diagnostic_map_file.exists()
     assert evidence_json_file.exists()
     assert generated_entrypoint_file.exists()
+    assert native_entrypoint_file.exists()
     assert parity_report_file.exists()
     assert bundle_readme_file.exists()
 
@@ -70,6 +72,8 @@ def test_champion_export_bundle_cli_builds_artifacts_from_arena_file(tmp_path: P
     assert manifest_payload["version"] == "champion_bundle_v0"
     assert Path(manifest_payload["winner_graph_ir_file"]).exists()
     assert Path(manifest_payload["generated_agent_entrypoint_file"]).exists()
+    assert Path(manifest_payload["native_agent_entrypoint_file"]).exists()
+    assert Path(manifest_payload["native_agent_dir"]).exists()
     assert Path(manifest_payload["parity_report_file"]).exists()
     assert Path(manifest_payload["bundle_readme_file"]).exists()
 
@@ -77,3 +81,9 @@ def test_champion_export_bundle_cli_builds_artifacts_from_arena_file(tmp_path: P
     assert parity_payload["version"] == "parity_report_v0"
     assert parity_payload["graph_ir_equivalent"] is True
     assert parity_payload["runtime_structural_parity"]["passed"] is True
+    assert parity_payload["native_runtime_smoke"]["passed"] is True
+    assert parity_payload["is_equivalent_agent"] is True
+
+    native_workflow_file = Path(manifest_payload["native_agent_dir"]) / "app" / "workflow.py"
+    native_workflow_source = native_workflow_file.read_text(encoding="utf-8")
+    assert "optimizer." not in native_workflow_source

@@ -16,9 +16,7 @@
 2. node kinds:
    - `llm`,
    - `deterministic`,
-   - `tool` (через adapter/fallback),
-   - `validator`,
-   - `hitl_gate`;
+   - `validator`;
 3. базовый invoke path и reproducible smoke-run.
 
 Вне scope v0:
@@ -26,6 +24,7 @@
 1. полный parity по latency/token-cost;
 2. сложные async/multi-tenant execution modes;
 3. динамические plugin-install flows в exported runtime.
+4. node kinds `tool` и `hitl_gate` (будут добавлены в I4.S6).
 
 ## Export Package Contract
 
@@ -58,6 +57,7 @@
 1. В exported package запрещены импорты `optimizer.*`.
 2. В exported package должен быть runnable entrypoint (`python -m app.run` или `python app/run.py`).
 3. Все критичные runtime-конфиги должны лежать внутри export package.
+4. Для unresolved `python://` refs в v0 допускается explicit stub-fallback с explainable полями причины.
 
 ## Mapping: Graph IR -> Native Runtime
 
@@ -97,4 +97,3 @@ Legacy runtime export может оставаться как `legacy_agent/` т�
 2. Standalone smoke test проходит.
 3. Parity report показывает структурное соответствие с DSL path.
 4. Документация handoff понятна новому разработчику за 10-15 минут.
-

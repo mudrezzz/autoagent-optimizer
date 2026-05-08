@@ -16,7 +16,7 @@
 ## Active Window (Now)
 
 - `Current Focus`: MVP-1 hardening / I4 native export independence
-- `Active Next Slice`: I4.S4
+- `Active Next Slice`: I4.S6
 
 ---
 
@@ -244,7 +244,7 @@
 
 ### I4.S4 - Native export contract (`langgraph_dai_native`) v0
 
-- Status: Planned
+- Status: Done
 - Goal: зафиксировать контракт standalone runtime-артефакта без зависимости от `optimizer.*`.
 - Deliverables:
   - `docs/adr/ADR-0019-native-langgraph-dai-export-without-optimizer-runtime.md`,
@@ -256,10 +256,14 @@
   3. Описан parity-контракт `DSL path vs native exported path`.
 - Dependencies: I4.S3.
 - Risks: неполное покрытие graph features в v0 mapping.
+- Progress (2026-05-08):
+  1. Принят ADR-0019 с разделением control-plane и standalone runtime artifact.
+  2. Добавлен spec `Native_Langgraph_DAI_Export_v0.md`.
+  3. Синхронизирован roadmap на I4.S4-I4.S8.
 
 ### I4.S5 - Native renderer/codegen minimal path
 
-- Status: Planned
+- Status: Done
 - Goal: сгенерировать runnable standalone агента на `langgraph-dai` для `linear + conditional` графов.
 - Deliverables:
   - native export target в codegen/export pipeline,
@@ -270,6 +274,11 @@
   3. Есть integration/e2e smoke проверка standalone запуска.
 - Dependencies: I4.S4.
 - Risks: drift между internal renderer и native runtime-путем.
+- Progress (2026-05-08):
+  1. Реализован `optimizer/champion/native_export.py` для standalone native package генерации.
+  2. Champion bundle теперь включает `native_agent/` и проверку `native_runtime_smoke`.
+  3. Добавлены unit/integration/e2e проверки minimal native export пути.
+  4. Принят ADR-0020 (minimal v0 + fallback policy для unresolved `python://` refs).
 
 ### I4.S6 - Native component binding layer v0
 

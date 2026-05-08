@@ -6,8 +6,8 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 
 - `Phase`: MVP-1 (foundation)
 - `Iteration`: I4 - Native Export Independence
-- `Overall`: In Progress (I1.S1-I4.S3 done)
-- `Next Slice`: I4.S4 Native export contract (`langgraph_dai_native`) v0
+- `Overall`: In Progress (I1.S1-I4.S5 done)
+- `Next Slice`: I4.S6 Native component binding layer v0
 
 РџРѕРґСЂРѕР±РЅС‹Р№ СЃС‚Р°С‚СѓСЃ:
 
@@ -102,11 +102,17 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 - `docs/specs/Champion_Export_Bundle_v0.md` - РєРѕРЅС‚СЂР°РєС‚ bundle Р°СЂС‚РµС„Р°РєС‚РѕРІ Рё СЃС‚СЂСѓРєС‚СѓСЂР° РєР°С‚Р°Р»РѕРіР°.
 - `scripts/smoke_export_champion_bundle.ps1` - smoke-РїСЂРѕРІРµСЂРєР° champion bundle export.
 
-## I4.S4 Direction (Planned)
+## I4.S4 Direction (Done)
 
 - native export target `langgraph_dai_native` (standalone runtime artifact).
 - parity contract `DSL path vs native exported path`.
 - champion bundle default switch to native runtime artifact.
+
+## I4.S5 Artifacts
+
+- `optimizer/champion/native_export.py` - minimal standalone native exporter на `framework`/`infra.openrouter`.
+- `optimizer/champion/export_bundle.py` - bundle теперь включает `native_agent` и `native_runtime_smoke` проверку.
+- `tests/unit/test_native_export.py` - unit-проверки native exporter.
 
 ## Dual Metrics Model
 
@@ -314,7 +320,8 @@ python -m optimizer.champion.export_bundle --arena-file .\examples\arena\support
 После запуска проверьте:
 
 1. `README.bundle.md` в каталоге bundle (инструкция для разработчика),
-2. `parity_report.json` (`is_equivalent_agent=true` для структурного parity DSL vs generated path).
+2. `parity_report.json` (`is_equivalent_agent=true` и `native_runtime_smoke.passed=true`),
+3. `native_agent\app\run.py` (standalone runtime entrypoint без `optimizer.*` импортов).
 
 Smoke-прогон champion bundle export:
 

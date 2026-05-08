@@ -65,8 +65,8 @@
 | I4.S2 | Evidence Pack v0 + dual-metrics contract | Done | comparative vs diagnostic evidence report |
 | I4.S2b | Run-policy split: smoke-live vs decision-live | Done | dedicated decision budget profile + quality-model run path |
 | I4.S3 | Champion export bundle v0 | Done | deployable artifact set |
-| I4.S4 | Native export contract (`langgraph_dai_native`) v0 | Planned | standalone runtime artifact spec + mapping rules |
-| I4.S5 | Native renderer/codegen minimal path | Planned | runnable standalone agent (`linear + conditional`) |
+| I4.S4 | Native export contract (`langgraph_dai_native`) v0 | Done | standalone runtime artifact spec + mapping rules |
+| I4.S5 | Native renderer/codegen minimal path | Done | runnable standalone agent (`linear + conditional`) |
 | I4.S6 | Native component binding layer v0 | Planned | llm/deterministic/tool/validator/hitl bindings without `optimizer` runtime |
 | I4.S7 | DSL-vs-native parity harness + CI gate | Planned | structural parity report and regression guard |
 | I4.S8 | Champion bundle default switch to native target | Planned | native-first bundle, legacy runtime path as optional debug fallback |

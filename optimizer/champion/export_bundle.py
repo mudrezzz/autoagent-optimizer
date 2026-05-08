@@ -16,6 +16,7 @@ from typing import Any
 from optimizer.arena.io import ArenaLoadError, ArenaValidationError, load_arena_tournament_spec
 from optimizer.arena.runner import ArchitectureArenaRunner
 from optimizer.champion.diagnostic_map import DiagnosticMapBuildError, build_diagnostic_map_payload
+from optimizer.champion.native_export import NativeExportBuildError, NativeLanggraphDaiExporter
 from optimizer.codegen.agent_generator import AgentCodeGenerator, sanitize_package_name
 from optimizer.common.env_loader import load_env_file
 from optimizer.dsl.compiler import DslToGraphIRCompiler
@@ -97,6 +98,7 @@ class ChampionBundleCli:
             ArenaValidationError,
             ChampionBundleExportError,
             DiagnosticMapBuildError,
+            NativeExportBuildError,
             EvidencePackBuildError,
             ValueError,
             FileNotFoundError,
@@ -192,6 +194,14 @@ def _build_bundle(
         prompt_templates_override=demo_bindings.prompt_templates,
     )
 
+    native_agent_dir = bundle_dir / "native_agent"
+    native_export_result = NativeLanggraphDaiExporter().export(
+        graph_ir=winner_graph_ir,
+        prompt_templates=demo_bindings.prompt_templates,
+        output_dir=native_agent_dir,
+        force=True,
+    )
+
     evidence_payload = build_evidence_pack_payload(arena_payload)
     evidence_json_file = bundle_dir / "evidence_pack.json"
     evidence_md_file = bundle_dir / "evidence_pack.md"
@@ -208,6 +218,7 @@ def _build_bundle(
         winner_graph_ir=winner_graph_ir,
         source_kind=source_kind,
         generated_package_dir=generated.package_dir,
+        native_agent_dir=native_export_result.output_dir,
         parity_payload=parity_payload,
     )
     parity_report_file = bundle_dir / "parity_report.json"
@@ -220,6 +231,7 @@ def _build_bundle(
             winner_source_kind=source_kind,
             winner_source_file=copied_winner_source_file,
             generated_entrypoint_file=generated.entrypoint_file,
+            native_entrypoint_file=native_export_result.run_file,
             parity_report_file=parity_report_file,
         ),
         encoding="utf-8",
@@ -239,6 +251,8 @@ def _build_bundle(
         "winner_graph_ir_file": str(winner_graph_ir_file),
         "generated_agent_dir": str(generated_agent_dir),
         "generated_agent_entrypoint_file": str(generated.entrypoint_file),
+        "native_agent_dir": str(native_export_result.output_dir),
+        "native_agent_entrypoint_file": str(native_export_result.run_file),
     }
     manifest_file = bundle_dir / "bundle_manifest.json"
     manifest_file.write_text(json.dumps(manifest_payload, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -255,6 +269,7 @@ def _build_bundle(
         "parity_report_file": str(parity_report_file),
         "bundle_readme_file": str(bundle_readme_file),
         "generated_agent_entrypoint_file": str(generated.entrypoint_file),
+        "native_agent_entrypoint_file": str(native_export_result.run_file),
     }
 
 
@@ -327,6 +342,7 @@ def _build_parity_report(
     winner_graph_ir: GraphIRSpec,
     source_kind: str,
     generated_package_dir: Path,
+    native_agent_dir: Path,
     parity_payload: dict[str, Any],
 ) -> dict[str, Any]:
     """Строит parity-report между DSL path и generated-code path в mock-LLM режиме."""
@@ -337,6 +353,10 @@ def _build_parity_report(
         generated_package_dir=generated_package_dir,
         parity_payload=parity_payload,
     )
+    native_runtime_comparison = _compare_native_runtime_path(
+        native_agent_dir=native_agent_dir,
+        parity_payload=parity_payload,
+    )
     return {
         "version": "parity_report_v0",
         "winner_id": winner_id,
@@ -345,10 +365,14 @@ def _build_parity_report(
         "payload_used": parity_payload,
         "graph_ir_equivalent": graph_ir_same,
         "runtime_structural_parity": runtime_comparison,
-        "is_equivalent_agent": bool(graph_ir_same and runtime_comparison.get("passed", False)),
+        "native_runtime_smoke": native_runtime_comparison,
+        "is_equivalent_agent": bool(
+            graph_ir_same and runtime_comparison.get("passed", False) and native_runtime_comparison.get("passed", False)
+        ),
         "notes": [
             "Проверка выполняется в mock LLM режиме для стабильности CI и исключения вариативности ответов модели.",
             "Для live LLM допускаются различия в `payload.text`, но не в структуре исполнения.",
+            "Native runtime smoke подтверждает, что standalone export запускается отдельно от optimizer runtime.",
         ],
     }
 
@@ -406,6 +430,46 @@ def _compare_runtime_paths(
     }
 
 
+def _compare_native_runtime_path(*, native_agent_dir: Path, parity_payload: dict[str, Any]) -> dict[str, Any]:
+    """Проверяет запуск standalone native runtime-агента из экспортного bundle."""
+
+    run_file = native_agent_dir / "app" / "run.py"
+    if not run_file.exists():
+        return {"passed": False, "error": f"native run file not found: {run_file}"}
+
+    payload_file = native_agent_dir / "tmp_parity_payload.json"
+    payload_file.write_text(json.dumps(parity_payload, ensure_ascii=False), encoding="utf-8")
+
+    import subprocess
+
+    proc = subprocess.run(
+        [sys.executable, str(run_file), "--payload-file", str(payload_file), "--pretty"],
+        capture_output=True,
+        text=True,
+        cwd=native_agent_dir,
+        check=False,
+    )
+    payload_file.unlink(missing_ok=True)
+
+    if proc.returncode != 0:
+        return {"passed": False, "returncode": proc.returncode, "stderr": proc.stderr[-1000:]}
+    try:
+        output_payload = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        return {"passed": False, "error": "native runner output is not valid JSON"}
+
+    has_required_keys = all(
+        key in output_payload for key in ("executed_nodes", "skipped_nodes", "errors", "payload", "node_outputs")
+    )
+    if not has_required_keys:
+        return {"passed": False, "error": "native runner output misses required keys", "output": output_payload}
+    return {
+        "passed": True,
+        "executed_nodes_total": len(output_payload.get("executed_nodes", [])),
+        "errors_total": len(output_payload.get("errors", [])),
+    }
+
+
 def _load_generated_bindings(generated_package_dir: Path) -> RendererBindings:
     """Загружает RendererBindings из сгенерированного `bindings.py`."""
 
@@ -460,6 +524,7 @@ def _render_bundle_readme(
     winner_source_kind: str,
     winner_source_file: Path,
     generated_entrypoint_file: Path,
+    native_entrypoint_file: Path,
     parity_report_file: Path,
 ) -> str:
     """Рендерит README для разработчика по запуску и проверке champion bundle."""
@@ -476,11 +541,19 @@ def _render_bundle_readme(
         "Set-Content -LiteralPath .\\tmp\\bundle_payload.json -Encoding UTF8\n"
         f"python {generated_entrypoint_file} --payload-file .\\tmp\\bundle_payload.json --pretty\n"
         "```\n\n"
+        "## 1.1) Запуск standalone native-агента (`langgraph-dai`)\n\n"
+        "```powershell\n"
+        "New-Item -ItemType Directory -Force -Path .\\tmp | Out-Null\n"
+        "'{\"draft_post\":\"Тестовый пост для проверки native bundle\"}' | "
+        "Set-Content -LiteralPath .\\tmp\\native_payload.json -Encoding UTF8\n"
+        f"python {native_entrypoint_file} --payload-file .\\tmp\\native_payload.json --pretty\n"
+        "```\n\n"
         "## 2) Эквивалентность к DSL-path\n\n"
         "В bundle уже сохранен `parity_report.json` с автоматической проверкой:\n"
         "1. `graph_ir_equivalent=true` — Graph IR в generated package совпадает с winner Graph IR.\n"
         "2. `runtime_structural_parity.passed=true` — совпадает структура выполнения "
         "(executed/skipped nodes, node outputs keys, errors, trace nodes total).\n\n"
+        "3. `native_runtime_smoke.passed=true` — standalone native runtime пакет реально запускается.\n\n"
         "Проверить отчет:\n\n"
         "```powershell\n"
         f"Get-Content -LiteralPath {parity_report_file}\n"

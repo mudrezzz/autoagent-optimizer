@@ -127,8 +127,9 @@ Input (Task + Constraints + Data + Tools + Budget)
    - economical live-default OpenRouter model profile for demo loops (`meta-llama/llama-3.1-8b-instruct`).
    - `optimizer.evidence` (Evidence Pack v0 JSON/Markdown artifacts with winner/challenger explainable diff),
    - `optimizer.champion` (Champion Export Bundle v0: arena/evidence/diagnostic/codegen bundle + manifest).
+   - `optimizer.champion.native_export` (standalone `langgraph-dai` native runtime export v0).
 2. Next:
-   - Native export independence track (`I4.S4`-`I4.S8`),
+   - Native export independence track (`I4.S6`-`I4.S8`),
    - Evaluation Fabric & MetricOps (`I5.*`) после закрытия native export track.
 
 ## Decision Records

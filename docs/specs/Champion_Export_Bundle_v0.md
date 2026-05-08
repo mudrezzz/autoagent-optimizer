@@ -44,6 +44,16 @@ python -m optimizer.champion.export_bundle --arena-result-file .\tmp\arena_resul
       agent.py
       bindings.py
       graph_ir.json
+  native_agent/
+    app/
+      run.py
+      workflow.py
+    prompts/
+      prompts.json
+    artifacts/
+      source_graph_ir.json
+    README.md
+    requirements.txt
 ```
 
 ## Artifact Semantics
@@ -68,7 +78,9 @@ python -m optimizer.champion.export_bundle --arena-result-file .\tmp\arena_resul
    - инструкция для разработчика: как запустить сгенерированного агента и как интерпретировать parity report.
 7. `generated_agent/*`:
    - runnable кодовый артефакт winner (codegen-путь I2.S2).
-8. `bundle_manifest.json`:
+8. `native_agent/*`:
+   - standalone native runtime пакет на `langgraph-dai` без импортов `optimizer.*`.
+9. `bundle_manifest.json`:
    - индекс всех файлов bundle и путь до entrypoint сгенерированного агента.
 
 ## Success Output Contract
@@ -87,7 +99,8 @@ CLI возвращает JSON:
   "bundle_readme_file": "...",
   "evidence_pack_json_file": "...",
   "evidence_pack_markdown_file": "...",
-  "generated_agent_entrypoint_file": "..."
+  "generated_agent_entrypoint_file": "...",
+  "native_agent_entrypoint_file": "..."
 }
 ```
 
