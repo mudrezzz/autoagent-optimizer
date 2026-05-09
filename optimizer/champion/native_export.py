@@ -6,6 +6,7 @@ import json
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
+from types import SimpleNamespace
 
 from optimizer.graph_ir.models import GraphIRSpec, GraphNodeKind
 
@@ -75,6 +76,8 @@ class NativeLanggraphDaiExporter:
         prompts_dir.mkdir(parents=True, exist_ok=True)
         artifacts_dir.mkdir(parents=True, exist_ok=True)
 
+        _copy_python_dependency_files(graph_ir=graph_ir, native_root=resolved_output_dir)
+
         workflow_file = app_dir / "workflow.py"
         run_file = app_dir / "run.py"
         init_file = app_dir / "__init__.py"
@@ -132,6 +135,70 @@ def _validate_graph_support(graph_ir: GraphIRSpec) -> None:
         )
 
 
+def _copy_python_dependency_files(*, graph_ir: GraphIRSpec, native_root: Path) -> None:
+    """Копирует локальные python-модули из `python://` refs в standalone native пакет."""
+
+    project_root = Path(__file__).resolve().parents[2]
+    modules: set[str] = set()
+    for node in graph_ir.nodes:
+        component_ref = node.component_ref.strip()
+        if not component_ref.startswith("python://"):
+            continue
+        raw = component_ref[len("python://") :]
+        if ":" not in raw:
+            continue
+        module_name, _func_name = raw.split(":", 1)
+        module_name = module_name.strip()
+        if module_name:
+            modules.add(module_name)
+
+    for module_name in sorted(modules):
+        _copy_module_with_package_inits(project_root=project_root, native_root=native_root, module_name=module_name)
+
+    # Для style-validator кейса переносим ресурсы паттернов в standalone пакет.
+    resources_src = project_root / "examples" / "resources" / "ai_style_patterns_ru_v1.json"
+    if resources_src.exists():
+        resources_dst = native_root / "examples" / "resources" / "ai_style_patterns_ru_v1.json"
+        resources_dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(resources_src, resources_dst)
+
+
+def _copy_module_with_package_inits(*, project_root: Path, native_root: Path, module_name: str) -> None:
+    """Копирует модуль и цепочку `__init__.py` для корректного импорт-резолва в native пакете."""
+
+    module_rel = Path(*module_name.split("."))
+    module_py = project_root / module_rel.with_suffix(".py")
+    package_dir = project_root / module_rel
+
+    if module_py.exists():
+        destination_py = native_root / module_rel.with_suffix(".py")
+        destination_py.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(module_py, destination_py)
+        _copy_package_init_chain(project_root=project_root, native_root=native_root, module_rel=module_rel)
+        return
+
+    if package_dir.is_dir():
+        destination_dir = native_root / module_rel
+        shutil.copytree(package_dir, destination_dir, dirs_exist_ok=True)
+        _copy_package_init_chain(project_root=project_root, native_root=native_root, module_rel=module_rel)
+
+
+def _copy_package_init_chain(*, project_root: Path, native_root: Path, module_rel: Path) -> None:
+    """Копирует `__init__.py` для каждого уровня package-chain модуля."""
+
+    parts = list(module_rel.parts)
+    if not parts:
+        return
+    for depth in range(1, len(parts) + 1):
+        rel_dir = Path(*parts[:depth])
+        init_src = project_root / rel_dir / "__init__.py"
+        if not init_src.exists():
+            continue
+        init_dst = native_root / rel_dir / "__init__.py"
+        init_dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(init_src, init_dst)
+
+
 def _render_workflow_py() -> str:
     """Формирует `app/workflow.py` для standalone native runtime."""
 
@@ -146,6 +213,7 @@ from collections import defaultdict, deque
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from types import SimpleNamespace
 
 from framework.workflows.base import BaseWorkflow, WorkflowExecutionContext, WorkflowNodeSpec
 from infra.openrouter.chat_gateway import OpenRouterChatModelGateway
@@ -354,7 +422,8 @@ class NativeGraphWorkflow(BaseWorkflow):
         if component_ref.startswith("python://"):
             try:
                 callable_obj = _load_python_callable(component_ref)
-                result = callable_obj(payload)
+                state_proxy = _build_state_proxy(payload)
+                result = _invoke_python_callable(callable_obj, state_proxy, node)
                 if isinstance(result, dict):
                     return result
                 return {"deterministic_result": result}
@@ -380,7 +449,8 @@ class NativeGraphWorkflow(BaseWorkflow):
         if component_ref.startswith("python://"):
             try:
                 callable_obj = _load_python_callable(component_ref)
-                result = callable_obj(payload)
+                state_proxy = _build_state_proxy(payload)
+                result = _invoke_python_callable(callable_obj, state_proxy, node)
             except Exception as exc:
                 return {
                     "valid": True,
@@ -544,6 +614,21 @@ def _load_python_callable(component_ref: str):
     return func
 
 
+def _build_state_proxy(payload: dict[str, Any]) -> Any:
+    """Строит легковесный state-like объект для python callable контрактов."""
+
+    return SimpleNamespace(payload=payload)
+
+
+def _invoke_python_callable(callable_obj: Any, state_proxy: Any, node: dict[str, Any]) -> Any:
+    """Вызывает python callable, поддерживая сигнатуры `(state,node)` и `(payload)`."""
+
+    try:
+        return callable_obj(state_proxy, node)
+    except TypeError:
+        return callable_obj(state_proxy.payload)
+
+
 def _build_openrouter_gateway_if_available() -> OpenRouterChatModelGateway | None:
     """Создает OpenRouter gateway, если API ключ доступен в окружении."""
 
@@ -668,7 +753,7 @@ python -m pip install -r .\\requirements.txt
 ## Запуск
 
 ```powershell
-'{"query":"Что умеет native агент?"}' | Set-Content -LiteralPath .\\payload.json -Encoding UTF8
+'{"draft_post":"В этом посте много AI-штампов. Нужна живая редактура без потери фактов."}' | Set-Content -LiteralPath .\\payload.json -Encoding UTF8
 python .\\app\\run.py --payload-file .\\payload.json --pretty
 ```
 
