@@ -169,6 +169,22 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_export_champion_bundle.
 3. metric-crafting agent draft + HITL approve для активации profile.
 4. post-export native re-benchmark: прогон native champion на тех же evaluation profiles, сравнение с DSL baseline и gate-решение (`promote` / `rework`).
 
+Что уже показываем:
+
+1. typed `Evaluation Profile v0` для stylizer/ocr кейсов;
+2. запуск одного profile на двух target:
+   - `dsl_runtime`,
+   - `native_runtime`;
+3. unified profile-run envelope с `comparison` + `diagnostics`.
+
+Команды:
+
+```powershell
+python -m optimizer.evaluation.run_profile --profile-file .\examples\profiles\stylizer_profile_ci_v0.yaml --target dsl_runtime --pretty
+python -m optimizer.evaluation.run_profile --profile-file .\examples\profiles\stylizer_profile_ci_v0.yaml --target native_runtime --pretty
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_evaluation_profile.ps1
+```
+
 ### Stage D3.5 (I4.S4-I4.S8) - Native Export Independence Demo
 
 План показа:
@@ -195,6 +211,6 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_export_champion_bundle.
 
 ## Current Demo Status
 
-- Active stage: `D3.5 prep (I4 native export independence)`
+- Active stage: `D4 bootstrap (I5 evaluation profile v0)`
 - Demo readiness: `Green`
-- Next demo milestone: `D3.5 native component bindings` (`I4.S6`)
+- Next demo milestone: `D4 evaluator adapter expansion` (`I5.S2`)

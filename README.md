@@ -4,10 +4,10 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 
 ## Current Status
 
-- `Phase`: MVP-1 (foundation)
-- `Iteration`: I4 - Native Export Independence
-- `Overall`: In Progress (I1.S1-I4.S5 done)
-- `Next Slice`: I4.S6 Native component binding layer v0
+- `Phase`: MVP-2 transition (evaluation fabric bootstrap)
+- `Iteration`: I5 - Evaluation Fabric & MetricOps
+- `Overall`: In Progress (I1.S1-I5.S1 done)
+- `Next Slice`: I5.S2 Evaluator Adapter Layer v0
 
 РџРѕРґСЂРѕР±РЅС‹Р№ СЃС‚Р°С‚СѓСЃ:
 
@@ -42,12 +42,17 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 - `optimizer/codegen` - DSL/IR -> СЃРіРµРЅРµСЂРёСЂРѕРІР°РЅРЅС‹Р№ РєРѕРґ Р°РіРµРЅС‚Р° (package + runner).
 - `optimizer/tracing` - node-level СЃРѕР±С‹С‚РёСЏ РёСЃРїРѕР»РЅРµРЅРёСЏ Рё СЃРІРѕРґРєР° trace РїРѕ run.
 - `optimizer/evaluation` - golden dataset contract, loader, oracle runner Рё CLI-РІР°Р»РёРґР°С†РёСЏ/РїСЂРѕРіРѕРЅ.
+- `optimizer/evaluation/profile_schema.py` - typed contract `Evaluation Profile v0`.
+- `optimizer/evaluation/profile_runner.py` - profile orchestration с переключением `dsl_runtime`/`native_runtime`.
+- `optimizer/evaluation/run_profile.py` - CLI profile-driven оценки.
 - `optimizer/metrics` - middle-РјРµС‚СЂРёРєРё Рё СЃР»СѓР¶РµР±РЅС‹Рµ Р°РіСЂРµРіР°С‚РѕСЂС‹ РґР»СЏ arena scoring.
 - `optimizer/evidence` - РіРµРЅРµСЂР°С†РёСЏ Evidence Pack (`comparison` + `diagnostics` + explainable diff).
 - `optimizer/champion` - export Champion Bundle (`diagnostic_map`, `winner_graph_ir`, `generated_agent`, `manifest`).
 - `components` - deterministic demo-РєРѕРјРїРѕРЅРµРЅС‚С‹ РґР»СЏ РїР°Р№РїР»Р°Р№РЅРѕРІ (РІРєР»СЋС‡Р°СЏ AI-pattern РёРЅСЃС‚СЂСѓРјРµРЅС‚С‹).
 - `validators` - python-РІР°Р»РёРґР°С‚РѕСЂС‹ demo-СЃС†РµРЅР°СЂРёРµРІ (РІРєР»СЋС‡Р°СЏ style output guard).
 - `docs/specs/Evaluation_Profile_v0.md` - РєРѕРЅС†РµРїС‚ profile-driven РѕС†РµРЅРєРё (task-specific metrics + pluggable evaluators).
+- `examples/profiles` - example evaluation profiles (`stylizer_profile_ci_v0`, `ocr_support_profile_ci_v0`).
+- `scripts/smoke_run_evaluation_profile.ps1` - smoke-проверка profile-driven path.
 - `docs/specs/Evidence_Pack_v0.md` - РєРѕРЅС‚СЂР°РєС‚ Р°СЂС‚РµС„Р°РєС‚РѕРІ evidence РґР»СЏ winner/challenger Р°РЅР°Р»РёР·Р°.
 - `docs/specs/Champion_Export_Bundle_v0.md` - РєРѕРЅС‚СЂР°РєС‚ champion bundle v0.
 - `docs/specs/Native_Langgraph_DAI_Export_v0.md` - standalone native export contract Р±РµР· runtime-зависимости от optimizer.
@@ -287,6 +292,26 @@ Live full smoke-прогон arena:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live_full.ps1
+```
+
+## Evaluation Profile Quickstart (PowerShell)
+
+DSL target:
+
+```powershell
+python -m optimizer.evaluation.run_profile --profile-file .\examples\profiles\stylizer_profile_ci_v0.yaml --target dsl_runtime --pretty
+```
+
+Native target:
+
+```powershell
+python -m optimizer.evaluation.run_profile --profile-file .\examples\profiles\stylizer_profile_ci_v0.yaml --target native_runtime --pretty
+```
+
+Smoke-прогон profile-driven path:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_evaluation_profile.ps1
 ```
 
 ## Evidence Pack Quickstart (PowerShell)

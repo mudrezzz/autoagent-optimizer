@@ -1,0 +1,56 @@
+version: evaluation_profile_v0
+profile_id: stylizer_profile_ci_v0
+task_type: style_rewrite_social_post
+supported_targets:
+  - dsl_runtime
+  - native_runtime
+default_target: dsl_runtime
+dataset_file: ../datasets/golden_linkedin_stylizer_v1.jsonl
+dsl_execution_mode: expected_stub
+task_prefix: profile-stylizer-ci
+budget:
+  cases_limit: 4
+  selector: head
+  random_seed: 42
+  max_llm_calls: 0
+  max_input_tokens: 0
+  max_output_tokens: 0
+  max_usd: 0.0
+  max_wall_time_sec: 0
+evaluators:
+  - evaluator_type: golden_oracle
+    config: {}
+    budget: {}
+comparative_metrics:
+  - metric_id: pass_rate
+    direction: desc
+    weight: 0.6
+    source: golden_oracle
+  - metric_id: rule_violations_total
+    direction: asc
+    weight: 0.3
+    source: golden_oracle
+  - metric_id: duration_ms_avg
+    direction: asc
+    weight: 0.1
+    source: runtime_trace
+diagnostic_signals:
+  - signal_id: synthesize_bottleneck
+    stage_scope: synthesize
+    aggregation: avg
+  - signal_id: validate_failure_load
+    stage_scope: validate
+    aggregation: sum
+  - signal_id: transform_delay
+    stage_scope: transform
+    aggregation: p95
+participants:
+  - participant_id: style_direct_candidate
+    dsl_file: ../dsl/style_direct_llm.yaml
+    stub_behavior: perfect
+  - participant_id: style_pattern_cleaner_candidate
+    dsl_file: ../dsl/style_pattern_cleaner.yaml
+    stub_behavior: fail_sensitive
+  - participant_id: style_hitl_reviewer_candidate
+    dsl_file: ../dsl/style_hitl_reviewer.yaml
+    stub_behavior: fail_all

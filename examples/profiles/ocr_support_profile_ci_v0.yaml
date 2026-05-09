@@ -1,0 +1,50 @@
+version: evaluation_profile_v0
+profile_id: ocr_support_profile_ci_v0
+task_type: ocr_support_extraction
+supported_targets:
+  - dsl_runtime
+default_target: dsl_runtime
+dataset_file: ../datasets/golden_support_v1.jsonl
+dsl_execution_mode: expected_stub
+task_prefix: profile-ocr-support-ci
+budget:
+  cases_limit: 3
+  selector: head
+  random_seed: 42
+evaluators:
+  - evaluator_type: golden_oracle
+    config: {}
+    budget: {}
+comparative_metrics:
+  - metric_id: pass_rate
+    direction: desc
+    weight: 0.7
+    source: golden_oracle
+  - metric_id: failed
+    direction: asc
+    weight: 0.2
+    source: golden_oracle
+  - metric_id: duration_ms_avg
+    direction: asc
+    weight: 0.1
+    source: runtime_trace
+diagnostic_signals:
+  - signal_id: retrieve_signal
+    stage_scope: retrieve
+    aggregation: avg
+  - signal_id: synthesize_signal
+    stage_scope: synthesize
+    aggregation: avg
+  - signal_id: validate_signal
+    stage_scope: validate
+    aggregation: sum
+participants:
+  - participant_id: support_direct_candidate
+    dsl_file: ../dsl/direct_llm.yaml
+    stub_behavior: perfect
+  - participant_id: support_hitl_candidate
+    dsl_file: ../dsl/hitl_gate.yaml
+    stub_behavior: fail_sensitive
+  - participant_id: support_ocr_candidate
+    dsl_file: ../dsl/ocr_first.yaml
+    stub_behavior: fail_all

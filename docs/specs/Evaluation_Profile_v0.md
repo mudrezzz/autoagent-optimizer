@@ -2,90 +2,118 @@
 
 ## Purpose
 
-`Evaluation Profile` задает правила оценки **под конкретный кейс**, а не глобально для всех задач.
+`Evaluation Profile` задает конфиг оценки под конкретный task type:
 
-Профиль решает две проблемы:
+1. какие comparative-метрики участвуют в ranking,
+2. какие diagnostic-сигналы собираются для root-cause анализа,
+3. какой evaluator chain используется,
+4. какой execution target запускается (`dsl_runtime` или `native_runtime`),
+5. какой бюджет применяется к прогону.
 
-1. Метрики различаются между задачами и должны быть конфигурируемыми.
-2. Методы оценки должны быть расширяемыми (не только golden dataset).
+## Scope (I5.S1)
 
-## Design Principles
+В этом слайсе реализовано:
 
-1. `Config-first`: состав метрик и оценщиков задается YAML/JSON профилем.
-2. `Dual Metrics`: разделяем comparative и diagnostic слои.
-3. `Pluggable Evaluators`: новые оценщики подключаются через adapter interface.
-4. `HITL-by-default for metric changes`: изменение профиля метрик проходит подтверждение.
+1. typed контракт profile (`optimizer/evaluation/profile_schema.py`),
+2. YAML loader + validator (`optimizer/evaluation/profile_io.py`),
+3. CLI `python -m optimizer.evaluation.run_profile`,
+4. orchestration runner для target-переключения (`optimizer/evaluation/profile_runner.py`),
+5. examples profiles для двух task types.
 
-## Profile Structure (Concept)
+В `v0` evaluator chain ограничен `golden_oracle`.
+Расширяемые evaluator adapters (`llm_judge`, `executable`, `render`) идут в `I5.S2`.
 
-1. `profile_id`, `task_type`, `version`
-2. `comparative_metrics[]`
-   - `metric_id`
-   - `direction` (`asc`/`desc`)
-   - `weight`
-   - `source` (`golden_oracle`, `llm_judge`, `runtime_trace`, `executable`, ...)
-3. `diagnostic_signals[]`
-   - `signal_id`
-   - `stage_scope` (`retrieve`, `rerank`, `synthesize`, `validate`, `tool_call`, ...)
-   - `aggregation`
-4. `evaluators[]`
-   - `evaluator_type`
-   - `config`
-   - `budget`
-5. `gates[]`
-   - обязательные минимумы/максимумы перед продвижением champion
-6. `normalization` и `scoring_policy`
+## YAML Contract
 
-## Evaluator Adapter Model
+```yaml
+version: evaluation_profile_v0
+profile_id: stylizer_profile_ci_v0
+task_type: style_rewrite_social_post
+supported_targets: [dsl_runtime, native_runtime]
+default_target: dsl_runtime
+dataset_file: ../datasets/golden_linkedin_stylizer_v1.jsonl
+dsl_execution_mode: expected_stub
+task_prefix: profile-stylizer-ci
 
-Каждый evaluator реализует единый контракт:
+budget:
+  cases_limit: 4
+  selector: head
+  random_seed: 42
+  max_llm_calls: 0
+  max_input_tokens: 0
+  max_output_tokens: 0
+  max_usd: 0.0
+  max_wall_time_sec: 0
 
-1. `prepare(context) -> evaluator_session`
-2. `evaluate(case_input, candidate_output) -> evaluator_result`
-3. `aggregate(results[]) -> metrics/signals`
+evaluators:
+  - evaluator_type: golden_oracle
+    config: {}
+    budget: {}
 
-Базовые evaluator types v0:
+comparative_metrics:
+  - metric_id: pass_rate
+    direction: desc
+    weight: 0.6
+    source: golden_oracle
+  - metric_id: duration_ms_avg
+    direction: asc
+    weight: 0.4
+    source: runtime_trace
 
-1. `golden_oracle` — сравнение с эталоном.
-2. `llm_judge` — LLM-as-a-judge по рубрике.
-3. `executable` — запуск тестов/кода/валидаторов.
-4. `render` — проверка рендера/артефактов.
-5. `runtime_trace` — оценка поведения из trace/events.
+diagnostic_signals:
+  - signal_id: synthesize_bottleneck
+    stage_scope: synthesize
+    aggregation: avg
 
-## Metric-Crafting Agent + HITL
+participants:
+  - participant_id: candidate_a
+    dsl_file: ../dsl/style_direct_llm.yaml
+    stub_behavior: perfect
+  - participant_id: candidate_b
+    dsl_file: ../dsl/style_pattern_cleaner.yaml
+    stub_behavior: fail_sensitive
+```
 
-Построение/эволюция профиля метрик оформляется как отдельный agent workflow:
+## Execution Targets
 
-1. Агент предлагает draft метрики и evaluator composition.
-2. Платформа генерирует expected impact + риски.
-3. Человек подтверждает/редактирует профиль (HITL checkpoint).
-4. После approval профиль активируется в турнире.
+Поддержка target в `v0`:
 
-Без HITL подтверждения профиль не меняет production ranking.
+1. `dsl_runtime`
+   - использует существующий Arena runtime путь,
+   - `dsl_execution_mode` берется из profile (`expected_stub`/`runtime`).
+2. `native_runtime`
+   - для каждого участника профильного турнира компилируется Graph IR,
+   - участник экспортируется во временный standalone native runtime,
+   - оценка идет через тот же oracle pipeline и ту же budget/ranking/scoring политику.
 
-## Example Task Types
+## CLI
 
-1. `style_rewrite_social_post` (LinkedIn/Telegram):
-   - comparative:
-     - смысловая сохранность,
-     - естественность стиля,
-     - сохранение длины,
-     - retention фактов/пруфов.
-   - diagnostics:
-     - потеря фабулы,
-     - потеря энергии текста,
-     - leakage AI-паттернов.
+Запуск profile-run:
 
-2. `code_agent_generation`:
-   - comparative:
-     - pass_rate тестов,
-     - runtime latency,
-     - cost budget.
-   - diagnostics:
-     - ошибки на stage compile/test/run.
+```powershell
+python -m optimizer.evaluation.run_profile --profile-file .\examples\profiles\stylizer_profile_ci_v0.yaml --target dsl_runtime --pretty
+python -m optimizer.evaluation.run_profile --profile-file .\examples\profiles\stylizer_profile_ci_v0.yaml --target native_runtime --pretty
+```
 
-## Integration Plan
+Если `--target` не задан, используется `default_target` из profile.
 
-1. I5.S1: контракт профиля + валидация.
-2. I5.S2: evaluator adapters и unified aggregation path.
-3. I5.S3: metric-crafting agent с HITL checkpoint.
+## Output Envelope
+
+CLI возвращает:
+
+1. profile meta (`profile_id`, `task_type`, `execution_target`),
+2. evaluator/metrics/budget contract snapshot,
+3. `result` в совместимом формате Arena (`comparison`, `diagnostics`, `participants`, `winner_id`).
+
+## Example Profiles
+
+1. `examples/profiles/stylizer_profile_ci_v0.yaml`
+2. `examples/profiles/ocr_support_profile_ci_v0.yaml`
+
+## Tests
+
+Покрытие слайса:
+
+1. unit: `tests/unit/test_evaluation_profile_schema.py`
+2. integration: `tests/integration/test_evaluation_profile_cli.py`
+3. e2e: `tests/e2e/test_evaluation_profile_smoke_script.py`

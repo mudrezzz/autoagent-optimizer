@@ -48,6 +48,7 @@
 19. [ADR-0019-native-langgraph-dai-export-without-optimizer-runtime.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0019-native-langgraph-dai-export-without-optimizer-runtime.md) - Accepted
 20. [ADR-0020-native-exporter-minimal-v0-and-fallback-policy.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0020-native-exporter-minimal-v0-and-fallback-policy.md) - Accepted
 21. [ADR-0021-post-export-native-evaluation-loop.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0021-post-export-native-evaluation-loop.md) - Accepted
+22. [ADR-0022-evaluation-profile-v0-contract-and-target-switch.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0022-evaluation-profile-v0-contract-and-target-switch.md) - Accepted
 
 ## Template
 

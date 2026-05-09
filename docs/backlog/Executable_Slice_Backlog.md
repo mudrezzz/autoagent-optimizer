@@ -15,8 +15,8 @@
 
 ## Active Window (Now)
 
-- `Current Focus`: MVP-1 hardening / I4 native export independence
-- `Active Next Slice`: I4.S6
+- `Current Focus`: MVP-2 bootstrap / I5 evaluation fabric
+- `Active Next Slice`: I5.S2
 
 ---
 
@@ -328,7 +328,7 @@
 
 ### I5.S1 - Task Evaluation Profile v0
 
-- Status: Planned
+- Status: Done
 - Goal: ввести config-driven профиль оценки под каждый task type.
 - Deliverables:
   - `docs/specs/Evaluation_Profile_v0.md`,
@@ -342,6 +342,12 @@
   4. Есть валидация profile contract и понятные ошибки.
 - Dependencies: I4.S2.
 - Risks: избыточная сложность профиля на v0.
+- Progress (2026-05-09):
+  1. Добавлен typed контракт `Evaluation Profile v0` (`profile_schema`, `profile_io`).
+  2. Добавлен CLI `python -m optimizer.evaluation.run_profile`.
+  3. Реализован target switch `dsl_runtime`/`native_runtime` в profile runner.
+  4. Добавлены examples profile для stylizer и OCR/support кейсов.
+  5. Добавлены unit/integration/e2e тесты + smoke-скрипт profile-run.
 
 ### I5.S2 - Evaluator Adapter Layer v0
 
