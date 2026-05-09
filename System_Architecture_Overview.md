@@ -62,6 +62,7 @@ Input (Task + Constraints + Data + Tools + Budget)
    - champion/challenger comparison.
    - reproducible artifact bundle.
    - native standalone export package on `langgraph-dai`.
+   - post-export benchmark loop (native artifact re-evaluation + regression gates).
 
 ## External Dependency Strategy
 
@@ -130,7 +131,7 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.champion.native_export` (standalone `langgraph-dai` native runtime export v0).
 2. Next:
    - Native export independence track (`I4.S6`-`I4.S8`),
-   - Evaluation Fabric & MetricOps (`I5.*`) после закрытия native export track.
+   - Evaluation Fabric & MetricOps (`I5.*`) including post-export native evaluation loop.
 
 ## Decision Records
 

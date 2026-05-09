@@ -332,12 +332,14 @@
 - Goal: ввести config-driven профиль оценки под каждый task type.
 - Deliverables:
   - `docs/specs/Evaluation_Profile_v0.md`,
+  - execution target contract (`dsl_runtime` / `native_runtime`),
   - typed profile schema + validator (`optimizer/evaluation/profile_*`),
   - examples профилей для минимум 2 task types.
 - Acceptance Criteria:
   1. Можно задать разные comparative/diagnostic метрики для разных задач.
   2. Можно задать разные evaluator chains без code changes.
-  3. Есть валидация profile contract и понятные ошибки.
+  3. Можно запускать один и тот же профиль на `dsl_runtime` и `native_runtime`.
+  4. Есть валидация profile contract и понятные ошибки.
 - Dependencies: I4.S2.
 - Risks: избыточная сложность профиля на v0.
 
@@ -352,11 +354,13 @@
     - llm_judge,
     - executable,
     - render,
+    - native_runtime_target,
   - aggregation pipeline profile-driven метрик.
 - Acceptance Criteria:
   1. Один и тот же турнир может использовать разные evaluator compositions.
   2. Для evaluator можно задавать budget/limits в profile.
-  3. Есть integration tests на mixed evaluator pipeline.
+  3. Native exported agent можно прогонять тем же evaluator pipeline.
+  4. Есть integration tests на mixed evaluator pipeline.
 - Dependencies: I5.S1.
 - Risks: несогласованность шкал между evaluator types.
 
@@ -374,6 +378,36 @@
   3. Есть audit trail: кто/когда/почему изменил профиль.
 - Dependencies: I5.S1, I5.S2.
 - Risks: высокая вариативность качества auto-generated метрик.
+
+### I5.S4 - Post-export Native Benchmark Loop v0
+
+- Status: Planned
+- Goal: добавить непрерывный benchmark-контур для exported native-агента после выбора winner.
+- Deliverables:
+  - CLI/runner re-benchmark native artifact по evaluation profile,
+  - unified result envelope и comparative report (`baseline vs current`),
+  - spec `docs/specs/Post_Export_Evaluation_Loop_v0.md`.
+- Acceptance Criteria:
+  1. Native agent можно прогнать по golden dataset через общий evaluation pipeline.
+  2. Native agent можно прогнать через `llm_judge` chain (при включенном profile).
+  3. Отчет содержит comparative + diagnostic секции для native run.
+- Dependencies: I5.S1, I5.S2.
+- Risks: рост стоимости live-прогонов и непредсказуемость LLM-judge.
+
+### I5.S5 - Champion Regression Gates v0
+
+- Status: Planned
+- Goal: формализовать gate policy для решения `promote/rework` после native re-benchmark.
+- Deliverables:
+  - gate policy contract (quality/cost/latency/failure thresholds),
+  - baseline snapshot format для winner export,
+  - decision report (`pass/fail`, violated gates).
+- Acceptance Criteria:
+  1. Gate policy применима к native benchmark отчету автоматически.
+  2. При нарушении порогов promotion блокируется с explainable причиной.
+  3. Добавлены integration tests на positive/negative gate сценарии.
+- Dependencies: I5.S4.
+- Risks: слишком строгие/мягкие пороги без доменной калибровки.
 
 ---
 

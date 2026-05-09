@@ -167,6 +167,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_export_champion_bundle.
    - style rewrite social post.
 2. переключение evaluator methods без правки кода (`golden_oracle`, `llm_judge`, `executable`, `render`).
 3. metric-crafting agent draft + HITL approve для активации profile.
+4. post-export native re-benchmark: прогон native champion на тех же evaluation profiles, сравнение с DSL baseline и gate-решение (`promote` / `rework`).
 
 ### Stage D3.5 (I4.S4-I4.S8) - Native Export Independence Demo
 

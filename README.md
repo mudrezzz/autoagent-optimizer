@@ -51,6 +51,7 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 - `docs/specs/Evidence_Pack_v0.md` - РєРѕРЅС‚СЂР°РєС‚ Р°СЂС‚РµС„Р°РєС‚РѕРІ evidence РґР»СЏ winner/challenger Р°РЅР°Р»РёР·Р°.
 - `docs/specs/Champion_Export_Bundle_v0.md` - РєРѕРЅС‚СЂР°РєС‚ champion bundle v0.
 - `docs/specs/Native_Langgraph_DAI_Export_v0.md` - standalone native export contract Р±РµР· runtime-зависимости от optimizer.
+- `docs/specs/Post_Export_Evaluation_Loop_v0.md` - контракт непрерывной оценки native champion после экспорта.
 - `examples/dsl` - СЌС‚Р°Р»РѕРЅРЅС‹Рµ YAML-СЃРїРµРєРё, РІРєР»СЋС‡Р°СЏ stylizer РєР°РЅРґРёРґР°С‚РѕРІ (`style_direct_llm`, `style_pattern_cleaner`, `style_hitl_reviewer`).
 - `examples/graph_ir` - СЌС‚Р°Р»РѕРЅРЅС‹Рµ Graph IR JSON-СЃРїРµРєРё.
 - `examples/datasets` - СЌС‚Р°Р»РѕРЅРЅС‹Рµ golden dataset JSONL РєРµР№СЃС‹ (РІРєР»СЋС‡Р°СЏ `golden_linkedin_stylizer_v1.jsonl`).
