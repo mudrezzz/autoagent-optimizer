@@ -16,7 +16,7 @@
 ## Active Window (Now)
 
 - `Current Focus`: MVP-2 bootstrap / I5 evaluation fabric
-- `Active Next Slice`: I5.S2
+- `Active Next Slice`: I5.S2a
 
 ---
 
@@ -349,6 +349,38 @@
   4. Добавлены examples profile для stylizer и OCR/support кейсов.
   5. Добавлены unit/integration/e2e тесты + smoke-скрипт profile-run.
 
+### I5.S2a - Native Target Compatibility Preflight v0
+
+- Status: Planned
+- Goal: сделать явную preflight-проверку совместимости profile/candidate с `native_runtime` до запуска.
+- Deliverables:
+  - compatibility checker (`graph features` vs `native exporter capability matrix`),
+  - CLI/report слой с подробным unsupported reason по участникам,
+  - profile validation hook для `native_runtime` target.
+- Acceptance Criteria:
+  1. Перед native run система выдает детальный отчет совместимости по каждому participant.
+  2. Ошибка не “падает в середине исполнения”, а блокируется preflight с понятной причиной.
+  3. Для unsupported nodes отчет содержит `node_id`, `kind`, и recommended action.
+  4. Есть unit/integration тесты на supported/unsupported профили.
+- Dependencies: I5.S1.
+- Risks: рассинхрон capability matrix и фактической поддержки native exporter.
+
+### I5.S2b - Native Target Degradation Policy v0
+
+- Status: Planned
+- Goal: формализовать поведение при частичной несовместимости через policy вместо ad-hoc решений.
+- Deliverables:
+  - policy contract: `strict` | `skip_unsupported`,
+  - deterministic result contract для skipped participants,
+  - summary report: skipped/executed/block reason.
+- Acceptance Criteria:
+  1. В `strict` режиме native run блокируется при любой несовместимости.
+  2. В `skip_unsupported` режиме несовместимые participants пропускаются с явной фиксацией причин.
+  3. Итоговый ranking/summary отмечает degraded run и не скрывает scope пропусков.
+  4. Есть integration/e2e тесты на оба policy режима.
+- Dependencies: I5.S2a.
+- Risks: ложное ощущение качества при агрессивном `skip_unsupported` без прозрачной маркировки.
+
 ### I5.S2 - Evaluator Adapter Layer v0
 
 - Status: Planned
@@ -367,7 +399,7 @@
   2. Для evaluator можно задавать budget/limits в profile.
   3. Native exported agent можно прогонять тем же evaluator pipeline.
   4. Есть integration tests на mixed evaluator pipeline.
-- Dependencies: I5.S1.
+- Dependencies: I5.S2b.
 - Risks: несогласованность шкал между evaluator types.
 
 ### I5.S3 - Metric-Crafting Agent + HITL loop v0

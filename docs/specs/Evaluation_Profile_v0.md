@@ -86,6 +86,18 @@ participants:
    - участник экспортируется во временный standalone native runtime,
    - оценка идет через тот же oracle pipeline и ту же budget/ranking/scoring политику.
 
+## Known Limitation (2026-05-19)
+
+Для `native_runtime` в `v0` действует ограничение native exporter capability:
+
+1. поддерживаются только node kinds: `llm`, `deterministic`, `validator`;
+2. профили с `hitl`/другими неподдержанными узлами могут падать при native запуске.
+
+Исправление запланировано отдельными roadmap-слайсами:
+
+1. `I5.S2a` — compatibility preflight до запуска;
+2. `I5.S2b` — formal degradation policy (`strict` / `skip_unsupported`) с прозрачным отчетом.
+
 ## CLI
 
 Запуск profile-run:

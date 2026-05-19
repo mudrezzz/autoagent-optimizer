@@ -7,7 +7,7 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 - `Phase`: MVP-2 transition (evaluation fabric bootstrap)
 - `Iteration`: I5 - Evaluation Fabric & MetricOps
 - `Overall`: In Progress (I1.S1-I5.S1 done)
-- `Next Slice`: I5.S2 Evaluator Adapter Layer v0
+- `Next Slice`: I5.S2a Native Target Compatibility Preflight v0
 
 РџРѕРґСЂРѕР±РЅС‹Р№ СЃС‚Р°С‚СѓСЃ:
 
@@ -307,6 +307,12 @@ Native target:
 ```powershell
 python -m optimizer.evaluation.run_profile --profile-file .\examples\profiles\stylizer_profile_ci_v0.yaml --target native_runtime --pretty
 ```
+
+Важно (текущий статус на 2026-05-19):
+
+1. canonical `stylizer_profile_ci_v0` может падать на `native_runtime` из-за неподдержанного `hitl`-узла (`human_review`) в одном из candidates.
+2. это запланировано к исправлению в roadmap-слайсах `I5.S2a` (compatibility preflight) и `I5.S2b` (degradation policy `strict/skip_unsupported`).
+3. `dsl_runtime` профильный путь остается эталонным smoke-путем до закрытия этих слайсов.
 
 Smoke-прогон profile-driven path:
 

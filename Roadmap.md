@@ -82,6 +82,8 @@
 | Slice | Description | Status | Output |
 |---|---|---|---|
 | I5.S1 | Task Evaluation Profile v0 | Done | config contract for task-specific metrics/evaluators/gates + execution targets |
+| I5.S2a | Native Target Compatibility Preflight v0 | Planned | profile preflight for native target + explicit unsupported-node report |
+| I5.S2b | Native Target Degradation Policy v0 | Planned | `strict`/`skip_unsupported` policy + deterministic skip/error contract |
 | I5.S2 | Evaluator Adapter Layer v0 | Planned | pluggable evaluators (golden / llm_judge / executable / render) + native runtime adapter |
 | I5.S3 | Metric-Crafting Agent + HITL loop v0 | Planned | agent-proposed metrics with human approval checkpoints |
 | I5.S4 | Post-export Native Benchmark Loop v0 | Planned | benchmark exported native agent over golden/llm_judge pipeline |

@@ -135,6 +135,7 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.champion.native_export` (standalone `langgraph-dai` native runtime export v0).
 2. Next:
    - Native export independence track (`I4.S6`-`I4.S8`),
+   - Native runtime compatibility correction track (`I5.S2a`/`I5.S2b`: preflight + degradation policy),
    - Evaluation Fabric & MetricOps (`I5.*`) including post-export native evaluation loop.
 
 ## Decision Records
