@@ -5,9 +5,9 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 ## Current Status
 
 - `Phase`: MVP-2 transition (evaluation fabric bootstrap)
-- `Iteration`: I5 - Evaluation Fabric & MetricOps
+- `Iteration`: I4/I5 bridge - Native Parity + Evaluation Fabric
 - `Overall`: In Progress (I1.S1-I5.S2a done)
-- `Next Slice`: I5.S2b Native Target Degradation Policy v0
+- `Next Slice`: I4.S6a Canonical DSL->Native parity for stylizer v0
 
 РџРѕРґСЂРѕР±РЅС‹Р№ СЃС‚Р°С‚СѓСЃ:
 
@@ -314,7 +314,7 @@ python -m optimizer.evaluation.run_profile --profile-file .\examples\profiles\st
 
 1. canonical `stylizer_profile_ci_v0` в `native_runtime` теперь блокируется preflight-ом с structured error `native_compatibility_preflight_failed`.
 2. `I5.S2a` закрыт: есть compatibility report по participants до native запуска.
-3. следующий шаг `I5.S2b`: policy `strict/skip_unsupported` для управляемой деградации вместо текущего hard-block.
+3. workaround policy `skip_unsupported` отклонен; следующий шаг — `I4.S6a` (устранить несовместимость по существу и добиться DSL==Native на canonical profile).
 
 Smoke-прогон profile-driven path:
 

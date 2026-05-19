@@ -96,7 +96,7 @@ participants:
 Статус исправления:
 
 1. `I5.S2a` — выполнено: compatibility preflight до native запуска;
-2. `I5.S2b` — в плане: formal degradation policy (`strict` / `skip_unsupported`) с прозрачным отчетом.
+2. следующий шаг по существу: `I4.S6a` (canonical DSL->native parity без workaround policy).
 
 ## CLI
 

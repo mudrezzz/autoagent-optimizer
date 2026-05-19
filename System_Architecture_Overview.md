@@ -135,8 +135,7 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.champion` (Champion Export Bundle v0: arena/evidence/diagnostic/codegen bundle + manifest).
    - `optimizer.champion.native_export` (standalone `langgraph-dai` native runtime export v0).
 2. Next:
-   - Native export independence track (`I4.S6`-`I4.S8`),
-   - Native runtime degradation policy track (`I5.S2b`: `strict`/`skip_unsupported`),
+   - Native export independence track (`I4.S6a`-`I4.S8`) with canonical DSL->native parity first,
    - Evaluation Fabric & MetricOps (`I5.*`) including post-export native evaluation loop.
 
 ## Decision Records

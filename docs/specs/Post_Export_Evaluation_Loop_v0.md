@@ -90,7 +90,7 @@ Gate output:
 
 1. I5.S1: profile contract включает execution targets.
 2. I5.S2a: native target compatibility preflight.
-3. I5.S2b: degradation policy (`strict`/`skip_unsupported`) для частично совместимых профилей.
+3. I4.S6a: canonical DSL->native parity для demo-critical профиля.
 4. I5.S2: native runtime adapter в evaluator layer.
 5. I5.S4: post-export benchmark loop CLI/report.
 6. I5.S5: regression gate policy и promote decision.

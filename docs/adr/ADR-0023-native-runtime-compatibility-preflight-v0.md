@@ -39,7 +39,7 @@
 
 ## Follow-up
 
-Следующий шаг `I5.S2b`:
+Следующий шаг — не degradation policy, а устранение несовместимости:
 
-1. добавить policy `strict | skip_unsupported`,
-2. формализовать degraded-run contract и явную маркировку результата.
+1. `I4.S6a`: canonical DSL->native parity для stylizer профиля (включая `hitl_gate` семантику),
+2. затем `I4.S6/I4.S7`: расширение bindings и CI parity gate.

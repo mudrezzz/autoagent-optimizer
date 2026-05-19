@@ -188,11 +188,11 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_evaluation_profile.
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_evaluation_profile_native_preflight.ps1
 ```
 
-Ожидаемо до реализации `I5.S2b`:
+Ожидаемо до реализации `I4.S6a`:
 
 1. `dsl_runtime` команда должна проходить стабильно.
 2. `native_runtime` команда на несовместимом профиле должна завершаться `native_compatibility_preflight_failed`.
-3. следующий шаг — `I5.S2b` (`strict`/`skip_unsupported`) для управляемой деградации вместо hard-block.
+3. следующий шаг — `I4.S6a` (устранение несовместимости по существу, чтобы canonical profile проходил на native без workaround policy).
 
 ### Stage D3.5 (I4.S4-I4.S8) - Native Export Independence Demo
 
@@ -221,5 +221,5 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_evaluation_profile_
 ## Current Demo Status
 
 - Active stage: `D4 bootstrap (I5 evaluation profile v0)`
-- Demo readiness: `Yellow` (degradation policy track pending)
-- Next demo milestone: `D4 native degradation policy` (`I5.S2b`)
+- Demo readiness: `Yellow` (native parity track pending)
+- Next demo milestone: `D3.5 canonical stylizer parity` (`I4.S6a`)

@@ -16,7 +16,7 @@
 ## Active Window (Now)
 
 - `Current Focus`: MVP-2 bootstrap / I5 evaluation fabric
-- `Active Next Slice`: I5.S2b
+- `Active Next Slice`: I4.S6a
 
 ---
 
@@ -294,6 +294,22 @@
 - Dependencies: I4.S5.
 - Risks: чрезмерная fallback-магия и потеря наблюдаемости проблем.
 
+### I4.S6a - Canonical DSL->Native parity for stylizer v0
+
+- Status: Planned
+- Goal: добиться паритета canonical stylizer profile между DSL и native без degradation/workaround policy.
+- Deliverables:
+  - native binding для `hitl_gate` semantics, используемых в `style_hitl_reviewer`,
+  - выравнивание branch/on_fail поведения на критичном demo пути,
+  - parity report для canonical profile (`dsl_runtime` vs `native_runtime`).
+- Acceptance Criteria:
+  1. `examples/profiles/stylizer_profile_ci_v0.yaml` успешно запускается на `native_runtime`.
+  2. Нет preflight block для canonical profile на unsupported node kinds.
+  3. Структурные сигналы исполнения (nodes/errors/trace topology) сопоставимы между DSL и native run.
+  4. Добавлены unit/integration/e2e тесты на canonical parity путь.
+- Dependencies: I5.S2a, I4.S5.
+- Risks: drift семантики HITL-переходов между runtime-реализациями.
+
 ### I4.S7 - DSL-vs-native parity harness + CI gate
 
 - Status: Planned
@@ -372,19 +388,9 @@
 
 ### I5.S2b - Native Target Degradation Policy v0
 
-- Status: Planned
-- Goal: формализовать поведение при частичной несовместимости через policy вместо ad-hoc решений.
-- Deliverables:
-  - policy contract: `strict` | `skip_unsupported`,
-  - deterministic result contract для skipped participants,
-  - summary report: skipped/executed/block reason.
-- Acceptance Criteria:
-  1. В `strict` режиме native run блокируется при любой несовместимости.
-  2. В `skip_unsupported` режиме несовместимые participants пропускаются с явной фиксацией причин.
-  3. Итоговый ranking/summary отмечает degraded run и не скрывает scope пропусков.
-  4. Есть integration/e2e тесты на оба policy режима.
-- Dependencies: I5.S2a.
-- Risks: ложное ощущение качества при агрессивном `skip_unsupported` без прозрачной маркировки.
+- Status: Rejected
+- Decision: workaround-подход `skip_unsupported` не развиваем; фокус на прямом паритете DSL==Native.
+- Replacement: I4.S6a (canonical parity), далее I4.S6/I4.S7.
 
 ### I5.S2 - Evaluator Adapter Layer v0
 
@@ -404,7 +410,7 @@
   2. Для evaluator можно задавать budget/limits в profile.
   3. Native exported agent можно прогонять тем же evaluator pipeline.
   4. Есть integration tests на mixed evaluator pipeline.
-- Dependencies: I5.S2b.
+- Dependencies: I4.S6a.
 - Risks: несогласованность шкал между evaluator types.
 
 ### I5.S3 - Metric-Crafting Agent + HITL loop v0
