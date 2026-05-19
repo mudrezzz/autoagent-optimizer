@@ -14,6 +14,7 @@ from optimizer.evaluation.profile_io import (
     load_evaluation_profile_spec,
 )
 from optimizer.evaluation.profile_runner import EvaluationProfileRunner
+from optimizer.evaluation.native_compatibility import NativeCompatibilityPreflightError
 from optimizer.evaluation.profile_schema import EvaluationExecutionTarget
 
 
@@ -57,6 +58,17 @@ class EvaluationProfileCli:
                 execution_target=target,
                 include_details=bool(args.details),
             )
+        except NativeCompatibilityPreflightError as exc:
+            error_payload = {
+                "error_type": "native_compatibility_preflight_failed",
+                "message": str(exc),
+                "preflight": exc.report.to_payload(),
+            }
+            if args.pretty:
+                print(json.dumps(error_payload, ensure_ascii=False, indent=2), file=sys.stderr)
+            else:
+                print(json.dumps(error_payload, ensure_ascii=False), file=sys.stderr)
+            return 1
         except (
             EvaluationProfileLoadError,
             EvaluationProfileValidationError,

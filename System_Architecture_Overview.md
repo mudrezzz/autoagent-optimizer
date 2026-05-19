@@ -118,6 +118,7 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.evaluation.profile_schema` (typed evaluation profile contract v0),
    - `optimizer.evaluation.profile_io` (YAML loading + validation for profile),
    - `optimizer.evaluation.profile_runner` (profile orchestration for `dsl_runtime`/`native_runtime`),
+   - `optimizer.evaluation.native_compatibility` (native target preflight compatibility report + strict blocking),
    - `optimizer.evaluation.run_profile` (CLI profile-driven run path),
    - `optimizer.arena.tournament_schema` (typed contract config-driven `budget`/`ranking`/`evaluator` policies),
    - `optimizer.arena.runner` (config-driven tournament execution и ranking),
@@ -135,7 +136,7 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.champion.native_export` (standalone `langgraph-dai` native runtime export v0).
 2. Next:
    - Native export independence track (`I4.S6`-`I4.S8`),
-   - Native runtime compatibility correction track (`I5.S2a`/`I5.S2b`: preflight + degradation policy),
+   - Native runtime degradation policy track (`I5.S2b`: `strict`/`skip_unsupported`),
    - Evaluation Fabric & MetricOps (`I5.*`) including post-export native evaluation loop.
 
 ## Decision Records

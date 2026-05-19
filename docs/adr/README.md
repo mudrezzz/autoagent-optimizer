@@ -49,6 +49,7 @@
 20. [ADR-0020-native-exporter-minimal-v0-and-fallback-policy.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0020-native-exporter-minimal-v0-and-fallback-policy.md) - Accepted
 21. [ADR-0021-post-export-native-evaluation-loop.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0021-post-export-native-evaluation-loop.md) - Accepted
 22. [ADR-0022-evaluation-profile-v0-contract-and-target-switch.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0022-evaluation-profile-v0-contract-and-target-switch.md) - Accepted
+23. [ADR-0023-native-runtime-compatibility-preflight-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0023-native-runtime-compatibility-preflight-v0.md) - Accepted
 
 ## Template
 

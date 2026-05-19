@@ -42,6 +42,8 @@ def test_evaluation_profile_cli_runs_dsl_target_from_examples() -> None:
     payload = json.loads(proc.stdout)
     assert payload["profile_id"] == "stylizer_profile_ci_v0"
     assert payload["execution_target"] == "dsl_runtime"
+    assert payload["preflight"]["target"] == "dsl_runtime"
+    assert payload["preflight"]["mode"] == "not_required"
     assert payload["result"]["winner_id"] == "style_direct_candidate"
     assert payload["result"]["cases_budget"] == 4
     assert "comparison" in payload["result"]
@@ -150,7 +152,41 @@ def test_evaluation_profile_cli_runs_native_target_with_temp_profile(tmp_path: P
     payload = json.loads(proc.stdout)
     assert payload["profile_id"] == "native_profile_test_v0"
     assert payload["execution_target"] == "native_runtime"
+    assert payload["preflight"]["target"] == "native_runtime"
+    assert payload["preflight"]["can_execute_native"] is True
     assert payload["result"]["execution_mode"] == "native_runtime"
     assert payload["result"]["cases_budget"] == 2
     assert len(payload["result"]["participants"]) == 2
     assert payload["result"]["winner_id"] in {"native_candidate_a", "native_candidate_b"}
+
+
+@pytest.mark.integration
+def test_evaluation_profile_cli_returns_structured_preflight_error_for_incompatible_native_profile() -> None:
+    """Проверяет, что несовместимый native profile блокируется preflight-ошибкой с structured payload."""
+
+    profile_file = _project_root() / "examples" / "profiles" / "stylizer_profile_ci_v0.yaml"
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "optimizer.evaluation.run_profile",
+            "--profile-file",
+            str(profile_file),
+            "--target",
+            "native_runtime",
+            "--pretty",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=_project_root(),
+        check=False,
+    )
+    assert proc.returncode == 1
+    payload = json.loads(proc.stderr)
+    assert payload["error_type"] == "native_compatibility_preflight_failed"
+    assert payload["preflight"]["target"] == "native_runtime"
+    assert payload["preflight"]["can_execute_native"] is False
+    assert payload["preflight"]["incompatible_total"] >= 1
+    incompatible = [item for item in payload["preflight"]["participants"] if item["compatible"] is False]
+    assert incompatible
+    assert any(issue["kind"] == "hitl_gate" for item in incompatible for issue in item["issues"])

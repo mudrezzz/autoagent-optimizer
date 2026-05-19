@@ -6,8 +6,8 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 
 - `Phase`: MVP-2 transition (evaluation fabric bootstrap)
 - `Iteration`: I5 - Evaluation Fabric & MetricOps
-- `Overall`: In Progress (I1.S1-I5.S1 done)
-- `Next Slice`: I5.S2a Native Target Compatibility Preflight v0
+- `Overall`: In Progress (I1.S1-I5.S2a done)
+- `Next Slice`: I5.S2b Native Target Degradation Policy v0
 
 РџРѕРґСЂРѕР±РЅС‹Р№ СЃС‚Р°С‚СѓСЃ:
 
@@ -44,6 +44,7 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 - `optimizer/evaluation` - golden dataset contract, loader, oracle runner Рё CLI-РІР°Р»РёРґР°С†РёСЏ/РїСЂРѕРіРѕРЅ.
 - `optimizer/evaluation/profile_schema.py` - typed contract `Evaluation Profile v0`.
 - `optimizer/evaluation/profile_runner.py` - profile orchestration с переключением `dsl_runtime`/`native_runtime`.
+- `optimizer/evaluation/native_compatibility.py` - preflight compatibility report для `native_runtime` target.
 - `optimizer/evaluation/run_profile.py` - CLI profile-driven оценки.
 - `optimizer/metrics` - middle-РјРµС‚СЂРёРєРё Рё СЃР»СѓР¶РµР±РЅС‹Рµ Р°РіСЂРµРіР°С‚РѕСЂС‹ РґР»СЏ arena scoring.
 - `optimizer/evidence` - РіРµРЅРµСЂР°С†РёСЏ Evidence Pack (`comparison` + `diagnostics` + explainable diff).
@@ -53,6 +54,7 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 - `docs/specs/Evaluation_Profile_v0.md` - РєРѕРЅС†РµРїС‚ profile-driven РѕС†РµРЅРєРё (task-specific metrics + pluggable evaluators).
 - `examples/profiles` - example evaluation profiles (`stylizer_profile_ci_v0`, `ocr_support_profile_ci_v0`).
 - `scripts/smoke_run_evaluation_profile.ps1` - smoke-проверка profile-driven path.
+- `scripts/smoke_run_evaluation_profile_native_preflight.ps1` - smoke-проверка preflight-блокировки несовместимого native profile.
 - `docs/specs/Evidence_Pack_v0.md` - РєРѕРЅС‚СЂР°РєС‚ Р°СЂС‚РµС„Р°РєС‚РѕРІ evidence РґР»СЏ winner/challenger Р°РЅР°Р»РёР·Р°.
 - `docs/specs/Champion_Export_Bundle_v0.md` - РєРѕРЅС‚СЂР°РєС‚ champion bundle v0.
 - `docs/specs/Native_Langgraph_DAI_Export_v0.md` - standalone native export contract Р±РµР· runtime-зависимости от optimizer.
@@ -310,14 +312,15 @@ python -m optimizer.evaluation.run_profile --profile-file .\examples\profiles\st
 
 Важно (текущий статус на 2026-05-19):
 
-1. canonical `stylizer_profile_ci_v0` может падать на `native_runtime` из-за неподдержанного `hitl`-узла (`human_review`) в одном из candidates.
-2. это запланировано к исправлению в roadmap-слайсах `I5.S2a` (compatibility preflight) и `I5.S2b` (degradation policy `strict/skip_unsupported`).
-3. `dsl_runtime` профильный путь остается эталонным smoke-путем до закрытия этих слайсов.
+1. canonical `stylizer_profile_ci_v0` в `native_runtime` теперь блокируется preflight-ом с structured error `native_compatibility_preflight_failed`.
+2. `I5.S2a` закрыт: есть compatibility report по participants до native запуска.
+3. следующий шаг `I5.S2b`: policy `strict/skip_unsupported` для управляемой деградации вместо текущего hard-block.
 
 Smoke-прогон profile-driven path:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_evaluation_profile.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_evaluation_profile_native_preflight.ps1
 ```
 
 ## Evidence Pack Quickstart (PowerShell)

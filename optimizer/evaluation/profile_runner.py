@@ -25,6 +25,10 @@ from optimizer.champion.native_export import NativeLanggraphDaiExporter
 from optimizer.dsl.compiler import DslToGraphIRCompiler
 from optimizer.evaluation.dataset_loader import GoldenDatasetLoader
 from optimizer.evaluation.dataset_schema import GoldenDatasetRecord
+from optimizer.evaluation.native_compatibility import (
+    NativeCompatibilityPreflightError,
+    build_native_compatibility_preflight_report,
+)
 from optimizer.evaluation.oracle_runner import OracleRunner
 from optimizer.evaluation.profile_schema import EvaluationExecutionTarget, EvaluationProfileSpec
 from optimizer.graph_ir.io import load_graph_ir_spec
@@ -49,6 +53,7 @@ class EvaluationProfileRunResult:
     comparative_metrics: list[dict[str, Any]]
     diagnostic_signals: list[dict[str, Any]]
     budget: dict[str, Any]
+    preflight: dict[str, Any] | None = None
 
     def to_payload(self) -> dict[str, Any]:
         """Преобразует результат profile-run в JSON-совместимый отчет."""
@@ -62,6 +67,7 @@ class EvaluationProfileRunResult:
             "comparative_metrics": self.comparative_metrics,
             "diagnostic_signals": self.diagnostic_signals,
             "budget": self.budget,
+            "preflight": self.preflight,
             "result": self.arena_payload,
         }
 
@@ -92,13 +98,22 @@ class EvaluationProfileRunner:
                 f"Получено: {evaluator_types}"
             )
 
+        preflight_payload: dict[str, Any]
         if execution_target == "dsl_runtime":
+            preflight_payload = {"target": "dsl_runtime", "mode": "not_required", "can_execute_native": None}
             arena_payload = self._run_dsl_target(
                 profile=profile,
                 profile_file_dir=profile_file_dir,
                 include_details=include_details,
             )
         else:
+            preflight_report = build_native_compatibility_preflight_report(
+                profile=profile,
+                profile_file_dir=profile_file_dir,
+            )
+            preflight_payload = preflight_report.to_payload()
+            if not preflight_report.can_execute_native:
+                raise NativeCompatibilityPreflightError(report=preflight_report)
             arena_payload = self._run_native_target(
                 profile=profile,
                 profile_file_dir=profile_file_dir,
@@ -114,6 +129,7 @@ class EvaluationProfileRunner:
             comparative_metrics=[item.model_dump() for item in profile.comparative_metrics],
             diagnostic_signals=[item.model_dump() for item in profile.diagnostic_signals],
             budget=profile.budget.model_dump(),
+            preflight=preflight_payload,
             arena_payload=arena_payload,
         )
 

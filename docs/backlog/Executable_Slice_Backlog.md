@@ -16,7 +16,7 @@
 ## Active Window (Now)
 
 - `Current Focus`: MVP-2 bootstrap / I5 evaluation fabric
-- `Active Next Slice`: I5.S2a
+- `Active Next Slice`: I5.S2b
 
 ---
 
@@ -351,7 +351,7 @@
 
 ### I5.S2a - Native Target Compatibility Preflight v0
 
-- Status: Planned
+- Status: Done
 - Goal: сделать явную preflight-проверку совместимости profile/candidate с `native_runtime` до запуска.
 - Deliverables:
   - compatibility checker (`graph features` vs `native exporter capability matrix`),
@@ -364,6 +364,11 @@
   4. Есть unit/integration тесты на supported/unsupported профили.
 - Dependencies: I5.S1.
 - Risks: рассинхрон capability matrix и фактической поддержки native exporter.
+- Progress (2026-05-19):
+  1. Добавлен `native_compatibility` модуль с profile-level preflight отчетом по participants.
+  2. `run_profile --target native_runtime` теперь блокируется до запуска при несовместимых node kinds.
+  3. Добавлен structured preflight error payload (`error_type`, `preflight`) в stderr.
+  4. Добавлены unit/integration/e2e тесты и smoke-сценарий preflight-blocking поведения.
 
 ### I5.S2b - Native Target Degradation Policy v0
 

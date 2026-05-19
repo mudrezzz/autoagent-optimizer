@@ -176,7 +176,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_export_champion_bundle.
    - `dsl_runtime`,
    - `native_runtime`;
 3. unified profile-run envelope с `comparison` + `diagnostics`.
-4. выявленный gap: canonical stylizer profile (`stylizer_profile_ci_v0`) пока не полностью совместим с `native_runtime` из-за `hitl`-узла (`human_review`).
+4. native preflight v0: до запуска `native_runtime` строится compatibility report по participants.
+5. canonical stylizer profile (`stylizer_profile_ci_v0`) в native режиме теперь завершается контролируемым preflight-block, а не runtime-crash.
 
 Команды:
 
@@ -184,13 +185,14 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_export_champion_bundle.
 python -m optimizer.evaluation.run_profile --profile-file .\examples\profiles\stylizer_profile_ci_v0.yaml --target dsl_runtime --pretty
 python -m optimizer.evaluation.run_profile --profile-file .\examples\profiles\stylizer_profile_ci_v0.yaml --target native_runtime --pretty
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_evaluation_profile.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_evaluation_profile_native_preflight.ps1
 ```
 
-Ожидаемо до реализации `I5.S2a/I5.S2b`:
+Ожидаемо до реализации `I5.S2b`:
 
 1. `dsl_runtime` команда должна проходить стабильно.
-2. `native_runtime` команда может завершиться pre-adapter ошибкой на unsupported node kinds.
-3. это не ad-hoc багфикс, а запланированный roadmap correction (compatibility preflight + degradation policy).
+2. `native_runtime` команда на несовместимом профиле должна завершаться `native_compatibility_preflight_failed`.
+3. следующий шаг — `I5.S2b` (`strict`/`skip_unsupported`) для управляемой деградации вместо hard-block.
 
 ### Stage D3.5 (I4.S4-I4.S8) - Native Export Independence Demo
 
@@ -219,5 +221,5 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_evaluation_profile.
 ## Current Demo Status
 
 - Active stage: `D4 bootstrap (I5 evaluation profile v0)`
-- Demo readiness: `Yellow` (native compatibility correction track planned)
-- Next demo milestone: `D4 native compatibility preflight` (`I5.S2a`)
+- Demo readiness: `Yellow` (degradation policy track pending)
+- Next demo milestone: `D4 native degradation policy` (`I5.S2b`)

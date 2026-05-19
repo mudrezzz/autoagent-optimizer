@@ -91,12 +91,12 @@ participants:
 Для `native_runtime` в `v0` действует ограничение native exporter capability:
 
 1. поддерживаются только node kinds: `llm`, `deterministic`, `validator`;
-2. профили с `hitl`/другими неподдержанными узлами могут падать при native запуске.
+2. профили с `hitl`/другими неподдержанными узлами блокируются preflight-ом в `strict_preflight_v0` режиме.
 
-Исправление запланировано отдельными roadmap-слайсами:
+Статус исправления:
 
-1. `I5.S2a` — compatibility preflight до запуска;
-2. `I5.S2b` — formal degradation policy (`strict` / `skip_unsupported`) с прозрачным отчетом.
+1. `I5.S2a` — выполнено: compatibility preflight до native запуска;
+2. `I5.S2b` — в плане: formal degradation policy (`strict` / `skip_unsupported`) с прозрачным отчетом.
 
 ## CLI
 
@@ -115,7 +115,8 @@ CLI возвращает:
 
 1. profile meta (`profile_id`, `task_type`, `execution_target`),
 2. evaluator/metrics/budget contract snapshot,
-3. `result` в совместимом формате Arena (`comparison`, `diagnostics`, `participants`, `winner_id`).
+3. `preflight` секцию (для `native_runtime` — structured compatibility report),
+4. `result` в совместимом формате Arena (`comparison`, `diagnostics`, `participants`, `winner_id`).
 
 ## Example Profiles
 
