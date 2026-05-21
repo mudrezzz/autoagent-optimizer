@@ -17,6 +17,25 @@
 
 Принцип: расширяем концентрическими кругами, а не строим длинную линейную фазу.
 
+## Execution Shift (Roadmap v2)
+
+Начиная с текущего окна, работа ведется вертикальными продуктовыми слайсами:
+
+1. Каждый слайс включает `Backend + Frontend + Demo + QA`.
+2. Функциональность развивается вширь по capability, а не последовательно по слоям системы.
+3. Любая backend-возможность считается незавершенной, пока не проверяется через UI и e2e путь.
+
+### Capability Matrix (single source of truth)
+
+| Capability | Scope | Status Axes |
+|---|---|---|
+| C1 | DSL/IR Studio (`validate`, `compile_report`) | `BE / FE / Demo / QA` |
+| C2 | Runtime Run (`invoke`, `trace`, `node_outputs`) | `BE / FE / Demo / QA` |
+| C3 | Evaluation Profile Runner (`dsl/native`, budgets) | `BE / FE / Demo / QA` |
+| C4 | Arena Ranking (`participants`, `winner`, `comparison`) | `BE / FE / Demo / QA` |
+| C5 | Evidence & Diagnostics (`comparison vs diagnostics`) | `BE / FE / Demo / QA` |
+| C6 | Champion Bundle (`native-first export`, `parity`) | `BE / FE / Demo / QA` |
+
 ---
 
 ## MVP-1 (Core Loop)
@@ -78,6 +97,26 @@
 
 Цель: сделать оценку конфигурируемой под задачу, добавить MetricOps/HITL контур и углубить оптимизацию.
 
+### Iteration V2.1 - Product Skeleton Across All Capabilities
+
+| Slice | Description | Status | Output |
+|---|---|---|---|
+| V2.1.S1 | UI shell + API contract skeleton for C1-C6 | Planned | unified tabs/pages for all capabilities, BE stubs where needed |
+| V2.1.S2 | C1 vertical slice | Planned | DSL validate/compile + compile-report visible in UI |
+| V2.1.S3 | C2 vertical slice | Planned | runtime run + trace explorer in UI |
+| V2.1.S4 | C4 vertical slice (smoke budget) | Planned | arena ranking/winner visible in UI |
+| V2.1.S5 | C6 read-only vertical slice | Planned | bundle inspector in UI (manifest/parity/evidence) |
+
+### Iteration V2.2 - Functional Expansion Across All Capabilities
+
+| Slice | Description | Status | Output |
+|---|---|---|---|
+| V2.2.S1 | C3 vertical slice | Planned | profile runner UI with target switch (`dsl/native`) |
+| V2.2.S2 | C5 vertical slice | Planned | comparative/diagnostic panels in UI |
+| V2.2.S3 | C6 action slice | Planned | export trigger + native-first run instruction path |
+| V2.2.S4 | Unified budget controls | Planned | smoke/decision/full presets across run surfaces |
+| V2.2.S5 | One-click end-to-end demo path | Planned | C1->C6 guided demo scenario with deterministic checks |
+
 ### Iteration I5 - Evaluation Fabric & MetricOps
 
 | Slice | Description | Status | Output |
@@ -133,13 +172,18 @@
 
 1. Планируем только ближайшие 1-2 итерации детально.
 2. Каждый слайс должен быть реалистично завершен за 0.5-2 дня.
-3. После каждого слайса сразу обновляем:
+3. Слайс закрывается только при выполнении вертикального DoD:
+   - backend изменение,
+   - frontend проверяемый surface,
+   - demo-сценарий,
+   - тесты (unit/integration/e2e) на затронутый путь.
+4. После каждого слайса сразу обновляем:
    - `Roadmap.md`
    - `README.md`
    - `System_Architecture_Overview.md` (если менялась архитектура)
    - `docs/adr/*` (если было архитектурное решение)
-4. Каждый слайс фиксируется отдельным commit.
-5. Перед commit обязателен полный прогон `python -m pytest` (unit + integration + e2e).
+5. Каждый слайс фиксируется отдельным commit.
+6. Перед commit обязателен полный прогон `python -m pytest` (unit + integration + e2e).
 
 ## Backlog Source
 

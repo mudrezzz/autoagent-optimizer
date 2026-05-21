@@ -15,8 +15,43 @@
 
 ## Active Window (Now)
 
-- `Current Focus`: MVP-2 bootstrap / I5 evaluation fabric
-- `Active Next Slice`: I5.S2
+- `Current Focus`: MVP-2 vertical product delivery bootstrap (`Roadmap v2`)
+- `Active Next Slice`: V2.1.S1
+
+## Active Capability Board
+
+Статус фиксируется по осям `BE / FE / Demo / QA`.
+
+1. `C1` DSL/IR Studio
+2. `C2` Runtime Run
+3. `C3` Evaluation Profile Runner
+4. `C4` Arena Ranking
+5. `C5` Evidence & Diagnostics
+6. `C6` Champion Bundle
+
+## Near-Term Vertical Iterations (V2)
+
+### V2.1 - Product Skeleton Across All Capabilities
+
+- Status: Planned
+- Goal: дать проверяемые frontend surfaces по C1-C6 и связать их с backend контрактами.
+- Slices:
+  1. `V2.1.S1` UI shell + API contract skeleton for C1-C6.
+  2. `V2.1.S2` C1 vertical slice (`validate/compile` + UI compile-report).
+  3. `V2.1.S3` C2 vertical slice (`run/trace` + UI trace explorer).
+  4. `V2.1.S4` C4 vertical slice (smoke arena ranking in UI).
+  5. `V2.1.S5` C6 read-only slice (bundle inspector UI).
+
+### V2.2 - Functional Expansion Across All Capabilities
+
+- Status: Planned
+- Goal: расширить функциональность вширь по всем capability с сохранением вертикального DoD.
+- Slices:
+  1. `V2.2.S1` C3 profile runner UI (`dsl/native` target switch).
+  2. `V2.2.S2` C5 comparative/diagnostic UI panels.
+  3. `V2.2.S3` C6 export action + native-first execution path.
+  4. `V2.2.S4` unified budget presets (`smoke/decision/full`) across run surfaces.
+  5. `V2.2.S5` one-click end-to-end demo scenario `C1 -> C6`.
 
 ---
 

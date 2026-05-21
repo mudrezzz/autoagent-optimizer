@@ -12,7 +12,7 @@
 1. Р›СЋР±РѕРµ СЃСѓС‰РµСЃС‚РІРµРЅРЅРѕРµ Р°СЂС…РёС‚РµРєС‚СѓСЂРЅРѕРµ СЂРµС€РµРЅРёРµ С„РёРєСЃРёСЂСѓРµС‚СЃСЏ РѕС‚РґРµР»СЊРЅС‹Рј ADR.
 2. ADR СЃРѕР·РґР°РµС‚СЃСЏ РґРѕ СЂРµР°Р»РёР·Р°С†РёРё РёР»Рё РІ С‚РѕРј Р¶Рµ СЃР»Р°Р№СЃРµ, РіРґРµ СЂРµС€РµРЅРёРµ РІРЅРµРґСЂРµРЅРѕ.
 3. ADR РЅРµ РїРµСЂРµРїРёСЃС‹РІР°РµС‚СЃСЏ Р·Р°РґРЅРёРј С‡РёСЃР»РѕРј; РёР·РјРµРЅРµРЅРёСЏ РѕС„РѕСЂРјР»СЏСЋС‚СЃСЏ РЅРѕРІС‹Рј ADR (supersedes).
-4. РљР°Р¶РґС‹Р№ ADR СЃРІСЏР·Р°РЅ СЃРѕ СЃР»Р°Р№СЃРѕРј roadmap (`I*.S*`) Рё commit hash.
+4. РљР°Р¶РґС‹Р№ ADR СЃРІСЏР·Р°РЅ СЃРѕ СЃР»Р°Р№СЃРѕРј roadmap (`*.S*`) Рё commit hash.
 
 ## Status Values
 
@@ -55,6 +55,7 @@
 26. [ADR-0026-native-tool-binding-layer-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0026-native-tool-binding-layer-v0.md) - Accepted
 27. [ADR-0027-dsl-vs-native-parity-harness-and-ci-gate-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0027-dsl-vs-native-parity-harness-and-ci-gate-v0.md) - Accepted
 28. [ADR-0028-native-first-champion-bundle-default.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0028-native-first-champion-bundle-default.md) - Accepted
+29. [ADR-0029-vertical-product-slices-backend-frontend-demo-sync.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0029-vertical-product-slices-backend-frontend-demo-sync.md) - Accepted
 
 ## Template
 

@@ -5,9 +5,9 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 ## Current Status
 
 - `Phase`: MVP-2 transition (evaluation fabric bootstrap)
-- `Iteration`: I4/I5 bridge - Native Parity + Evaluation Fabric
+- `Iteration`: Roadmap v2 bootstrap - vertical product slices
 - `Overall`: In Progress (I1.S1-I5.S2a + I4.S8 done)
-- `Next Slice`: I5.S2 Evaluator Adapter Layer v0
+- `Next Slice`: V2.1.S1 UI shell + API contract skeleton for C1-C6
 
 РџРѕРґСЂРѕР±РЅС‹Р№ СЃС‚Р°С‚СѓСЃ:
 
@@ -27,6 +27,18 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 5. РљР°Р¶РґС‹Р№ СЃР»Р°Р№СЃ Р·Р°РІРµСЂС€Р°РµС‚СЃСЏ РѕС‚РґРµР»СЊРЅС‹Рј git commit.
 6. Р Р°Р·РІРёС‚РёРµ РёРґРµС‚ РєРѕРЅС†РµРЅС‚СЂРёС‡РµСЃРєРёРјРё MVP-РєСЂСѓРіР°РјРё: MVP-1 -> MVP-2 -> MVP-3.
 7. Р”РµРјРѕ СЂР°Р·РІРёРІР°РµС‚СЃСЏ СЃРёРЅС…СЂРѕРЅРЅРѕ СЃ С„СѓРЅРєС†РёРѕРЅР°Р»РѕРј Рё РѕР±РЅРѕРІР»СЏРµС‚СЃСЏ РЅР° РєР°Р¶РґРѕРј СЃР»Р°Р№СЃРµ.
+8. Каждый новый backend-инкремент должен стать проверяемым через frontend в том же слайсе.
+
+## Capability Board (Roadmap v2)
+
+Статус ведем по каждой capability в четырех осях: `BE / FE / Demo / QA`.
+
+1. `C1` DSL/IR Studio
+2. `C2` Runtime Run
+3. `C3` Evaluation Profile Runner
+4. `C4` Arena Ranking
+5. `C5` Evidence & Diagnostics
+6. `C6` Champion Bundle
 
 ## Repository Map
 
@@ -49,6 +61,7 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 - `optimizer/metrics` - middle-РјРµС‚СЂРёРєРё Рё СЃР»СѓР¶РµР±РЅС‹Рµ Р°РіСЂРµРіР°С‚РѕСЂС‹ РґР»СЏ arena scoring.
 - `optimizer/evidence` - РіРµРЅРµСЂР°С†РёСЏ Evidence Pack (`comparison` + `diagnostics` + explainable diff).
 - `optimizer/champion` - export Champion Bundle (`diagnostic_map`, `winner_graph_ir`, `generated_agent`, `manifest`).
+- `frontend` (planned in Roadmap v2) - capability-oriented UI surfaces C1..C6 for runtime/evaluation/arena/evidence/champion flows.
 - `components` - deterministic demo-РєРѕРјРїРѕРЅРµРЅС‚С‹ РґР»СЏ РїР°Р№РїР»Р°Р№РЅРѕРІ (РІРєР»СЋС‡Р°СЏ AI-pattern РёРЅСЃС‚СЂСѓРјРµРЅС‚С‹).
 - `validators` - python-РІР°Р»РёРґР°С‚РѕСЂС‹ demo-СЃС†РµРЅР°СЂРёРµРІ (РІРєР»СЋС‡Р°СЏ style output guard).
 - `docs/specs/Evaluation_Profile_v0.md` - РєРѕРЅС†РµРїС‚ profile-driven РѕС†РµРЅРєРё (task-specific metrics + pluggable evaluators).
@@ -146,10 +159,12 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 ## Definition of Done For a Slice
 
 1. Р РµР°Р»РёР·Р°С†РёСЏ Р·Р°РІРµСЂС€РµРЅР° Рё РїСЂРѕРІРµСЂРµРЅР° Р»РѕРєР°Р»СЊРЅРѕ.
-2. РћР±РЅРѕРІР»РµРЅС‹ `Roadmap.md`, `README.md`, `System_Architecture_Overview.md` (РµСЃР»Рё Р·Р°С‚СЂРѕРЅСѓС‚Рѕ).
-3. Р”РѕР±Р°РІР»РµРЅ/РѕР±РЅРѕРІР»РµРЅ ADR РїСЂРё Р°СЂС…РёС‚РµРєС‚СѓСЂРЅС‹С… РёР·РјРµРЅРµРЅРёСЏС….
-4. РЎРґРµР»Р°РЅ РѕС‚РґРµР»СЊРЅС‹Р№ git commit СЃ РїСЂРёРІСЏР·РєРѕР№ Рє СЃР»Р°Р№СЃСѓ (РЅР°РїСЂРёРјРµСЂ `I1.S2`).
-5. Р’С‹РїРѕР»РЅРµРЅ РїРѕР»РЅС‹Р№ РїСЂРѕРіРѕРЅ Р°РІС‚РѕС‚РµСЃС‚РѕРІ (`unit + integration + e2e`).
+2. Новый backend-инкремент доступен для проверки через frontend в том же слайсе.
+3. Обновлен demo-сценарий с наблюдаемым результатом по новому пути.
+4. РћР±РЅРѕРІР»РµРЅС‹ `Roadmap.md`, `README.md`, `System_Architecture_Overview.md` (РµСЃР»Рё Р·Р°С‚СЂРѕРЅСѓС‚Рѕ).
+5. Р”РѕР±Р°РІР»РµРЅ/РѕР±РЅРѕРІР»РµРЅ ADR РїСЂРё Р°СЂС…РёС‚РµРєС‚СѓСЂРЅС‹С… РёР·РјРµРЅРµРЅРёСЏС….
+6. РЎРґРµР»Р°РЅ РѕС‚РґРµР»СЊРЅС‹Р№ git commit СЃ РїСЂРёРІСЏР·РєРѕР№ Рє СЃР»Р°Р№СЃСѓ (РЅР°РїСЂРёРјРµСЂ `I1.S2`).
+7. Р’С‹РїРѕР»РЅРµРЅ РїРѕР»РЅС‹Р№ РїСЂРѕРіРѕРЅ Р°РІС‚РѕС‚РµСЃС‚РѕРІ (`unit + integration + e2e`).
 
 ## Test Policy
 
@@ -314,7 +329,7 @@ python -m optimizer.evaluation.run_profile --profile-file .\examples\profiles\st
 
 1. canonical `stylizer_profile_ci_v0` успешно запускается на `native_runtime` (DSL->Native parity для demo-critical пути достигнут в `I4.S6a`).
 2. preflight сохраняется как fail-fast guard для реально неразрешимых source/binding проблем (например broken graph source или unresolved callable).
-3. workaround policy `skip_unsupported` отклонен; `I4.S8` закрыт, следующий шаг — `I5.S2` (Evaluator Adapter Layer v0).
+3. workaround policy `skip_unsupported` отклонен; `I4.S8` закрыт, а ближайший delivery-слайс перенесен в `V2.1.S1` (UI shell + API contract skeleton).
 
 Smoke-прогон profile-driven path:
 

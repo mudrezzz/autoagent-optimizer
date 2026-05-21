@@ -20,6 +20,7 @@
 
 ```text
 Input (Task + Constraints + Data + Tools + Budget)
+  -> Product Experience Layer (Web UI / API Gateway / Demo Surfaces)
   -> Architecture Generator
   -> AgentOpt DSL
   -> Graph IR (runtime-neutral)
@@ -63,6 +64,10 @@ Input (Task + Constraints + Data + Tools + Budget)
    - reproducible artifact bundle.
    - native standalone export package on `langgraph-dai`.
    - post-export benchmark loop (native artifact re-evaluation + regression gates).
+8. `Product Experience Layer`
+   - capability-oriented frontend surfaces (C1..C6).
+   - unified scenario runner for demo/validation.
+   - explicit mapping `backend capability -> user-visible control -> e2e assertion`.
 
 ## External Dependency Strategy
 
@@ -85,6 +90,7 @@ Input (Task + Constraints + Data + Tools + Budget)
 8. `optimizer.components`
 9. `optimizer.evidence`
 10. `optimizer.champion`
+11. `frontend` (planned capability UI layer C1..C6)
 
 ## Implementation Status Snapshot
 
@@ -135,6 +141,7 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.champion` (Champion Export Bundle v0: arena/evidence/diagnostic/codegen bundle + manifest).
    - `optimizer.champion.native_export` (standalone `langgraph-dai` native runtime export v0).
 2. Next:
+   - Vertical product delivery track (`V2.1`, `V2.2`) for capability surfaces C1..C6 on UI.
    - Evaluation Fabric & MetricOps (`I5.*`) including evaluator adapter layer and post-export native evaluation loop.
 
 ## Decision Records

@@ -140,7 +140,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live_full.ps1
 
 РЎР»РµРґСѓСЋС‰РёР№ С€Р°Рі:
 
-1. Evaluator Adapter Layer v0 (I5.S2).
+1. Vertical capability shell (V2.1.S1).
 
 ### Stage D3 (I4) - Champion Demo
 
@@ -194,6 +194,20 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_evaluation_profile_
 2. `native_runtime` canonical stylizer профиль должен проходить успешно.
 3. `native_runtime` на профиле с `tool`-узлами должен проходить preflight и запускаться без `native_compatibility_preflight_failed`.
 
+### Stage D4.5 (V2.1-V2.2) - Vertical Product Demo (Backend + Frontend)
+
+План показа:
+
+1. capability-first UI shell (C1..C6) с проверяемыми пользовательскими поверхностями;
+2. каждый backend-инкремент демонстрируется через UI, а не только через CLI;
+3. демо фиксирует одинаковый сценарий проверки для команды разработки и стейкхолдеров;
+4. для каждой capability есть ожидаемый визуальный результат + e2e-проверка.
+
+Что должно появиться по шагам:
+
+1. `V2.1`: скелет UI + рабочие поверхности C1/C2/C4/C6.
+2. `V2.2`: расширение C3/C5 и action path для C6 + one-click сквозной сценарий C1->C6.
+
 ### Stage D3.5 (I4.S4-I4.S8) - Native Export Independence Demo
 
 РџР»Р°РЅ РїРѕРєР°Р·Р°:
@@ -216,11 +230,12 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_evaluation_profile_
 1. РѕР±РЅРѕРІРёС‚СЊ, С‡С‚Рѕ РёР·РјРµРЅРёР»РѕСЃСЊ РІ РґРµРјРѕ;
 2. СЃРѕС…СЂР°РЅРёС‚СЊ/РґРѕР±Р°РІРёС‚СЊ runnable РєРѕРјР°РЅРґСѓ РёР»Рё СЃС†РµРЅР°СЂРёР№;
 3. Р·Р°С„РёРєСЃРёСЂРѕРІР°С‚СЊ РѕР¶РёРґР°РµРјС‹Р№ СЂРµР·СѓР»СЊС‚Р°С‚ (С‡С‚Рѕ СѓРІРёРґРёС‚ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ);
-4. СЃРёРЅС…СЂРѕРЅРёР·РёСЂРѕРІР°С‚СЊ СЃСЃС‹Р»РєРё РІ `README` Рё `Roadmap` РїСЂРё РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚Рё.
+4. обеспечить пользовательскую проверку через frontend surface для затронутой capability;
+5. СЃРёРЅС…СЂРѕРЅРёР·РёСЂРѕРІР°С‚СЊ СЃСЃС‹Р»РєРё РІ `README` Рё `Roadmap` РїСЂРё РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚Рё.
 
 ## Current Demo Status
 
-- Active stage: `D4 bootstrap (I5 evaluation profile v0)`
-- Demo readiness: `Yellow` (evaluation adapters pending in I5.S2)
-- Next demo milestone: `D4 evaluator adapter pipeline` (`I5.S2`)
+- Active stage: `D4.5 bootstrap (V2 vertical product demo)`
+- Demo readiness: `Yellow` (UI shell C1-C6 pending in V2.1.S1)
+- Next demo milestone: `D4.5 capability shell live` (`V2.1.S1`)
 
