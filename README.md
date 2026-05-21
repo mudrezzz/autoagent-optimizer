@@ -6,8 +6,8 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 
 - `Phase`: MVP-2 transition (evaluation fabric bootstrap)
 - `Iteration`: I4/I5 bridge - Native Parity + Evaluation Fabric
-- `Overall`: In Progress (I1.S1-I5.S2a + I4.S6 done)
-- `Next Slice`: I4.S7 DSL-vs-native parity harness + CI gate
+- `Overall`: In Progress (I1.S1-I5.S2a + I4.S7 done)
+- `Next Slice`: I4.S8 Champion bundle default switch to native target
 
 РџРѕРґСЂРѕР±РЅС‹Р№ СЃС‚Р°С‚СѓСЃ:
 
@@ -314,13 +314,20 @@ python -m optimizer.evaluation.run_profile --profile-file .\examples\profiles\st
 
 1. canonical `stylizer_profile_ci_v0` успешно запускается на `native_runtime` (DSL->Native parity для demo-critical пути достигнут в `I4.S6a`).
 2. preflight сохраняется как fail-fast guard для реально неразрешимых source/binding проблем (например broken graph source или unresolved callable).
-3. workaround policy `skip_unsupported` отклонен; следующий шаг — `I4.S7` (автоматический parity harness и CI gate).
+3. workaround policy `skip_unsupported` отклонен; `I4.S7` закрыт, следующий шаг — `I4.S8` (native-first champion bundle switch).
 
 Smoke-прогон profile-driven path:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_evaluation_profile.ps1
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_evaluation_profile_native_preflight.ps1
+```
+
+DSL-vs-native parity harness (структурный CI-gate):
+
+```powershell
+python -m optimizer.parity.run --profile-file .\examples\profiles\stylizer_profile_ci_v0.yaml --cases-limit 1 --fail-on-mismatch --pretty
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_dsl_native_parity.ps1
 ```
 
 ## Evidence Pack Quickstart (PowerShell)

@@ -16,7 +16,7 @@
 ## Active Window (Now)
 
 - `Current Focus`: MVP-2 bootstrap / I5 evaluation fabric
-- `Active Next Slice`: I4.S7
+- `Active Next Slice`: I4.S8
 
 ---
 
@@ -322,7 +322,7 @@
 
 ### I4.S7 - DSL-vs-native parity harness + CI gate
 
-- Status: Planned
+- Status: Done
 - Goal: Р°РІС‚РѕРјР°С‚РёР·РёСЂРѕРІР°С‚СЊ РїСЂРѕРІРµСЂРєСѓ СЌРєРІРёРІР°Р»РµРЅС‚РЅРѕСЃС‚Рё РёСЃРїРѕР»РЅРµРЅРёСЏ РјРµР¶РґСѓ DSL path Рё native exported path.
 - Deliverables:
   - parity runner/report (`dsl_vs_native`),
@@ -333,6 +333,11 @@
   3. Regression drift Р»РѕРІРёС‚СЃСЏ РІ CI.
 - Dependencies: I4.S6.
 - Risks: Р»РѕР¶РЅС‹Рµ positive/negative РїСЂРё СЂР°СЃС€РёСЂРµРЅРёРё runtime-РІРѕР·РјРѕР¶РЅРѕСЃС‚РµР№.
+- Progress (2026-05-21):
+  1. Добавлен отдельный `optimizer.parity` модуль с CLI `python -m optimizer.parity.run`.
+  2. Реализован структурный comparator (`executed/skipped`, `node_output_keys`, `errors`, `trace topology`) без текстовой LLM-зависимости.
+  3. Добавлен CI-gate флаг `--fail-on-mismatch` и smoke-скрипт `scripts/smoke_run_dsl_native_parity.ps1`.
+  4. Добавлены unit/integration/e2e тесты parity harness.
 
 ### I4.S8 - Champion bundle default switch to native target
 

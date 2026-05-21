@@ -101,7 +101,8 @@ Preflight в `strict_preflight_v0` режиме сохраняется как fa
 1. `I5.S2a` — выполнено: compatibility preflight до native запуска;
 2. `I4.S6a` — выполнено: canonical DSL->native parity для stylizer профиля;
 3. `I4.S6` — выполнено: native tool binding layer;
-4. следующий шаг: `I4.S7` (DSL-vs-native parity harness + CI gate).
+4. `I4.S7` — выполнено: DSL-vs-native parity harness + CI gate.
+5. следующий шаг: `I4.S8` (native-first champion bundle default switch).
 
 ## CLI
 

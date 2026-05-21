@@ -53,6 +53,7 @@
 24. [ADR-0024-reject-native-degradation-workaround-prioritize-parity.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0024-reject-native-degradation-workaround-prioritize-parity.md) - Accepted
 25. [ADR-0025-native-hitl-gate-support-for-canonical-parity.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0025-native-hitl-gate-support-for-canonical-parity.md) - Accepted
 26. [ADR-0026-native-tool-binding-layer-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0026-native-tool-binding-layer-v0.md) - Accepted
+27. [ADR-0027-dsl-vs-native-parity-harness-and-ci-gate-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0027-dsl-vs-native-parity-harness-and-ci-gate-v0.md) - Accepted
 
 ## Template
 
