@@ -140,7 +140,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live_full.ps1
 
 РЎР»РµРґСѓСЋС‰РёР№ С€Р°Рі:
 
-1. Native-first champion bundle default switch (I4.S8).
+1. Evaluator Adapter Layer v0 (I5.S2).
 
 ### Stage D3 (I4) - Champion Demo
 
@@ -221,6 +221,6 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_evaluation_profile_
 ## Current Demo Status
 
 - Active stage: `D4 bootstrap (I5 evaluation profile v0)`
-- Demo readiness: `Yellow` (native-first bundle default pending in I4.S8)
-- Next demo milestone: `D3.5 native-first bundle default` (`I4.S8`)
+- Demo readiness: `Yellow` (evaluation adapters pending in I5.S2)
+- Next demo milestone: `D4 evaluator adapter pipeline` (`I5.S2`)
 

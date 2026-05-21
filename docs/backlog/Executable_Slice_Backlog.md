@@ -16,7 +16,7 @@
 ## Active Window (Now)
 
 - `Current Focus`: MVP-2 bootstrap / I5 evaluation fabric
-- `Active Next Slice`: I4.S8
+- `Active Next Slice`: I5.S2
 
 ---
 
@@ -341,7 +341,7 @@
 
 ### I4.S8 - Champion bundle default switch to native target
 
-- Status: Planned
+- Status: Done
 - Goal: СЃРґРµР»Р°С‚СЊ native export РґРµС„РѕР»С‚РѕРј champion bundle.
 - Deliverables:
   - bundle РІРєР»СЋС‡Р°РµС‚ `native_agent/` РєР°Рє РѕСЃРЅРѕРІРЅРѕР№ runtime artifact,
@@ -352,6 +352,10 @@
   3. РџРѕР»РЅС‹Р№ РїСЂРѕРіРѕРЅ `unit + integration + e2e` green.
 - Dependencies: I4.S7.
 - Risks: РѕР±СЂР°С‚РЅР°СЏ СЃРѕРІРјРµСЃС‚РёРјРѕСЃС‚СЊ СЃ СѓР¶Рµ СЃРѕР·РґР°РЅРЅС‹РјРё bundle.
+- Progress (2026-05-22):
+  1. `bundle_manifest.json` и CLI success payload получили `default_runtime_target`, `default_entrypoint_file`, `legacy_debug_entrypoint_file`.
+  2. `README.bundle.md` переключен на native-first запуск, generated path оставлен как debug fallback.
+  3. Интеграционные тесты обновлены под новый контракт native-first bundle.
 
 ---
 

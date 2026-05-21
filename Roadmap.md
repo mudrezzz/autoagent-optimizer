@@ -70,7 +70,7 @@
 | I4.S6a | Canonical DSL->Native Parity (HITL semantics) v0 | Done | canonical stylizer profile runs on native without workaround policies |
 | I4.S6 | Native component binding layer v0 | Done | llm/deterministic/tool/validator/hitl bindings without `optimizer` runtime |
 | I4.S7 | DSL-vs-native parity harness + CI gate | Done | structural parity report and regression guard |
-| I4.S8 | Champion bundle default switch to native target | Planned | native-first bundle, legacy runtime path as optional debug fallback |
+| I4.S8 | Champion bundle default switch to native target | Done | native-first bundle, legacy runtime path as optional debug fallback |
 
 ---
 

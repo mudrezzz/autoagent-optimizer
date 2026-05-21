@@ -75,13 +75,19 @@ python -m optimizer.champion.export_bundle --arena-result-file .\tmp\arena_resul
      - структурный parity runtime (`executed_nodes`, `skipped_nodes`, `node_output_keys`, `errors`, `trace_nodes_total`).
    - проверка выполняется в `mock_llm_for_stability` режиме, чтобы исключить вариативность LLM текста.
 6. `README.bundle.md`:
-   - инструкция для разработчика: как запустить сгенерированного агента и как интерпретировать parity report.
+   - инструкция для разработчика в `native-first` порядке:
+     - сначала запуск standalone `native_agent`,
+     - затем запуск `generated_agent` как debug fallback,
+     - затем интерпретация parity report.
 7. `generated_agent/*`:
    - runnable кодовый артефакт winner (codegen-путь I2.S2).
 8. `native_agent/*`:
    - standalone native runtime пакет на `langgraph-dai` без импортов `optimizer.*`.
 9. `bundle_manifest.json`:
-   - индекс всех файлов bundle и путь до entrypoint сгенерированного агента.
+   - индекс всех файлов bundle и runtime target policy:
+     - `default_runtime_target: native_runtime`,
+     - `default_entrypoint_file` (native `run.py`),
+     - `legacy_debug_entrypoint_file` (generated runner).
 
 ## Success Output Contract
 
@@ -93,6 +99,9 @@ CLI возвращает JSON:
   "version": "champion_bundle_v0",
   "bundle_dir": "...",
   "winner_id": "...",
+  "default_runtime_target": "native_runtime",
+  "default_entrypoint_file": "...",
+  "legacy_debug_entrypoint_file": "...",
   "manifest_file": "...",
   "diagnostic_map_file": "...",
   "parity_report_file": "...",

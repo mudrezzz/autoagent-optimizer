@@ -201,6 +201,7 @@ def _build_bundle(
         output_dir=native_agent_dir,
         force=True,
     )
+    default_runtime_target = "native_runtime"
 
     evidence_payload = build_evidence_pack_payload(arena_payload)
     evidence_json_file = bundle_dir / "evidence_pack.json"
@@ -241,6 +242,9 @@ def _build_bundle(
         "version": "champion_bundle_v0",
         "winner_id": winner_id,
         "winner_source_kind": source_kind,
+        "default_runtime_target": default_runtime_target,
+        "default_entrypoint_file": str(native_export_result.run_file),
+        "legacy_debug_entrypoint_file": str(generated.entrypoint_file),
         "winner_source_file": str(copied_winner_source_file),
         "arena_result_file": str(arena_result_file),
         "diagnostic_map_file": str(diagnostic_map_file),
@@ -262,6 +266,9 @@ def _build_bundle(
         "version": "champion_bundle_v0",
         "bundle_dir": str(bundle_dir),
         "winner_id": winner_id,
+        "default_runtime_target": default_runtime_target,
+        "default_entrypoint_file": str(native_export_result.run_file),
+        "legacy_debug_entrypoint_file": str(generated.entrypoint_file),
         "manifest_file": str(manifest_file),
         "diagnostic_map_file": str(diagnostic_map_file),
         "evidence_pack_json_file": str(evidence_json_file),
@@ -534,21 +541,21 @@ def _render_bundle_readme(
         f"- winner_id: `{winner_id}`\n"
         f"- winner_source_kind: `{winner_source_kind}`\n"
         f"- winner_source_file: `{winner_source_file}`\n\n"
-        "## 1) Запуск сгенерированного агента\n\n"
-        "```powershell\n"
-        "New-Item -ItemType Directory -Force -Path .\\tmp | Out-Null\n"
-        "'{\"draft_post\":\"Тестовый пост для проверки champion bundle\"}' | "
-        "Set-Content -LiteralPath .\\tmp\\bundle_payload.json -Encoding UTF8\n"
-        f"python {generated_entrypoint_file} --payload-file .\\tmp\\bundle_payload.json --pretty\n"
-        "```\n\n"
-        "## 1.1) Запуск standalone native-агента (`langgraph-dai`)\n\n"
+        "## 1) Запуск standalone native-агента (`langgraph-dai`) [default]\n\n"
         "```powershell\n"
         "New-Item -ItemType Directory -Force -Path .\\tmp | Out-Null\n"
         "'{\"draft_post\":\"Тестовый пост для проверки native bundle\"}' | "
         "Set-Content -LiteralPath .\\tmp\\native_payload.json -Encoding UTF8\n"
         f"python {native_entrypoint_file} --payload-file .\\tmp\\native_payload.json --pretty\n"
         "```\n\n"
-        "## 2) Эквивалентность к DSL-path\n\n"
+        "## 2) Запуск generated-агента (debug fallback)\n\n"
+        "```powershell\n"
+        "New-Item -ItemType Directory -Force -Path .\\tmp | Out-Null\n"
+        "'{\"draft_post\":\"Тестовый пост для проверки champion bundle\"}' | "
+        "Set-Content -LiteralPath .\\tmp\\bundle_payload.json -Encoding UTF8\n"
+        f"python {generated_entrypoint_file} --payload-file .\\tmp\\bundle_payload.json --pretty\n"
+        "```\n\n"
+        "## 3) Эквивалентность к DSL-path\n\n"
         "В bundle уже сохранен `parity_report.json` с автоматической проверкой:\n"
         "1. `graph_ir_equivalent=true` — Graph IR в generated package совпадает с winner Graph IR.\n"
         "2. `runtime_structural_parity.passed=true` — совпадает структура выполнения "

@@ -135,8 +135,7 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.champion` (Champion Export Bundle v0: arena/evidence/diagnostic/codegen bundle + manifest).
    - `optimizer.champion.native_export` (standalone `langgraph-dai` native runtime export v0).
 2. Next:
-   - Native export independence track (`I4.S8`) with native-first bundle default switch after parity gate rollout,
-   - Evaluation Fabric & MetricOps (`I5.*`) including post-export native evaluation loop.
+   - Evaluation Fabric & MetricOps (`I5.*`) including evaluator adapter layer and post-export native evaluation loop.
 
 ## Decision Records
 

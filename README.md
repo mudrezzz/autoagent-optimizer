@@ -6,8 +6,8 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 
 - `Phase`: MVP-2 transition (evaluation fabric bootstrap)
 - `Iteration`: I4/I5 bridge - Native Parity + Evaluation Fabric
-- `Overall`: In Progress (I1.S1-I5.S2a + I4.S7 done)
-- `Next Slice`: I4.S8 Champion bundle default switch to native target
+- `Overall`: In Progress (I1.S1-I5.S2a + I4.S8 done)
+- `Next Slice`: I5.S2 Evaluator Adapter Layer v0
 
 РџРѕРґСЂРѕР±РЅС‹Р№ СЃС‚Р°С‚СѓСЃ:
 
@@ -314,7 +314,7 @@ python -m optimizer.evaluation.run_profile --profile-file .\examples\profiles\st
 
 1. canonical `stylizer_profile_ci_v0` успешно запускается на `native_runtime` (DSL->Native parity для demo-critical пути достигнут в `I4.S6a`).
 2. preflight сохраняется как fail-fast guard для реально неразрешимых source/binding проблем (например broken graph source или unresolved callable).
-3. workaround policy `skip_unsupported` отклонен; `I4.S7` закрыт, следующий шаг — `I4.S8` (native-first champion bundle switch).
+3. workaround policy `skip_unsupported` отклонен; `I4.S8` закрыт, следующий шаг — `I5.S2` (Evaluator Adapter Layer v0).
 
 Smoke-прогон profile-driven path:
 
@@ -361,9 +361,10 @@ python -m optimizer.champion.export_bundle --arena-file .\examples\arena\support
 
 После запуска проверьте:
 
-1. `README.bundle.md` в каталоге bundle (инструкция для разработчика),
+1. `bundle_manifest.json` (`default_runtime_target=native_runtime`, есть `default_entrypoint_file` и `legacy_debug_entrypoint_file`),
 2. `parity_report.json` (`is_equivalent_agent=true` и `native_runtime_smoke.passed=true`),
-3. `native_agent\app\run.py` (standalone runtime entrypoint без `optimizer.*` импортов).
+3. `README.bundle.md` в каталоге bundle (native-first инструкция для разработчика),
+4. `native_agent\app\run.py` (standalone runtime entrypoint без `optimizer.*` импортов).
 
 Smoke-прогон champion bundle export:
 

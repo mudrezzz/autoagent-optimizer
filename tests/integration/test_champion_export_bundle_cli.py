@@ -45,6 +45,9 @@ def test_champion_export_bundle_cli_builds_artifacts_from_arena_file(tmp_path: P
     assert proc.returncode == 0, proc.stderr
     payload = json.loads(proc.stdout)
     assert payload["status"] == "success"
+    assert payload["default_runtime_target"] == "native_runtime"
+    assert Path(payload["default_entrypoint_file"]).exists()
+    assert Path(payload["legacy_debug_entrypoint_file"]).exists()
 
     bundle_dir = Path(payload["bundle_dir"])
     manifest_file = Path(payload["manifest_file"])
@@ -70,6 +73,9 @@ def test_champion_export_bundle_cli_builds_artifacts_from_arena_file(tmp_path: P
 
     manifest_payload = json.loads(manifest_file.read_text(encoding="utf-8"))
     assert manifest_payload["version"] == "champion_bundle_v0"
+    assert manifest_payload["default_runtime_target"] == "native_runtime"
+    assert Path(manifest_payload["default_entrypoint_file"]).exists()
+    assert Path(manifest_payload["legacy_debug_entrypoint_file"]).exists()
     assert Path(manifest_payload["winner_graph_ir_file"]).exists()
     assert Path(manifest_payload["generated_agent_entrypoint_file"]).exists()
     assert Path(manifest_payload["native_agent_entrypoint_file"]).exists()
