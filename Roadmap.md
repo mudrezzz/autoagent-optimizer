@@ -67,8 +67,8 @@
 | I4.S3 | Champion export bundle v0 | Done | deployable artifact set |
 | I4.S4 | Native export contract (`langgraph_dai_native`) v0 | Done | standalone runtime artifact spec + mapping rules |
 | I4.S5 | Native renderer/codegen minimal path | Done | runnable standalone agent (`linear + conditional`) |
-| I4.S6a | Canonical DSL->Native Parity (HITL semantics) v0 | Planned | canonical stylizer profile runs on native without workaround policies |
-| I4.S6 | Native component binding layer v0 | Planned | llm/deterministic/tool/validator/hitl bindings without `optimizer` runtime |
+| I4.S6a | Canonical DSL->Native Parity (HITL semantics) v0 | Done | canonical stylizer profile runs on native without workaround policies |
+| I4.S6 | Native component binding layer v0 | Done | llm/deterministic/tool/validator/hitl bindings without `optimizer` runtime |
 | I4.S7 | DSL-vs-native parity harness + CI gate | Planned | structural parity report and regression guard |
 | I4.S8 | Champion bundle default switch to native target | Planned | native-first bundle, legacy runtime path as optional debug fallback |
 

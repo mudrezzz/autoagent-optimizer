@@ -1,18 +1,18 @@
-# ADR / ARD Index
+﻿# ADR / ARD Index
 
-Этот каталог хранит архитектурные решения проекта.
+Р­С‚РѕС‚ РєР°С‚Р°Р»РѕРі С…СЂР°РЅРёС‚ Р°СЂС…РёС‚РµРєС‚СѓСЂРЅС‹Рµ СЂРµС€РµРЅРёСЏ РїСЂРѕРµРєС‚Р°.
 
-Терминология:
+РўРµСЂРјРёРЅРѕР»РѕРіРёСЏ:
 
-- `ADR` (Architecture Decision Record) - базовый формат.
-- `ARD` - допустимое внутреннее синонимичное название в проекте.
+- `ADR` (Architecture Decision Record) - Р±Р°Р·РѕРІС‹Р№ С„РѕСЂРјР°С‚.
+- `ARD` - РґРѕРїСѓСЃС‚РёРјРѕРµ РІРЅСѓС‚СЂРµРЅРЅРµРµ СЃРёРЅРѕРЅРёРјРёС‡РЅРѕРµ РЅР°Р·РІР°РЅРёРµ РІ РїСЂРѕРµРєС‚Рµ.
 
 ## Rules
 
-1. Любое существенное архитектурное решение фиксируется отдельным ADR.
-2. ADR создается до реализации или в том же слайсе, где решение внедрено.
-3. ADR не переписывается задним числом; изменения оформляются новым ADR (supersedes).
-4. Каждый ADR связан со слайсом roadmap (`I*.S*`) и commit hash.
+1. Р›СЋР±РѕРµ СЃСѓС‰РµСЃС‚РІРµРЅРЅРѕРµ Р°СЂС…РёС‚РµРєС‚СѓСЂРЅРѕРµ СЂРµС€РµРЅРёРµ С„РёРєСЃРёСЂСѓРµС‚СЃСЏ РѕС‚РґРµР»СЊРЅС‹Рј ADR.
+2. ADR СЃРѕР·РґР°РµС‚СЃСЏ РґРѕ СЂРµР°Р»РёР·Р°С†РёРё РёР»Рё РІ С‚РѕРј Р¶Рµ СЃР»Р°Р№СЃРµ, РіРґРµ СЂРµС€РµРЅРёРµ РІРЅРµРґСЂРµРЅРѕ.
+3. ADR РЅРµ РїРµСЂРµРїРёСЃС‹РІР°РµС‚СЃСЏ Р·Р°РґРЅРёРј С‡РёСЃР»РѕРј; РёР·РјРµРЅРµРЅРёСЏ РѕС„РѕСЂРјР»СЏСЋС‚СЃСЏ РЅРѕРІС‹Рј ADR (supersedes).
+4. РљР°Р¶РґС‹Р№ ADR СЃРІСЏР·Р°РЅ СЃРѕ СЃР»Р°Р№СЃРѕРј roadmap (`I*.S*`) Рё commit hash.
 
 ## Status Values
 
@@ -23,7 +23,7 @@
 
 ## File Naming
 
-`ADR-XXXX-short-title.md`, где `XXXX` - четырехзначный номер.
+`ADR-XXXX-short-title.md`, РіРґРµ `XXXX` - С‡РµС‚С‹СЂРµС…Р·РЅР°С‡РЅС‹Р№ РЅРѕРјРµСЂ.
 
 ## ADR List
 
@@ -51,9 +51,12 @@
 22. [ADR-0022-evaluation-profile-v0-contract-and-target-switch.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0022-evaluation-profile-v0-contract-and-target-switch.md) - Accepted
 23. [ADR-0023-native-runtime-compatibility-preflight-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0023-native-runtime-compatibility-preflight-v0.md) - Accepted
 24. [ADR-0024-reject-native-degradation-workaround-prioritize-parity.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0024-reject-native-degradation-workaround-prioritize-parity.md) - Accepted
+25. [ADR-0025-native-hitl-gate-support-for-canonical-parity.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0025-native-hitl-gate-support-for-canonical-parity.md) - Accepted
+26. [ADR-0026-native-tool-binding-layer-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0026-native-tool-binding-layer-v0.md) - Accepted
 
 ## Template
 
-Использовать:
+РСЃРїРѕР»СЊР·РѕРІР°С‚СЊ:
 
 - [ADR-TEMPLATE.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-TEMPLATE.md)
+

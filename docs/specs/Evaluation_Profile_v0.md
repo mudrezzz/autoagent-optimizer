@@ -1,27 +1,27 @@
-# Evaluation Profile v0
+﻿# Evaluation Profile v0
 
 ## Purpose
 
-`Evaluation Profile` задает конфиг оценки под конкретный task type:
+`Evaluation Profile` Р·Р°РґР°РµС‚ РєРѕРЅС„РёРі РѕС†РµРЅРєРё РїРѕРґ РєРѕРЅРєСЂРµС‚РЅС‹Р№ task type:
 
-1. какие comparative-метрики участвуют в ranking,
-2. какие diagnostic-сигналы собираются для root-cause анализа,
-3. какой evaluator chain используется,
-4. какой execution target запускается (`dsl_runtime` или `native_runtime`),
-5. какой бюджет применяется к прогону.
+1. РєР°РєРёРµ comparative-РјРµС‚СЂРёРєРё СѓС‡Р°СЃС‚РІСѓСЋС‚ РІ ranking,
+2. РєР°РєРёРµ diagnostic-СЃРёРіРЅР°Р»С‹ СЃРѕР±РёСЂР°СЋС‚СЃСЏ РґР»СЏ root-cause Р°РЅР°Р»РёР·Р°,
+3. РєР°РєРѕР№ evaluator chain РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ,
+4. РєР°РєРѕР№ execution target Р·Р°РїСѓСЃРєР°РµС‚СЃСЏ (`dsl_runtime` РёР»Рё `native_runtime`),
+5. РєР°РєРѕР№ Р±СЋРґР¶РµС‚ РїСЂРёРјРµРЅСЏРµС‚СЃСЏ Рє РїСЂРѕРіРѕРЅСѓ.
 
 ## Scope (I5.S1)
 
-В этом слайсе реализовано:
+Р’ СЌС‚РѕРј СЃР»Р°Р№СЃРµ СЂРµР°Р»РёР·РѕРІР°РЅРѕ:
 
-1. typed контракт profile (`optimizer/evaluation/profile_schema.py`),
+1. typed РєРѕРЅС‚СЂР°РєС‚ profile (`optimizer/evaluation/profile_schema.py`),
 2. YAML loader + validator (`optimizer/evaluation/profile_io.py`),
 3. CLI `python -m optimizer.evaluation.run_profile`,
-4. orchestration runner для target-переключения (`optimizer/evaluation/profile_runner.py`),
-5. examples profiles для двух task types.
+4. orchestration runner РґР»СЏ target-РїРµСЂРµРєР»СЋС‡РµРЅРёСЏ (`optimizer/evaluation/profile_runner.py`),
+5. examples profiles РґР»СЏ РґРІСѓС… task types.
 
-В `v0` evaluator chain ограничен `golden_oracle`.
-Расширяемые evaluator adapters (`llm_judge`, `executable`, `render`) идут в `I5.S2`.
+Р’ `v0` evaluator chain РѕРіСЂР°РЅРёС‡РµРЅ `golden_oracle`.
+Р Р°СЃС€РёСЂСЏРµРјС‹Рµ evaluator adapters (`llm_judge`, `executable`, `render`) РёРґСѓС‚ РІ `I5.S2`.
 
 ## YAML Contract
 
@@ -76,47 +76,52 @@ participants:
 
 ## Execution Targets
 
-Поддержка target в `v0`:
+РџРѕРґРґРµСЂР¶РєР° target РІ `v0`:
 
 1. `dsl_runtime`
-   - использует существующий Arena runtime путь,
-   - `dsl_execution_mode` берется из profile (`expected_stub`/`runtime`).
+   - РёСЃРїРѕР»СЊР·СѓРµС‚ СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёР№ Arena runtime РїСѓС‚СЊ,
+   - `dsl_execution_mode` Р±РµСЂРµС‚СЃСЏ РёР· profile (`expected_stub`/`runtime`).
 2. `native_runtime`
-   - для каждого участника профильного турнира компилируется Graph IR,
-   - участник экспортируется во временный standalone native runtime,
-   - оценка идет через тот же oracle pipeline и ту же budget/ranking/scoring политику.
+   - РґР»СЏ РєР°Р¶РґРѕРіРѕ СѓС‡Р°СЃС‚РЅРёРєР° РїСЂРѕС„РёР»СЊРЅРѕРіРѕ С‚СѓСЂРЅРёСЂР° РєРѕРјРїРёР»РёСЂСѓРµС‚СЃСЏ Graph IR,
+   - СѓС‡Р°СЃС‚РЅРёРє СЌРєСЃРїРѕСЂС‚РёСЂСѓРµС‚СЃСЏ РІРѕ РІСЂРµРјРµРЅРЅС‹Р№ standalone native runtime,
+   - РѕС†РµРЅРєР° РёРґРµС‚ С‡РµСЂРµР· С‚РѕС‚ Р¶Рµ oracle pipeline Рё С‚Сѓ Р¶Рµ budget/ranking/scoring РїРѕР»РёС‚РёРєСѓ.
 
-## Known Limitation (2026-05-19)
+## Known Limitation (2026-05-21)
 
-Для `native_runtime` в `v0` действует ограничение native exporter capability:
+Для `native_runtime` в `v0` теперь покрыты node kinds: `llm`, `deterministic`, `tool`, `validator`, `hitl_gate`.
 
-1. поддерживаются только node kinds: `llm`, `deterministic`, `validator`;
-2. профили с `hitl`/другими неподдержанными узлами блокируются preflight-ом в `strict_preflight_v0` режиме.
+Preflight в `strict_preflight_v0` режиме сохраняется как fail-fast слой для реально несовместимых кейсов:
 
-Статус исправления:
+1. broken source resolution (битый `dsl_file`/`graph_ir_file`);
+2. compile failures при DSL -> Graph IR;
+3. unresolved runtime bindings для component refs.
+
+Статус по итерациям:
 
 1. `I5.S2a` — выполнено: compatibility preflight до native запуска;
-2. следующий шаг по существу: `I4.S6a` (canonical DSL->native parity без workaround policy).
+2. `I4.S6a` — выполнено: canonical DSL->native parity для stylizer профиля;
+3. `I4.S6` — выполнено: native tool binding layer;
+4. следующий шаг: `I4.S7` (DSL-vs-native parity harness + CI gate).
 
 ## CLI
 
-Запуск profile-run:
+Р—Р°РїСѓСЃРє profile-run:
 
 ```powershell
 python -m optimizer.evaluation.run_profile --profile-file .\examples\profiles\stylizer_profile_ci_v0.yaml --target dsl_runtime --pretty
 python -m optimizer.evaluation.run_profile --profile-file .\examples\profiles\stylizer_profile_ci_v0.yaml --target native_runtime --pretty
 ```
 
-Если `--target` не задан, используется `default_target` из profile.
+Р•СЃР»Рё `--target` РЅРµ Р·Р°РґР°РЅ, РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ `default_target` РёР· profile.
 
 ## Output Envelope
 
-CLI возвращает:
+CLI РІРѕР·РІСЂР°С‰Р°РµС‚:
 
 1. profile meta (`profile_id`, `task_type`, `execution_target`),
 2. evaluator/metrics/budget contract snapshot,
-3. `preflight` секцию (для `native_runtime` — structured compatibility report),
-4. `result` в совместимом формате Arena (`comparison`, `diagnostics`, `participants`, `winner_id`).
+3. `preflight` СЃРµРєС†РёСЋ (РґР»СЏ `native_runtime` вЂ” structured compatibility report),
+4. `result` РІ СЃРѕРІРјРµСЃС‚РёРјРѕРј С„РѕСЂРјР°С‚Рµ Arena (`comparison`, `diagnostics`, `participants`, `winner_id`).
 
 ## Example Profiles
 
@@ -125,7 +130,7 @@ CLI возвращает:
 
 ## Tests
 
-Покрытие слайса:
+РџРѕРєСЂС‹С‚РёРµ СЃР»Р°Р№СЃР°:
 
 1. unit: `tests/unit/test_evaluation_profile_schema.py`
 2. integration: `tests/integration/test_evaluation_profile_cli.py`

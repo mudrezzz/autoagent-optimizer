@@ -1,4 +1,4 @@
-"""E2E-тест smoke-скрипта preflight-блокировки native target."""
+﻿"""E2E-тест smoke-скрипта preflight-проверки native target."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ def _resolve_powershell() -> str | None:
 
 @pytest.mark.e2e
 def test_evaluation_profile_native_preflight_smoke_script_passes() -> None:
-    """Проверяет e2e сценарий, что native target корректно блокируется preflight-ом."""
+    """Проверяет e2e цепочку, что native preflight пропускает tool-профиль после I4.S6."""
 
     shell_bin = _resolve_powershell()
     if shell_bin is None:
@@ -39,4 +39,4 @@ def test_evaluation_profile_native_preflight_smoke_script_passes() -> None:
     )
 
     assert proc.returncode == 0, proc.stderr
-    assert "[SMOKE] native preflight blocking behavior verified successfully." in proc.stdout
+    assert "[SMOKE] native preflight pass behavior verified successfully." in proc.stdout

@@ -1,4 +1,4 @@
-"""Экспорт standalone native-агента на `langgraph-dai` без runtime-зависимости от optimizer."""
+﻿"""Р­РєСЃРїРѕСЂС‚ standalone native-Р°РіРµРЅС‚Р° РЅР° `langgraph-dai` Р±РµР· runtime-Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ optimizer."""
 
 from __future__ import annotations
 
@@ -12,12 +12,12 @@ from optimizer.graph_ir.models import GraphIRSpec, GraphNodeKind
 
 
 class NativeExportBuildError(ValueError):
-    """Ошибка построения standalone native export пакета."""
+    """РћС€РёР±РєР° РїРѕСЃС‚СЂРѕРµРЅРёСЏ standalone native export РїР°РєРµС‚Р°."""
 
 
 @dataclass(frozen=True)
 class NativeExportResult:
-    """Результат генерации standalone native export пакета."""
+    """Р РµР·СѓР»СЊС‚Р°С‚ РіРµРЅРµСЂР°С†РёРё standalone native export РїР°РєРµС‚Р°."""
 
     output_dir: Path
     app_dir: Path
@@ -29,7 +29,7 @@ class NativeExportResult:
     readme_file: Path
 
     def to_payload(self) -> dict[str, str]:
-        """Возвращает JSON-совместимую сводку по созданным артефактам native export."""
+        """Р’РѕР·РІСЂР°С‰Р°РµС‚ JSON-СЃРѕРІРјРµСЃС‚РёРјСѓСЋ СЃРІРѕРґРєСѓ РїРѕ СЃРѕР·РґР°РЅРЅС‹Рј Р°СЂС‚РµС„Р°РєС‚Р°Рј native export."""
 
         return {
             "output_dir": str(self.output_dir),
@@ -44,7 +44,7 @@ class NativeExportResult:
 
 
 class NativeLanggraphDaiExporter:
-    """Генератор standalone native-агента на контрактах `framework`/`infra.openrouter`."""
+    """Р“РµРЅРµСЂР°С‚РѕСЂ standalone native-Р°РіРµРЅС‚Р° РЅР° РєРѕРЅС‚СЂР°РєС‚Р°С… `framework`/`infra.openrouter`."""
 
     def export(
         self,
@@ -54,7 +54,7 @@ class NativeLanggraphDaiExporter:
         output_dir: Path,
         force: bool = False,
     ) -> NativeExportResult:
-        """Создает standalone native package в каталоге `output_dir`."""
+        """РЎРѕР·РґР°РµС‚ standalone native package РІ РєР°С‚Р°Р»РѕРіРµ `output_dir`."""
 
         _validate_graph_support(graph_ir)
 
@@ -62,7 +62,7 @@ class NativeLanggraphDaiExporter:
         if resolved_output_dir.exists():
             if not force:
                 raise NativeExportBuildError(
-                    f"Каталог native export уже существует: {resolved_output_dir}. Используйте force=true."
+                    f"РљР°С‚Р°Р»РѕРі native export СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚: {resolved_output_dir}. РСЃРїРѕР»СЊР·СѓР№С‚Рµ force=true."
                 )
             shutil.rmtree(resolved_output_dir)
         resolved_output_dir.mkdir(parents=True, exist_ok=True)
@@ -124,19 +124,25 @@ class NativeLanggraphDaiExporter:
 
 
 def _validate_graph_support(graph_ir: GraphIRSpec) -> None:
-    """Проверяет, что Graph IR поддержан minimal native export реализацией."""
+    """РџСЂРѕРІРµСЂСЏРµС‚, С‡С‚Рѕ Graph IR РїРѕРґРґРµСЂР¶Р°РЅ minimal native export СЂРµР°Р»РёР·Р°С†РёРµР№."""
 
-    supported_kinds = {GraphNodeKind.LLM, GraphNodeKind.DETERMINISTIC, GraphNodeKind.VALIDATOR}
+    supported_kinds = {
+        GraphNodeKind.LLM,
+        GraphNodeKind.DETERMINISTIC,
+        GraphNodeKind.TOOL,
+        GraphNodeKind.VALIDATOR,
+        GraphNodeKind.HITL_GATE,
+    }
     unsupported = sorted(node.id for node in graph_ir.nodes if node.kind not in supported_kinds)
     if unsupported:
         raise NativeExportBuildError(
-            "Native export v0 поддерживает только llm/deterministic/validator. "
-            f"Неподдержанные node ids: {', '.join(unsupported)}."
+            "Native export v0 РїРѕРґРґРµСЂР¶РёРІР°РµС‚ С‚РѕР»СЊРєРѕ llm/deterministic/tool/validator/hitl_gate. "
+            f"РќРµРїРѕРґРґРµСЂР¶Р°РЅРЅС‹Рµ node ids: {', '.join(unsupported)}."
         )
 
 
 def _copy_python_dependency_files(*, graph_ir: GraphIRSpec, native_root: Path) -> None:
-    """Копирует локальные python-модули из `python://` refs в standalone native пакет."""
+    """РљРѕРїРёСЂСѓРµС‚ Р»РѕРєР°Р»СЊРЅС‹Рµ python-РјРѕРґСѓР»Рё РёР· `python://` refs РІ standalone native РїР°РєРµС‚."""
 
     project_root = Path(__file__).resolve().parents[2]
     modules: set[str] = set()
@@ -155,7 +161,7 @@ def _copy_python_dependency_files(*, graph_ir: GraphIRSpec, native_root: Path) -
     for module_name in sorted(modules):
         _copy_module_with_package_inits(project_root=project_root, native_root=native_root, module_name=module_name)
 
-    # Для style-validator кейса переносим ресурсы паттернов в standalone пакет.
+    # Р”Р»СЏ style-validator РєРµР№СЃР° РїРµСЂРµРЅРѕСЃРёРј СЂРµСЃСѓСЂСЃС‹ РїР°С‚С‚РµСЂРЅРѕРІ РІ standalone РїР°РєРµС‚.
     resources_src = project_root / "examples" / "resources" / "ai_style_patterns_ru_v1.json"
     if resources_src.exists():
         resources_dst = native_root / "examples" / "resources" / "ai_style_patterns_ru_v1.json"
@@ -164,7 +170,7 @@ def _copy_python_dependency_files(*, graph_ir: GraphIRSpec, native_root: Path) -
 
 
 def _copy_module_with_package_inits(*, project_root: Path, native_root: Path, module_name: str) -> None:
-    """Копирует модуль и цепочку `__init__.py` для корректного импорт-резолва в native пакете."""
+    """РљРѕРїРёСЂСѓРµС‚ РјРѕРґСѓР»СЊ Рё С†РµРїРѕС‡РєСѓ `__init__.py` РґР»СЏ РєРѕСЂСЂРµРєС‚РЅРѕРіРѕ РёРјРїРѕСЂС‚-СЂРµР·РѕР»РІР° РІ native РїР°РєРµС‚Рµ."""
 
     module_rel = Path(*module_name.split("."))
     module_py = project_root / module_rel.with_suffix(".py")
@@ -184,7 +190,7 @@ def _copy_module_with_package_inits(*, project_root: Path, native_root: Path, mo
 
 
 def _copy_package_init_chain(*, project_root: Path, native_root: Path, module_rel: Path) -> None:
-    """Копирует `__init__.py` для каждого уровня package-chain модуля."""
+    """РљРѕРїРёСЂСѓРµС‚ `__init__.py` РґР»СЏ РєР°Р¶РґРѕРіРѕ СѓСЂРѕРІРЅСЏ package-chain РјРѕРґСѓР»СЏ."""
 
     parts = list(module_rel.parts)
     if not parts:
@@ -200,9 +206,9 @@ def _copy_package_init_chain(*, project_root: Path, native_root: Path, module_re
 
 
 def _render_workflow_py() -> str:
-    """Формирует `app/workflow.py` для standalone native runtime."""
+    """Р¤РѕСЂРјРёСЂСѓРµС‚ `app/workflow.py` РґР»СЏ standalone native runtime."""
 
-    return '''"""Standalone workflow runtime для native `langgraph-dai` export v0."""
+    return '''"""Standalone workflow runtime РґР»СЏ native `langgraph-dai` export v0."""
 
 from __future__ import annotations
 
@@ -221,7 +227,7 @@ from pydantic import BaseModel, Field
 
 
 class NativeAgentState(BaseModel):
-    """Тип состояния standalone native workflow."""
+    """РўРёРї СЃРѕСЃС‚РѕСЏРЅРёСЏ standalone native workflow."""
 
     payload: dict[str, Any] = Field(default_factory=dict)
     task_context: dict[str, Any] = Field(default_factory=dict)
@@ -235,17 +241,17 @@ class NativeAgentState(BaseModel):
 
 @dataclass(frozen=True)
 class NativeGraphConfig:
-    """Конфигурация standalone native workflow."""
+    """РљРѕРЅС„РёРіСѓСЂР°С†РёСЏ standalone native workflow."""
 
     graph_ir: dict[str, Any]
     prompt_templates: dict[str, str]
 
 
 class NativeGraphWorkflow(BaseWorkflow):
-    """Workflow, исполняющий Graph IR в standalone native runtime-контуре."""
+    """Workflow, РёСЃРїРѕР»РЅСЏСЋС‰РёР№ Graph IR РІ standalone native runtime-РєРѕРЅС‚СѓСЂРµ."""
 
     def __init__(self, config: NativeGraphConfig) -> None:
-        """Инициализирует workflow из JSON-конфигурации graph_ir и prompt templates."""
+        """РРЅРёС†РёР°Р»РёР·РёСЂСѓРµС‚ workflow РёР· JSON-РєРѕРЅС„РёРіСѓСЂР°С†РёРё graph_ir Рё prompt templates."""
 
         self._graph_ir = config.graph_ir
         self._prompt_templates = config.prompt_templates
@@ -260,18 +266,18 @@ class NativeGraphWorkflow(BaseWorkflow):
         self.compile()
 
     def state_schema(self) -> type[NativeAgentState]:
-        """Возвращает схему состояния workflow."""
+        """Р’РѕР·РІСЂР°С‰Р°РµС‚ СЃС…РµРјСѓ СЃРѕСЃС‚РѕСЏРЅРёСЏ workflow."""
 
         return NativeAgentState
 
     def workflow_nodes(self, *, is_resume: bool):
-        """Возвращает node handlers в топологическом порядке."""
+        """Р’РѕР·РІСЂР°С‰Р°РµС‚ node handlers РІ С‚РѕРїРѕР»РѕРіРёС‡РµСЃРєРѕРј РїРѕСЂСЏРґРєРµ."""
 
         _ = is_resume
         return [WorkflowNodeSpec(name=node_id, handler=self._build_node_handler(node_id)) for node_id in self._topological_order]
 
     def _build_node_handler(self, node_id: str):
-        """Создает обработчик выполнения одного узла Graph IR."""
+        """РЎРѕР·РґР°РµС‚ РѕР±СЂР°Р±РѕС‚С‡РёРє РІС‹РїРѕР»РЅРµРЅРёСЏ РѕРґРЅРѕРіРѕ СѓР·Р»Р° Graph IR."""
 
         def _handler(state: NativeAgentState, context: WorkflowExecutionContext) -> NativeAgentState:
             _ = context
@@ -280,7 +286,7 @@ class NativeGraphWorkflow(BaseWorkflow):
         return _handler
 
     def _execute_graph_node(self, *, node_id: str, state: NativeAgentState) -> NativeAgentState:
-        """Исполняет узел по active frontier и рассчитывает следующую волну активных узлов."""
+        """РСЃРїРѕР»РЅСЏРµС‚ СѓР·РµР» РїРѕ active frontier Рё СЂР°СЃСЃС‡РёС‚С‹РІР°РµС‚ СЃР»РµРґСѓСЋС‰СѓСЋ РІРѕР»РЅСѓ Р°РєС‚РёРІРЅС‹С… СѓР·Р»РѕРІ."""
 
         active_set = set(state.active_nodes or [])
         if not active_set:
@@ -351,7 +357,7 @@ class NativeGraphWorkflow(BaseWorkflow):
         node_outputs: dict[str, Any],
         task_context: dict[str, Any],
     ) -> set[str]:
-        """Резолвит следующие узлы по edge-условиям."""
+        """Р РµР·РѕР»РІРёС‚ СЃР»РµРґСѓСЋС‰РёРµ СѓР·Р»С‹ РїРѕ edge-СѓСЃР»РѕРІРёСЏРј."""
 
         next_nodes: set[str] = set()
         for edge in self._edges_by_source.get(node_id, []):
@@ -369,7 +375,7 @@ class NativeGraphWorkflow(BaseWorkflow):
         payload: dict[str, Any],
         node_outputs: dict[str, Any],
     ) -> Any:
-        """Исполняет узел с учетом политики `on_fail`."""
+        """РСЃРїРѕР»РЅСЏРµС‚ СѓР·РµР» СЃ СѓС‡РµС‚РѕРј РїРѕР»РёС‚РёРєРё `on_fail`."""
 
         on_fail = str(node.get("on_fail", "stop"))
         if on_fail != "retry":
@@ -386,19 +392,23 @@ class NativeGraphWorkflow(BaseWorkflow):
         raise first_error
 
     def _execute_node(self, *, node: dict[str, Any], payload: dict[str, Any], node_outputs: dict[str, Any]) -> Any:
-        """Исполняет node kind в minimal native runtime контракте."""
+        """РСЃРїРѕР»РЅСЏРµС‚ node kind РІ minimal native runtime РєРѕРЅС‚СЂР°РєС‚Рµ."""
 
         kind = str(node.get("kind", "")).strip()
         if kind == "llm":
             return self._execute_llm(node=node, payload=payload)
         if kind == "deterministic":
             return self._execute_deterministic(node=node, payload=payload)
+        if kind == "tool":
+            return self._execute_tool(node=node, payload=payload)
         if kind == "validator":
             return self._execute_validator(node=node, payload=payload, node_outputs=node_outputs)
-        raise NotImplementedError(f"Node kind `{kind}` не поддержан в native export v0.")
+        if kind == "hitl_gate":
+            return self._execute_hitl_gate(node=node, payload=payload)
+        raise NotImplementedError(f"Node kind `{kind}` РЅРµ РїРѕРґРґРµСЂР¶Р°РЅ РІ native export v0.")
 
     def _execute_llm(self, *, node: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
-        """Исполняет LLM узел с prompt templates и OpenRouter gateway."""
+        """РСЃРїРѕР»РЅСЏРµС‚ LLM СѓР·РµР» СЃ prompt templates Рё OpenRouter gateway."""
 
         prompt_id = ""
         node_config = node.get("config")
@@ -416,7 +426,7 @@ class NativeGraphWorkflow(BaseWorkflow):
         return {"text": response_text}
 
     def _execute_deterministic(self, *, node: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
-        """Исполняет deterministic узел через python:// callable или fallback stub."""
+        """РСЃРїРѕР»РЅСЏРµС‚ deterministic СѓР·РµР» С‡РµСЂРµР· python:// callable РёР»Рё fallback stub."""
 
         component_ref = str(node.get("component_ref", "")).strip()
         if component_ref.startswith("python://"):
@@ -436,6 +446,25 @@ class NativeGraphWorkflow(BaseWorkflow):
                 }
         return {"status": "deterministic_stub", "component_ref": component_ref}
 
+    def _execute_tool(self, *, node: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
+        """РСЃРїРѕР»РЅСЏРµС‚ tool-СѓР·РµР» РІ native runtime СЃ СЏРІРЅС‹Рј РєРѕРЅС‚СЂР°РєС‚РѕРј РґР»СЏ python:// Рё mcp:// refs."""
+
+        component_ref = str(node.get("component_ref", "")).strip()
+        if component_ref.startswith("python://"):
+            callable_obj = _load_python_callable(component_ref)
+            state_proxy = _build_state_proxy(payload)
+            result = _invoke_python_callable(callable_obj, state_proxy, node)
+            if isinstance(result, dict):
+                return result
+            return {"tool_result": result}
+
+        if component_ref.startswith("mcp://"):
+            # Р”Рѕ РїРѕР»РЅРѕР№ MCP РёРЅС‚РµРіСЂР°С†РёРё РІ native runtime v0 РґРµР»Р°РµРј СЏРІРЅС‹Р№ stub, С‡С‚РѕР±С‹
+            # РїРѕРІРµРґРµРЅРёРµ Р±С‹Р»Рѕ РЅР°Р±Р»СЋРґР°РµРјС‹Рј Рё РґРёР°РіРЅРѕСЃС‚РёСЂСѓРµРјС‹Рј РІ trace/node_outputs.
+            return {"status": "mcp_stub", "component_ref": component_ref}
+
+        raise RuntimeError(f"РќРµ РЅР°Р№РґРµРЅ native tool binding РґР»СЏ component_ref: {component_ref}")
+
     def _execute_validator(
         self,
         *,
@@ -443,7 +472,7 @@ class NativeGraphWorkflow(BaseWorkflow):
         payload: dict[str, Any],
         node_outputs: dict[str, Any],
     ) -> dict[str, Any]:
-        """Исполняет validator узел и нормализует valid-результат."""
+        """РСЃРїРѕР»РЅСЏРµС‚ validator СѓР·РµР» Рё РЅРѕСЂРјР°Р»РёР·СѓРµС‚ valid-СЂРµР·СѓР»СЊС‚Р°С‚."""
 
         component_ref = str(node.get("component_ref", "")).strip()
         if component_ref.startswith("python://"):
@@ -464,33 +493,58 @@ class NativeGraphWorkflow(BaseWorkflow):
 
         if isinstance(result, bool):
             if not result:
-                raise ValueError(f"Validator `{component_ref}` вернул False")
+                raise ValueError(f"Validator `{component_ref}` РІРµСЂРЅСѓР» False")
             return {"valid": True}
         if isinstance(result, dict):
             if result.get("valid") is False:
-                raise ValueError(f"Validator `{component_ref}` вернул valid=False")
+                raise ValueError(f"Validator `{component_ref}` РІРµСЂРЅСѓР» valid=False")
             return result
         return {"valid": True, "raw": result}
 
+    def _execute_hitl_gate(self, *, node: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
+        """РСЃРїРѕР»РЅСЏРµС‚ HITL gate СѓР·РµР» РІ native runtime СЃ РґРµС„РѕР»С‚РЅРѕР№ approve-СЃРµРјР°РЅС‚РёРєРѕР№."""
+
+        component_ref = str(node.get("component_ref", "")).strip()
+        if component_ref.startswith("python://"):
+            try:
+                callable_obj = _load_python_callable(component_ref)
+                state_proxy = _build_state_proxy(payload)
+                result = _invoke_python_callable(callable_obj, state_proxy, node)
+                if isinstance(result, dict):
+                    return result
+                return {"review_decision": str(result)}
+            except Exception as exc:
+                return {
+                    "review_decision": str(payload.get("review_decision", "approve")),
+                    "status": "hitl_stub",
+                    "component_ref": component_ref,
+                    "reason": "python_callable_unresolved",
+                    "error": str(exc),
+                }
+
+        # Р”Р»СЏ workflow:// Рё РїСЂРѕС‡РёС… refs РїСЂРёРјРµРЅСЏРµРј С‚РѕС‚ Р¶Рµ fallback-РєРѕРЅС‚СЂР°РєС‚, С‡С‚Рѕ Рё РІ DSL runtime:
+        # Р±РµСЂРµРј `review_decision` РёР· payload (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ `approve`), С‡С‚РѕР±С‹ edge-СѓСЃР»РѕРІРёСЏ Р±С‹Р»Рё СЌРєРІРёРІР°Р»РµРЅС‚РЅС‹.
+        return {"review_decision": str(payload.get("review_decision", "approve"))}
+
 
 class _SafeDict(dict):
-    """Безопасный dict для prompt.format_map с placeholder fallback."""
+    """Р‘РµР·РѕРїР°СЃРЅС‹Р№ dict РґР»СЏ prompt.format_map СЃ placeholder fallback."""
 
     def __missing__(self, key: str) -> str:
-        """Возвращает `{key}`, если ключ не найден в payload."""
+        """Р’РѕР·РІСЂР°С‰Р°РµС‚ `{key}`, РµСЃР»Рё РєР»СЋС‡ РЅРµ РЅР°Р№РґРµРЅ РІ payload."""
 
         return "{" + key + "}"
 
 
 def load_native_workflow(*, graph_ir_file: Path, prompts_file: Path) -> NativeGraphWorkflow:
-    """Загружает standalone workflow из файлов graph_ir/prompts."""
+    """Р—Р°РіСЂСѓР¶Р°РµС‚ standalone workflow РёР· С„Р°Р№Р»РѕРІ graph_ir/prompts."""
 
     graph_payload = json.loads(graph_ir_file.read_text(encoding="utf-8"))
     prompts_payload = json.loads(prompts_file.read_text(encoding="utf-8"))
     if not isinstance(graph_payload, dict):
-        raise ValueError("graph_ir file должен быть JSON-объектом")
+        raise ValueError("graph_ir file РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ JSON-РѕР±СЉРµРєС‚РѕРј")
     if not isinstance(prompts_payload, dict):
-        raise ValueError("prompts file должен быть JSON-объектом")
+        raise ValueError("prompts file РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ JSON-РѕР±СЉРµРєС‚РѕРј")
     return NativeGraphWorkflow(
         NativeGraphConfig(
             graph_ir=graph_payload,
@@ -500,7 +554,7 @@ def load_native_workflow(*, graph_ir_file: Path, prompts_file: Path) -> NativeGr
 
 
 def _build_topological_order(graph_payload: dict[str, Any]) -> list[str]:
-    """Строит топологический порядок узлов и валидирует отсутствие циклов."""
+    """РЎС‚СЂРѕРёС‚ С‚РѕРїРѕР»РѕРіРёС‡РµСЃРєРёР№ РїРѕСЂСЏРґРѕРє СѓР·Р»РѕРІ Рё РІР°Р»РёРґРёСЂСѓРµС‚ РѕС‚СЃСѓС‚СЃС‚РІРёРµ С†РёРєР»РѕРІ."""
 
     nodes = graph_payload.get("nodes", [])
     edges = graph_payload.get("edges", [])
@@ -527,7 +581,7 @@ def _build_topological_order(graph_payload: dict[str, Any]) -> list[str]:
                 queue.append(nxt)
 
     if len(order) != len(node_ids):
-        raise ValueError("Graph IR содержит цикл; native export v0 не поддерживает циклические графы.")
+        raise ValueError("Graph IR СЃРѕРґРµСЂР¶РёС‚ С†РёРєР»; native export v0 РЅРµ РїРѕРґРґРµСЂР¶РёРІР°РµС‚ С†РёРєР»РёС‡РµСЃРєРёРµ РіСЂР°С„С‹.")
     return order
 
 
@@ -538,7 +592,7 @@ def _evaluate_condition(
     node_outputs: dict[str, Any],
     task_context: dict[str, Any],
 ) -> bool:
-    """Оценивает условие edge (`==` / `!=`) в минимальном контракте native export v0."""
+    """РћС†РµРЅРёРІР°РµС‚ СѓСЃР»РѕРІРёРµ edge (`==` / `!=`) РІ РјРёРЅРёРјР°Р»СЊРЅРѕРј РєРѕРЅС‚СЂР°РєС‚Рµ native export v0."""
 
     if condition is None:
         return True
@@ -568,7 +622,7 @@ def _resolve_variable(
     node_outputs: dict[str, Any],
     task_context: dict[str, Any],
 ) -> Any:
-    """Резолвит значение переменной из payload/task_context/node_outputs."""
+    """Р РµР·РѕР»РІРёС‚ Р·РЅР°С‡РµРЅРёРµ РїРµСЂРµРјРµРЅРЅРѕР№ РёР· payload/task_context/node_outputs."""
 
     if key in payload:
         return payload[key]
@@ -580,7 +634,7 @@ def _resolve_variable(
 
 
 def _parse_literal(raw: str) -> Any:
-    """Парсит строковый литерал условия в python-примитив."""
+    """РџР°СЂСЃРёС‚ СЃС‚СЂРѕРєРѕРІС‹Р№ Р»РёС‚РµСЂР°Р» СѓСЃР»РѕРІРёСЏ РІ python-РїСЂРёРјРёС‚РёРІ."""
 
     value = raw.strip()
     if value.startswith("'") and value.endswith("'") and len(value) >= 2:
@@ -601,27 +655,27 @@ def _parse_literal(raw: str) -> Any:
 
 
 def _load_python_callable(component_ref: str):
-    """Загружает python callable из ref `python://module:function`."""
+    """Р—Р°РіСЂСѓР¶Р°РµС‚ python callable РёР· ref `python://module:function`."""
 
     raw = component_ref[len("python://") :]
     if ":" not in raw:
-        raise ValueError(f"Некорректный python component_ref: {component_ref}")
+        raise ValueError(f"РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ python component_ref: {component_ref}")
     module_name, func_name = raw.split(":", 1)
     module = importlib.import_module(module_name)
     func = getattr(module, func_name, None)
     if not callable(func):
-        raise ValueError(f"Функция `{func_name}` не найдена в модуле `{module_name}`.")
+        raise ValueError(f"Р¤СѓРЅРєС†РёСЏ `{func_name}` РЅРµ РЅР°Р№РґРµРЅР° РІ РјРѕРґСѓР»Рµ `{module_name}`.")
     return func
 
 
 def _build_state_proxy(payload: dict[str, Any]) -> Any:
-    """Строит легковесный state-like объект для python callable контрактов."""
+    """РЎС‚СЂРѕРёС‚ Р»РµРіРєРѕРІРµСЃРЅС‹Р№ state-like РѕР±СЉРµРєС‚ РґР»СЏ python callable РєРѕРЅС‚СЂР°РєС‚РѕРІ."""
 
     return SimpleNamespace(payload=payload)
 
 
 def _invoke_python_callable(callable_obj: Any, state_proxy: Any, node: dict[str, Any]) -> Any:
-    """Вызывает python callable, поддерживая сигнатуры `(state,node)` и `(payload)`."""
+    """Р’С‹Р·С‹РІР°РµС‚ python callable, РїРѕРґРґРµСЂР¶РёРІР°СЏ СЃРёРіРЅР°С‚СѓСЂС‹ `(state,node)` Рё `(payload)`."""
 
     try:
         return callable_obj(state_proxy, node)
@@ -630,7 +684,7 @@ def _invoke_python_callable(callable_obj: Any, state_proxy: Any, node: dict[str,
 
 
 def _build_openrouter_gateway_if_available() -> OpenRouterChatModelGateway | None:
-    """Создает OpenRouter gateway, если API ключ доступен в окружении."""
+    """РЎРѕР·РґР°РµС‚ OpenRouter gateway, РµСЃР»Рё API РєР»СЋС‡ РґРѕСЃС‚СѓРїРµРЅ РІ РѕРєСЂСѓР¶РµРЅРёРё."""
 
     api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
     if not api_key:
@@ -642,9 +696,9 @@ def _build_openrouter_gateway_if_available() -> OpenRouterChatModelGateway | Non
 
 
 def _render_run_py() -> str:
-    """Формирует `app/run.py` для standalone запуска native workflow."""
+    """Р¤РѕСЂРјРёСЂСѓРµС‚ `app/run.py` РґР»СЏ standalone Р·Р°РїСѓСЃРєР° native workflow."""
 
-    return '''"""CLI запуска standalone native `langgraph-dai` агента."""
+    return '''"""CLI Р·Р°РїСѓСЃРєР° standalone native `langgraph-dai` Р°РіРµРЅС‚Р°."""
 
 from __future__ import annotations
 
@@ -656,7 +710,7 @@ from typing import Any
 
 
 def _bootstrap_import_path() -> None:
-    """Добавляет корень native package в `sys.path` для стабильного импорта `app.*`."""
+    """Р”РѕР±Р°РІР»СЏРµС‚ РєРѕСЂРµРЅСЊ native package РІ `sys.path` РґР»СЏ СЃС‚Р°Р±РёР»СЊРЅРѕРіРѕ РёРјРїРѕСЂС‚Р° `app.*`."""
 
     current = Path(__file__).resolve()
     root = current.parents[1]
@@ -670,18 +724,18 @@ from app.workflow import NativeAgentState, load_native_workflow
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """Создает CLI-парсер аргументов standalone запуска."""
+    """РЎРѕР·РґР°РµС‚ CLI-РїР°СЂСЃРµСЂ Р°СЂРіСѓРјРµРЅС‚РѕРІ standalone Р·Р°РїСѓСЃРєР°."""
 
     parser = argparse.ArgumentParser(description="Run standalone native langgraph-dai agent")
-    parser.add_argument("--payload-json", default="{}", help="JSON-объект входного payload")
-    parser.add_argument("--payload-file", default="", help="Путь до JSON-файла payload")
-    parser.add_argument("--task-id", default="native-task", help="task_id для task_context")
-    parser.add_argument("--pretty", action="store_true", help="Вывести pretty JSON")
+    parser.add_argument("--payload-json", default="{}", help="JSON-РѕР±СЉРµРєС‚ РІС…РѕРґРЅРѕРіРѕ payload")
+    parser.add_argument("--payload-file", default="", help="РџСѓС‚СЊ РґРѕ JSON-С„Р°Р№Р»Р° payload")
+    parser.add_argument("--task-id", default="native-task", help="task_id РґР»СЏ task_context")
+    parser.add_argument("--pretty", action="store_true", help="Р’С‹РІРµСЃС‚Рё pretty JSON")
     return parser
 
 
 def _parse_payload(args: argparse.Namespace) -> dict[str, Any]:
-    """Разрешает payload из файла или inline JSON-аргумента."""
+    """Р Р°Р·СЂРµС€Р°РµС‚ payload РёР· С„Р°Р№Р»Р° РёР»Рё inline JSON-Р°СЂРіСѓРјРµРЅС‚Р°."""
 
     if args.payload_file:
         payload_raw = Path(args.payload_file).resolve().read_text(encoding="utf-8-sig")
@@ -689,12 +743,12 @@ def _parse_payload(args: argparse.Namespace) -> dict[str, Any]:
     else:
         payload = json.loads(args.payload_json)
     if not isinstance(payload, dict):
-        raise ValueError("payload должен быть JSON-объектом")
+        raise ValueError("payload РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ JSON-РѕР±СЉРµРєС‚РѕРј")
     return payload
 
 
 def main() -> None:
-    """Запускает standalone native workflow и печатает итоговое состояние."""
+    """Р—Р°РїСѓСЃРєР°РµС‚ standalone native workflow Рё РїРµС‡Р°С‚Р°РµС‚ РёС‚РѕРіРѕРІРѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ."""
 
     parser = build_parser()
     args = parser.parse_args()
@@ -729,32 +783,35 @@ if __name__ == "__main__":
 
 
 def _render_readme() -> str:
-    """Формирует README для standalone native export пакета."""
+    """Р¤РѕСЂРјРёСЂСѓРµС‚ README РґР»СЏ standalone native export РїР°РєРµС‚Р°."""
 
     return """# Native Agent Export (langgraph-dai)
 
-Этот пакет сгенерирован AutoAgent Optimizer как standalone runtime artifact.
+Р­С‚РѕС‚ РїР°РєРµС‚ СЃРіРµРЅРµСЂРёСЂРѕРІР°РЅ AutoAgent Optimizer РєР°Рє standalone runtime artifact.
 
-## Особенности v0
+## РћСЃРѕР±РµРЅРЅРѕСЃС‚Рё v0
 
-1. Не содержит импортов `optimizer.*`.
-2. Выполняется на `framework`/`infra.openrouter` контрактах `langgraph-dai`.
-3. Поддерживает node kinds:
+1. РќРµ СЃРѕРґРµСЂР¶РёС‚ РёРјРїРѕСЂС‚РѕРІ `optimizer.*`.
+2. Р’С‹РїРѕР»РЅСЏРµС‚СЃСЏ РЅР° `framework`/`infra.openrouter` РєРѕРЅС‚СЂР°РєС‚Р°С… `langgraph-dai`.
+3. РџРѕРґРґРµСЂР¶РёРІР°РµС‚ node kinds:
    - `llm`
    - `deterministic`
+   - `tool`
    - `validator`
+   - `hitl_gate`
 
-## Установка зависимостей
+## РЈСЃС‚Р°РЅРѕРІРєР° Р·Р°РІРёСЃРёРјРѕСЃС‚РµР№
 
 ```powershell
 python -m pip install -r .\\requirements.txt
 ```
 
-## Запуск
+## Р—Р°РїСѓСЃРє
 
 ```powershell
-'{"draft_post":"В этом посте много AI-штампов. Нужна живая редактура без потери фактов."}' | Set-Content -LiteralPath .\\payload.json -Encoding UTF8
+'{"draft_post":"Р’ СЌС‚РѕРј РїРѕСЃС‚Рµ РјРЅРѕРіРѕ AI-С€С‚Р°РјРїРѕРІ. РќСѓР¶РЅР° Р¶РёРІР°СЏ СЂРµРґР°РєС‚СѓСЂР° Р±РµР· РїРѕС‚РµСЂРё С„Р°РєС‚РѕРІ."}' | Set-Content -LiteralPath .\\payload.json -Encoding UTF8
 python .\\app\\run.py --payload-file .\\payload.json --pretty
 ```
 
 """
+

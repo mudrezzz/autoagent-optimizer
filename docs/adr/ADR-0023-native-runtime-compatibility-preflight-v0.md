@@ -41,5 +41,5 @@
 
 Следующий шаг — не degradation policy, а устранение несовместимости:
 
-1. `I4.S6a`: canonical DSL->native parity для stylizer профиля (включая `hitl_gate` семантику),
-2. затем `I4.S6/I4.S7`: расширение bindings и CI parity gate.
+1. `I4.S6a`: canonical DSL->native parity для stylizer профиля (включая `hitl_gate` семантику) — выполнено,
+2. далее `I4.S6/I4.S7`: расширение bindings и CI parity gate.

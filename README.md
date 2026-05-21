@@ -6,8 +6,8 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 
 - `Phase`: MVP-2 transition (evaluation fabric bootstrap)
 - `Iteration`: I4/I5 bridge - Native Parity + Evaluation Fabric
-- `Overall`: In Progress (I1.S1-I5.S2a done)
-- `Next Slice`: I4.S6a Canonical DSL->Native parity for stylizer v0
+- `Overall`: In Progress (I1.S1-I5.S2a + I4.S6 done)
+- `Next Slice`: I4.S7 DSL-vs-native parity harness + CI gate
 
 РџРѕРґСЂРѕР±РЅС‹Р№ СЃС‚Р°С‚СѓСЃ:
 
@@ -310,11 +310,11 @@ Native target:
 python -m optimizer.evaluation.run_profile --profile-file .\examples\profiles\stylizer_profile_ci_v0.yaml --target native_runtime --pretty
 ```
 
-Важно (текущий статус на 2026-05-19):
+Важно (текущий статус на 2026-05-21):
 
-1. canonical `stylizer_profile_ci_v0` в `native_runtime` теперь блокируется preflight-ом с structured error `native_compatibility_preflight_failed`.
-2. `I5.S2a` закрыт: есть compatibility report по participants до native запуска.
-3. workaround policy `skip_unsupported` отклонен; следующий шаг — `I4.S6a` (устранить несовместимость по существу и добиться DSL==Native на canonical profile).
+1. canonical `stylizer_profile_ci_v0` успешно запускается на `native_runtime` (DSL->Native parity для demo-critical пути достигнут в `I4.S6a`).
+2. preflight сохраняется как fail-fast guard для реально неразрешимых source/binding проблем (например broken graph source или unresolved callable).
+3. workaround policy `skip_unsupported` отклонен; следующий шаг — `I4.S7` (автоматический parity harness и CI gate).
 
 Smoke-прогон profile-driven path:
 
@@ -384,6 +384,7 @@ python -m optimizer.renderer.langgraph_dai.run --dsl-file .\examples\dsl\hitl_ga
 4. Для более высокого качества на финальных full-прогонах можно временно переключаться на более сильную модель.
 
 Р’Р°Р¶РЅРѕ: `.env` РґРѕР±Р°РІР»РµРЅ РІ `.gitignore` Рё РЅРµ РґРѕР»Р¶РµРЅ РїРѕРїР°РґР°С‚СЊ РІ git.
+
 
 
 

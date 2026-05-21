@@ -1,10 +1,10 @@
-# System Architecture Overview
+﻿# System Architecture Overview
 
 ## Purpose
 
-`AutoAgent Optimizer` - control plane для поиска и оптимизации архитектур compound AI systems.
+`AutoAgent Optimizer` - control plane РґР»СЏ РїРѕРёСЃРєР° Рё РѕРїС‚РёРјРёР·Р°С†РёРё Р°СЂС…РёС‚РµРєС‚СѓСЂ compound AI systems.
 
-Ключевой runtime target на MVP: LangGraph через библиотечную интеграцию `langgraph-dai`.
+РљР»СЋС‡РµРІРѕР№ runtime target РЅР° MVP: LangGraph С‡РµСЂРµР· Р±РёР±Р»РёРѕС‚РµС‡РЅСѓСЋ РёРЅС‚РµРіСЂР°С†РёСЋ `langgraph-dai`.
 
 ## Architectural Principles
 
@@ -66,12 +66,12 @@ Input (Task + Constraints + Data + Tools + Budget)
 
 ## External Dependency Strategy
 
-`langgraph-document-ai-platform` используется как внешний framework reference и library dependency.
+`langgraph-document-ai-platform` РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РєР°Рє РІРЅРµС€РЅРёР№ framework reference Рё library dependency.
 
 - Integration mode: `Install as a Library` (`langgraph-dai` package).
 - Version policy: pin to explicit tag for reproducibility.
-- Coupling rule: избегаем прямой зависимости на нестабильные internal API через adapter boundary в нашем коде.
-- Export rule: winner runtime artifact не должен зависеть от `optimizer.*` в production запуске.
+- Coupling rule: РёР·Р±РµРіР°РµРј РїСЂСЏРјРѕР№ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РЅР° РЅРµСЃС‚Р°Р±РёР»СЊРЅС‹Рµ internal API С‡РµСЂРµР· adapter boundary РІ РЅР°С€РµРј РєРѕРґРµ.
+- Export rule: winner runtime artifact РЅРµ РґРѕР»Р¶РµРЅ Р·Р°РІРёСЃРµС‚СЊ РѕС‚ `optimizer.*` РІ production Р·Р°РїСѓСЃРєРµ.
 
 ## Core Internal Modules (Planned)
 
@@ -92,15 +92,15 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.dsl.schema` (typed DSL v0),
    - `optimizer.dsl.io` (YAML loading + validation),
    - `optimizer.dsl.validate` (CLI smoke validation),
-   - `examples/dsl/*` (3 базовых сценария),
+   - `examples/dsl/*` (3 Р±Р°Р·РѕРІС‹С… СЃС†РµРЅР°СЂРёСЏ),
    - `optimizer.graph_ir.models` (typed Graph IR v0),
    - `optimizer.graph_ir.validators` (start/end/edge/reachability checks),
    - `optimizer.graph_ir.validate` (CLI smoke validation),
-   - `examples/graph_ir/*` (3 референсных Graph IR сценария),
+   - `examples/graph_ir/*` (3 СЂРµС„РµСЂРµРЅСЃРЅС‹С… Graph IR СЃС†РµРЅР°СЂРёСЏ),
    - `optimizer.dsl.compiler` (DSL -> Graph IR compile),
    - `optimizer.dsl.compile_report` (node mapping + issues),
    - `optimizer.dsl.compile` (CLI compile path),
-   - `optimizer.renderer.langgraph_dai.workflow` (исполняемый runtime workflow),
+   - `optimizer.renderer.langgraph_dai.workflow` (РёСЃРїРѕР»РЅСЏРµРјС‹Р№ runtime workflow),
    - `optimizer.renderer.langgraph_dai.adapter` (IR -> BaseWorkflow adapter),
    - `optimizer.renderer.langgraph_dai.run` (CLI runtime execution),
    - `optimizer.codegen.agent_generator` (Graph IR -> generated runnable package),
@@ -111,9 +111,9 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.evaluation.dataset_schema` (golden dataset typed contract),
    - `optimizer.evaluation.dataset_loader` (JSONL loader with line diagnostics),
    - `optimizer.evaluation.validate_dataset` (CLI dataset validation),
-   - `optimizer.evaluation.oracle_rules` (v0 правила `must_include/forbidden`),
-   - `optimizer.evaluation.oracle_runner` (исполняемый runner и summary),
-   - `optimizer.evaluation.run_oracle` (CLI oracle прогона),
+   - `optimizer.evaluation.oracle_rules` (v0 РїСЂР°РІРёР»Р° `must_include/forbidden`),
+   - `optimizer.evaluation.oracle_runner` (РёСЃРїРѕР»РЅСЏРµРјС‹Р№ runner Рё summary),
+   - `optimizer.evaluation.run_oracle` (CLI oracle РїСЂРѕРіРѕРЅР°),
    - `Evaluation Profile` design direction (task-specific metrics/evaluator contracts),
    - `optimizer.evaluation.profile_schema` (typed evaluation profile contract v0),
    - `optimizer.evaluation.profile_io` (YAML loading + validation for profile),
@@ -121,11 +121,11 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.evaluation.native_compatibility` (native target preflight compatibility report + strict blocking),
    - `optimizer.evaluation.run_profile` (CLI profile-driven run path),
    - `optimizer.arena.tournament_schema` (typed contract config-driven `budget`/`ranking`/`evaluator` policies),
-   - `optimizer.arena.runner` (config-driven tournament execution и ranking),
+   - `optimizer.arena.runner` (config-driven tournament execution Рё ranking),
    - `optimizer.arena.run_tournament` (CLI tournament compare path),
-   - `optimizer.metrics.middle_metrics` (middle-метрики и latency/cost агрегаты),
+   - `optimizer.metrics.middle_metrics` (middle-РјРµС‚СЂРёРєРё Рё latency/cost Р°РіСЂРµРіР°С‚С‹),
    - `optimizer.arena` scoring path (`composite_score`, `score_breakdown`, config-driven weights),
-   - `optimizer.metrics.diagnostic_signals` (stage-level diagnostic signals и bottleneck score),
+   - `optimizer.metrics.diagnostic_signals` (stage-level diagnostic signals Рё bottleneck score),
    - `optimizer.arena` dual output contract (`comparison` + `diagnostics`).
    - stylizer demo dataset v1 expanded to multi-case full profile (`examples/datasets/golden_linkedin_stylizer_v1.jsonl`),
    - arena budget profiles (`smoke`/`full`) via dedicated configs (`support_tournament*_v0.yaml`),
@@ -135,13 +135,14 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.champion` (Champion Export Bundle v0: arena/evidence/diagnostic/codegen bundle + manifest).
    - `optimizer.champion.native_export` (standalone `langgraph-dai` native runtime export v0).
 2. Next:
-   - Native export independence track (`I4.S6a`-`I4.S8`) with canonical DSL->native parity first,
+   - Native export independence track (`I4.S7`-`I4.S8`) with parity harness and CI guardrails,
    - Evaluation Fabric & MetricOps (`I5.*`) including post-export native evaluation loop.
 
 ## Decision Records
 
-Архитектурные решения фиксируются в:
+РђСЂС…РёС‚РµРєС‚СѓСЂРЅС‹Рµ СЂРµС€РµРЅРёСЏ С„РёРєСЃРёСЂСѓСЋС‚СЃСЏ РІ:
 
 - [docs/adr/README.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/README.md)
 
-Изменение архитектурного направления без ADR не допускается.
+РР·РјРµРЅРµРЅРёРµ Р°СЂС…РёС‚РµРєС‚СѓСЂРЅРѕРіРѕ РЅР°РїСЂР°РІР»РµРЅРёСЏ Р±РµР· ADR РЅРµ РґРѕРїСѓСЃРєР°РµС‚СЃСЏ.
+

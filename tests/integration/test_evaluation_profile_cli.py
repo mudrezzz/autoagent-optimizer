@@ -1,4 +1,4 @@
-"""Integration-тесты CLI запуска Evaluation Profile v0."""
+﻿"""Integration-С‚РµСЃС‚С‹ CLI Р·Р°РїСѓСЃРєР° Evaluation Profile v0."""
 
 from __future__ import annotations
 
@@ -11,14 +11,14 @@ import pytest
 
 
 def _project_root() -> Path:
-    """Возвращает абсолютный путь до корня проекта."""
+    """Р’РѕР·РІСЂР°С‰Р°РµС‚ Р°Р±СЃРѕР»СЋС‚РЅС‹Р№ РїСѓС‚СЊ РґРѕ РєРѕСЂРЅСЏ РїСЂРѕРµРєС‚Р°."""
 
     return Path(__file__).resolve().parents[2]
 
 
 @pytest.mark.integration
 def test_evaluation_profile_cli_runs_dsl_target_from_examples() -> None:
-    """Проверяет успешный CLI-запуск example profile на `dsl_runtime` target."""
+    """РџСЂРѕРІРµСЂСЏРµС‚ СѓСЃРїРµС€РЅС‹Р№ CLI-Р·Р°РїСѓСЃРє example profile РЅР° `dsl_runtime` target."""
 
     profile_file = _project_root() / "examples" / "profiles" / "stylizer_profile_ci_v0.yaml"
     proc = subprocess.run(
@@ -52,7 +52,7 @@ def test_evaluation_profile_cli_runs_dsl_target_from_examples() -> None:
 
 @pytest.mark.integration
 def test_evaluation_profile_cli_runs_native_target_with_temp_profile(tmp_path: Path) -> None:
-    """Проверяет запуск `native_runtime` target на минимальном временном профиле."""
+    """РџСЂРѕРІРµСЂСЏРµС‚ Р·Р°РїСѓСЃРє `native_runtime` target РЅР° РјРёРЅРёРјР°Р»СЊРЅРѕРј РІСЂРµРјРµРЅРЅРѕРј РїСЂРѕС„РёР»Рµ."""
 
     dataset_file = tmp_path / "dataset.jsonl"
     dataset_file.write_text(
@@ -61,7 +61,7 @@ def test_evaluation_profile_cli_runs_native_target_with_temp_profile(tmp_path: P
                 json.dumps(
                     {
                         "case_id": "case-1",
-                        "input": {"query": "Сформируй короткий ответ"},
+                        "input": {"query": "РЎС„РѕСЂРјРёСЂСѓР№ РєРѕСЂРѕС‚РєРёР№ РѕС‚РІРµС‚"},
                         "expected": {"must_include": ["[mock-llm]"], "forbidden": []},
                         "tags": ["smoke"],
                     },
@@ -70,7 +70,7 @@ def test_evaluation_profile_cli_runs_native_target_with_temp_profile(tmp_path: P
                 json.dumps(
                     {
                         "case_id": "case-2",
-                        "input": {"query": "Еще один короткий ответ"},
+                        "input": {"query": "Р•С‰Рµ РѕРґРёРЅ РєРѕСЂРѕС‚РєРёР№ РѕС‚РІРµС‚"},
                         "expected": {"must_include": ["[mock-llm]"], "forbidden": []},
                         "tags": ["smoke"],
                     },
@@ -161,8 +161,8 @@ def test_evaluation_profile_cli_runs_native_target_with_temp_profile(tmp_path: P
 
 
 @pytest.mark.integration
-def test_evaluation_profile_cli_returns_structured_preflight_error_for_incompatible_native_profile() -> None:
-    """Проверяет, что несовместимый native profile блокируется preflight-ошибкой с structured payload."""
+def test_evaluation_profile_cli_runs_canonical_stylizer_on_native_target() -> None:
+    """РџСЂРѕРІРµСЂСЏРµС‚, С‡С‚Рѕ canonical stylizer profile Р·Р°РїСѓСЃРєР°РµС‚СЃСЏ РЅР° native target Р±РµР· preflight block."""
 
     profile_file = _project_root() / "examples" / "profiles" / "stylizer_profile_ci_v0.yaml"
     proc = subprocess.run(
@@ -181,12 +181,90 @@ def test_evaluation_profile_cli_returns_structured_preflight_error_for_incompati
         cwd=_project_root(),
         check=False,
     )
-    assert proc.returncode == 1
-    payload = json.loads(proc.stderr)
-    assert payload["error_type"] == "native_compatibility_preflight_failed"
+    assert proc.returncode == 0, proc.stderr
+    payload = json.loads(proc.stdout)
+    assert payload["profile_id"] == "stylizer_profile_ci_v0"
+    assert payload["execution_target"] == "native_runtime"
     assert payload["preflight"]["target"] == "native_runtime"
-    assert payload["preflight"]["can_execute_native"] is False
-    assert payload["preflight"]["incompatible_total"] >= 1
-    incompatible = [item for item in payload["preflight"]["participants"] if item["compatible"] is False]
-    assert incompatible
-    assert any(issue["kind"] == "hitl_gate" for item in incompatible for issue in item["issues"])
+    assert payload["preflight"]["can_execute_native"] is True
+    assert payload["preflight"]["incompatible_total"] == 0
+    assert payload["result"]["execution_mode"] == "native_runtime"
+    assert payload["result"]["cases_budget"] == 4
+    assert len(payload["result"]["participants"]) == 3
+    assert payload["result"]["winner_id"] in {
+        "style_direct_candidate",
+        "style_pattern_cleaner_candidate",
+        "style_hitl_reviewer_candidate",
+    }
+
+
+
+@pytest.mark.integration
+def test_evaluation_profile_cli_runs_native_profile_with_tool_participant(
+    tmp_path: Path,
+) -> None:
+    """Проверяет запуск native profile с `tool` participant после добавления native tool binding."""
+
+    dsl_ok = _project_root() / "examples" / "dsl" / "direct_llm.yaml"
+    dsl_tool = _project_root() / "examples" / "dsl" / "ocr_first.yaml"
+    profile_file = tmp_path / "native_tool_compatible_profile.yaml"
+    profile_file.write_text(
+        "\n".join(
+            [
+                "version: evaluation_profile_v0",
+                "profile_id: native_tool_compatible_profile_v0",
+                "task_type: mixed_native_preflight",
+                "supported_targets:",
+                "  - native_runtime",
+                "default_target: native_runtime",
+                f"dataset_file: {(_project_root() / 'examples' / 'datasets' / 'golden_support_v1.jsonl').as_posix()}",
+                "evaluators:",
+                "  - evaluator_type: golden_oracle",
+                "    config: {}",
+                "    budget: {}",
+                "comparative_metrics:",
+                "  - metric_id: pass_rate",
+                "    direction: desc",
+                "    weight: 1.0",
+                "    source: golden_oracle",
+                "diagnostic_signals:",
+                "  - signal_id: diag_native",
+                "    stage_scope: validate",
+                "    aggregation: sum",
+                "participants:",
+                "  - participant_id: ok_candidate",
+                f"    dsl_file: {dsl_ok.as_posix()}",
+                "    stub_behavior: perfect",
+                "  - participant_id: tool_candidate",
+                f"    dsl_file: {dsl_tool.as_posix()}",
+                "    stub_behavior: fail_all",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "optimizer.evaluation.run_profile",
+            "--profile-file",
+            str(profile_file),
+            "--target",
+            "native_runtime",
+            "--pretty",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=_project_root(),
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stderr
+    payload = json.loads(proc.stdout)
+    assert payload["profile_id"] == "native_tool_compatible_profile_v0"
+    assert payload["execution_target"] == "native_runtime"
+    assert payload["preflight"]["target"] == "native_runtime"
+    assert payload["preflight"]["can_execute_native"] is True
+    assert payload["preflight"]["incompatible_total"] == 0
+    assert payload["result"]["execution_mode"] == "native_runtime"
+    assert len(payload["result"]["participants"]) == 2

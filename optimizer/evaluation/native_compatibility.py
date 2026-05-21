@@ -1,4 +1,4 @@
-"""Preflight-проверка совместимости evaluation profile с native runtime target."""
+﻿"""Preflight-РїСЂРѕРІРµСЂРєР° СЃРѕРІРјРµСЃС‚РёРјРѕСЃС‚Рё evaluation profile СЃ native runtime target."""
 
 from __future__ import annotations
 
@@ -11,17 +11,19 @@ from optimizer.evaluation.profile_schema import EvaluationProfileSpec
 from optimizer.graph_ir.io import load_graph_ir_spec
 from optimizer.graph_ir.models import GraphIRSpec, GraphNodeKind
 
-# Поддерживаемые node kinds в native exporter v0.
+# РџРѕРґРґРµСЂР¶РёРІР°РµРјС‹Рµ node kinds РІ native exporter v0.
 SUPPORTED_NATIVE_NODE_KINDS = {
     GraphNodeKind.LLM,
     GraphNodeKind.DETERMINISTIC,
+    GraphNodeKind.TOOL,
     GraphNodeKind.VALIDATOR,
+    GraphNodeKind.HITL_GATE,
 }
 
 
 @dataclass(frozen=True)
 class NativeCompatibilityIssue:
-    """Описывает одну проблему совместимости participant-а с native runtime target."""
+    """РћРїРёСЃС‹РІР°РµС‚ РѕРґРЅСѓ РїСЂРѕР±Р»РµРјСѓ СЃРѕРІРјРµСЃС‚РёРјРѕСЃС‚Рё participant-Р° СЃ native runtime target."""
 
     node_id: str
     kind: str
@@ -30,7 +32,7 @@ class NativeCompatibilityIssue:
     recommendation: str
 
     def to_payload(self) -> dict[str, str]:
-        """Преобразует issue в JSON-совместимую структуру."""
+        """РџСЂРµРѕР±СЂР°Р·СѓРµС‚ issue РІ JSON-СЃРѕРІРјРµСЃС‚РёРјСѓСЋ СЃС‚СЂСѓРєС‚СѓСЂСѓ."""
 
         return {
             "node_id": self.node_id,
@@ -43,7 +45,7 @@ class NativeCompatibilityIssue:
 
 @dataclass(frozen=True)
 class NativeParticipantCompatibilityResult:
-    """Результат preflight-проверки одного participant-а."""
+    """Р РµР·СѓР»СЊС‚Р°С‚ preflight-РїСЂРѕРІРµСЂРєРё РѕРґРЅРѕРіРѕ participant-Р°."""
 
     participant_id: str
     source_kind: str
@@ -53,7 +55,7 @@ class NativeParticipantCompatibilityResult:
     message: str = ""
 
     def to_payload(self) -> dict[str, Any]:
-        """Преобразует participant-level результат preflight в JSON."""
+        """РџСЂРµРѕР±СЂР°Р·СѓРµС‚ participant-level СЂРµР·СѓР»СЊС‚Р°С‚ preflight РІ JSON."""
 
         return {
             "participant_id": self.participant_id,
@@ -67,7 +69,7 @@ class NativeParticipantCompatibilityResult:
 
 @dataclass(frozen=True)
 class NativeCompatibilityPreflightReport:
-    """Сводный preflight-отчет совместимости profile с native runtime target."""
+    """РЎРІРѕРґРЅС‹Р№ preflight-РѕС‚С‡РµС‚ СЃРѕРІРјРµСЃС‚РёРјРѕСЃС‚Рё profile СЃ native runtime target."""
 
     target: str
     mode: str
@@ -79,12 +81,12 @@ class NativeCompatibilityPreflightReport:
 
     @property
     def can_execute_native(self) -> bool:
-        """Показывает, можно ли безопасно запускать native-runtime evaluation."""
+        """РџРѕРєР°Р·С‹РІР°РµС‚, РјРѕР¶РЅРѕ Р»Рё Р±РµР·РѕРїР°СЃРЅРѕ Р·Р°РїСѓСЃРєР°С‚СЊ native-runtime evaluation."""
 
         return self.incompatible_total == 0
 
     def to_payload(self) -> dict[str, Any]:
-        """Преобразует preflight-отчет в JSON-совместимую структуру."""
+        """РџСЂРµРѕР±СЂР°Р·СѓРµС‚ preflight-РѕС‚С‡РµС‚ РІ JSON-СЃРѕРІРјРµСЃС‚РёРјСѓСЋ СЃС‚СЂСѓРєС‚СѓСЂСѓ."""
 
         return {
             "target": self.target,
@@ -100,14 +102,14 @@ class NativeCompatibilityPreflightReport:
 
 
 class NativeCompatibilityPreflightError(ValueError):
-    """Ошибка preflight, блокирующая запуск native target при несовместимости профиля."""
+    """РћС€РёР±РєР° preflight, Р±Р»РѕРєРёСЂСѓСЋС‰Р°СЏ Р·Р°РїСѓСЃРє native target РїСЂРё РЅРµСЃРѕРІРјРµСЃС‚РёРјРѕСЃС‚Рё РїСЂРѕС„РёР»СЏ."""
 
     def __init__(self, *, report: NativeCompatibilityPreflightReport) -> None:
-        """Инициализирует ошибку и сохраняет structured preflight report."""
+        """РРЅРёС†РёР°Р»РёР·РёСЂСѓРµС‚ РѕС€РёР±РєСѓ Рё СЃРѕС…СЂР°РЅСЏРµС‚ structured preflight report."""
 
         self.report = report
         super().__init__(
-            "Native runtime preflight failed: профиль содержит participants с неподдержанными node kinds."
+            "Native runtime preflight failed: РїСЂРѕС„РёР»СЊ СЃРѕРґРµСЂР¶РёС‚ participants СЃ РЅРµРїРѕРґРґРµСЂР¶Р°РЅРЅС‹РјРё node kinds."
         )
 
 
@@ -116,7 +118,7 @@ def build_native_compatibility_preflight_report(
     profile: EvaluationProfileSpec,
     profile_file_dir: Path,
 ) -> NativeCompatibilityPreflightReport:
-    """Собирает preflight-отчет совместимости profile для `native_runtime` target."""
+    """РЎРѕР±РёСЂР°РµС‚ preflight-РѕС‚С‡РµС‚ СЃРѕРІРјРµСЃС‚РёРјРѕСЃС‚Рё profile РґР»СЏ `native_runtime` target."""
 
     participant_results: list[NativeParticipantCompatibilityResult] = []
     for participant in profile.participants:
@@ -137,11 +139,11 @@ def build_native_compatibility_preflight_report(
                             component_ref="",
                             reason=str(exc),
                             recommendation=(
-                                "Исправьте source-файл participant-а или временно исключите его из native profile."
+                                "РСЃРїСЂР°РІСЊС‚Рµ source-С„Р°Р№Р» participant-Р° РёР»Рё РІСЂРµРјРµРЅРЅРѕ РёСЃРєР»СЋС‡РёС‚Рµ РµРіРѕ РёР· native profile."
                             ),
                         )
                     ],
-                    message="Не удалось резолвить Graph IR participant-а для native preflight.",
+                    message="РќРµ СѓРґР°Р»РѕСЃСЊ СЂРµР·РѕР»РІРёС‚СЊ Graph IR participant-Р° РґР»СЏ native preflight.",
                 )
             )
             continue
@@ -157,7 +159,7 @@ def build_native_compatibility_preflight_report(
                     source_path=source_path,
                     compatible=True,
                     issues=[],
-                    message="Participant совместим с native exporter v0.",
+                    message="Participant СЃРѕРІРјРµСЃС‚РёРј СЃ native exporter v0.",
                 )
             )
             continue
@@ -167,10 +169,10 @@ def build_native_compatibility_preflight_report(
                 node_id=node.id,
                 kind=node.kind.value,
                 component_ref=node.component_ref,
-                reason=f"Node kind `{node.kind.value}` не поддержан native exporter v0.",
+                reason=f"Node kind `{node.kind.value}` РЅРµ РїРѕРґРґРµСЂР¶Р°РЅ native exporter v0.",
                 recommendation=(
-                    "Удалите/замените узел для native target, запускайте этот participant на dsl_runtime "
-                    "или дождитесь расширения поддержки native bindings (I4.S6+)."
+                    "Уберите или замените узел для native target, либо запустите participant на dsl_runtime. "
+                    "Проверьте, что node kind входит в capability matrix native exporter."
                 ),
             )
             for node in unsupported_nodes
@@ -182,7 +184,7 @@ def build_native_compatibility_preflight_report(
                 source_path=source_path,
                 compatible=False,
                 issues=issues,
-                message="Participant несовместим с native exporter v0 из-за unsupported node kinds.",
+                message="Participant РЅРµСЃРѕРІРјРµСЃС‚РёРј СЃ native exporter v0 РёР·-Р·Р° unsupported node kinds.",
             )
         )
 
@@ -200,7 +202,7 @@ def build_native_compatibility_preflight_report(
 
 
 def _resolve_participant_graph_ir(*, participant: Any, base_dir: Path) -> GraphIRSpec:
-    """Резолвит Graph IR participant-а напрямую или через компиляцию DSL."""
+    """Р РµР·РѕР»РІРёС‚ Graph IR participant-Р° РЅР°РїСЂСЏРјСѓСЋ РёР»Рё С‡РµСЂРµР· РєРѕРјРїРёР»СЏС†РёСЋ DSL."""
 
     if str(participant.graph_ir_file).strip():
         return load_graph_ir_spec(_resolve_path(base_dir, participant.graph_ir_file))
@@ -209,13 +211,13 @@ def _resolve_participant_graph_ir(*, participant: Any, base_dir: Path) -> GraphI
     compile_result = compiler.compile_file(_resolve_path(base_dir, participant.dsl_file))
     if compile_result.graph_ir is None:
         raise ValueError(
-            f"Не удалось скомпилировать DSL участника `{participant.participant_id}`: {compile_result.report.summary()}"
+            f"РќРµ СѓРґР°Р»РѕСЃСЊ СЃРєРѕРјРїРёР»РёСЂРѕРІР°С‚СЊ DSL СѓС‡Р°СЃС‚РЅРёРєР° `{participant.participant_id}`: {compile_result.report.summary()}"
         )
     return compile_result.graph_ir
 
 
 def _participant_source(*, participant: Any, base_dir: Path) -> tuple[str, str]:
-    """Возвращает source kind/path participant-а для preflight отчета."""
+    """Р’РѕР·РІСЂР°С‰Р°РµС‚ source kind/path participant-Р° РґР»СЏ preflight РѕС‚С‡РµС‚Р°."""
 
     if str(participant.graph_ir_file).strip():
         return "graph_ir", str(_resolve_path(base_dir, participant.graph_ir_file))
@@ -223,9 +225,10 @@ def _participant_source(*, participant: Any, base_dir: Path) -> tuple[str, str]:
 
 
 def _resolve_path(base_dir: Path, path_value: str) -> Path:
-    """Резолвит абсолютный путь или путь относительно директории profile."""
+    """Р РµР·РѕР»РІРёС‚ Р°Р±СЃРѕР»СЋС‚РЅС‹Р№ РїСѓС‚СЊ РёР»Рё РїСѓС‚СЊ РѕС‚РЅРѕСЃРёС‚РµР»СЊРЅРѕ РґРёСЂРµРєС‚РѕСЂРёРё profile."""
 
     path = Path(path_value)
     if path.is_absolute():
         return path
     return (base_dir / path).resolve()
+
