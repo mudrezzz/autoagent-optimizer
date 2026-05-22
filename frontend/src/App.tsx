@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { fetchCapabilityCatalog, fetchStubCapability, runC1ValidateCompile } from "./api";
-import type { C1SuccessPayload, Capability, CompileIssue, ErrorPayload } from "./types";
+import {
+  createProject,
+  createWorkspace,
+  fetchCapabilityCatalog,
+  fetchStubCapability,
+  getProject,
+  listProjects,
+  listWorkspaces,
+} from "./api";
+import type { Capability, ProjectRecord, StubPayload, WorkspaceRecord } from "./types";
 import { exportJsonToFile, makeTimestampedFileName, prettyJson } from "./utils";
 
 declare global {
@@ -12,142 +20,231 @@ declare global {
   }
 }
 
-// Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: fallback-РєР°С‚Р°Р»РѕРі, РµСЃР»Рё backend capability API РІСЂРµРјРµРЅРЅРѕ РЅРµРґРѕСЃС‚СѓРїРµРЅ.
+// Русский комментарий: fallback-каталог на случай временной недоступности capability API.
 const FALLBACK_CAPABILITIES: Capability[] = [
   {
     id: "c1",
-    name: "DSL/IR Studio",
-    description: "Validate DSL and compile Graph IR.",
+    name: "Workspace & Projects",
+    description: "Manage workspaces and projects.",
     status: "enabled",
     badge_count: 1,
   },
   {
     id: "c2",
-    name: "Runtime Run",
-    description: "Workflow execution and trace.",
+    name: "Task Chat + Candidates",
+    description: "Planned slice for chat-driven candidate generation.",
     status: "planned",
     badge_count: 0,
   },
   {
     id: "c3",
-    name: "Evaluation Profile",
-    description: "Profile-based evaluation.",
+    name: "Pattern Library + RAG",
+    description: "Planned slice for pattern retrieval and controls.",
     status: "planned",
     badge_count: 0,
   },
   {
     id: "c4",
-    name: "Arena Ranking",
-    description: "Compare candidates.",
+    name: "Dataset & Metrics Studio",
+    description: "Planned slice for datasets and evaluators.",
     status: "planned",
     badge_count: 0,
   },
   {
     id: "c5",
-    name: "Evidence & Diagnostics",
-    description: "Comparative and diagnostics layers.",
+    name: "Optimizer Run Monitor",
+    description: "Planned slice for run timeline and metrics monitor.",
     status: "planned",
     badge_count: 0,
   },
   {
     id: "c6",
-    name: "Champion Bundle",
-    description: "Champion export and parity.",
+    name: "Report + Champion Export/Import",
+    description: "Planned slice for reports and native loop.",
     status: "planned",
     badge_count: 0,
   },
 ];
 
-// Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: РёРєРѕРЅРєРё capability РґР»СЏ Р»РµРІРѕРіРѕ РјРµРЅСЋ workbench.
+// Русский комментарий: иконки capability для левого меню.
 const CAPABILITY_ICONS: Record<string, string> = {
-  c1: "file-check-2",
-  c2: "play-circle",
-  c3: "list-checks",
-  c4: "trophy",
+  c1: "folders",
+  c2: "messages-square",
+  c3: "library",
+  c4: "database",
   c5: "activity",
   c6: "package-check",
 };
 
-// Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: СЃС‚СЂСѓРєС‚СѓСЂРёСЂРѕРІР°РЅРЅС‹Р№ state С‚РµРєСѓС‰РµРіРѕ UI-С†РёРєР»Р° C1.
+// Русский комментарий: структура состояния UI для C1 и planned-preview capability.
 type UiState = {
   capabilities: Capability[];
   activeCapabilityId: string;
-  dslFilePath: string;
-  jsonText: string;
+  workspaces: WorkspaceRecord[];
+  activeWorkspaceId: string;
+  projects: ProjectRecord[];
+  activeProjectId: string;
+  workspaceNameInput: string;
+  workspaceDescriptionInput: string;
+  projectNameInput: string;
+  projectDescriptionInput: string;
   budgetPercent: number;
   budgetStage: string;
-  metricValidation: string;
-  metricValidationDelta: { text: string; tone: "neutral" | "positive" | "negative" };
-  metricNodes: string;
-  metricEdges: string;
-  metricIssues: string;
-  compileSource: string;
-  compileSummaryCells: Array<{ key: string; value: string }>;
-  issues: CompileIssue[];
+  metricWorkspaces: string;
+  metricProjects: string;
+  metricWorkspaceStatus: string;
+  metricProjectStatus: string;
+  jsonText: string;
   bottleneckId: string;
   bottleneckText: string;
   suggestions: Array<{ tag: string; title: string; detail: string }>;
   exportMeta: string;
-  lastPayload: C1SuccessPayload | null;
-  lastErrorPayload: ErrorPayload | null;
+  lastPayload: Record<string, unknown> | null;
 };
 
-// Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: РєРѕСЂРЅРµРІРѕР№ React-РєРѕРјРїРѕРЅРµРЅС‚ frontend workbench РІ РєР°СЂРєР°СЃРµ app-v3.
+// Русский комментарий: корневой React-компонент frontend workbench в каркасе app-v3.
 export function App(): JSX.Element {
   const [state, setState] = useState<UiState>({
     capabilities: FALLBACK_CAPABILITIES,
     activeCapabilityId: "c1",
-    dslFilePath: "examples/dsl/style_direct_llm.yaml",
-    jsonText: "Run C1 to see compile payload.",
+    workspaces: [],
+    activeWorkspaceId: "",
+    projects: [],
+    activeProjectId: "",
+    workspaceNameInput: "",
+    workspaceDescriptionInput: "",
+    projectNameInput: "",
+    projectDescriptionInput: "",
     budgetPercent: 0,
     budgetStage: "idle",
-    metricValidation: "idle",
-    metricValidationDelta: { text: "pending", tone: "neutral" },
-    metricNodes: "-",
-    metricEdges: "-",
-    metricIssues: "0",
-    compileSource: "no run yet",
-    compileSummaryCells: [
-      { key: "Status", value: "idle" },
-      { key: "Mappings", value: "0" },
-      { key: "Warnings", value: "0" },
-      { key: "Errors", value: "0" },
+    metricWorkspaces: "0",
+    metricProjects: "0",
+    metricWorkspaceStatus: "not selected",
+    metricProjectStatus: "not selected",
+    jsonText: "Run C1 actions to see API payloads.",
+    bottleneckId: "workspace_not_initialized",
+    bottleneckText: "Create the first workspace to unlock project context.",
+    suggestions: [
+      {
+        tag: "Step 1",
+        title: "Create workspace",
+        detail: "Start by creating a workspace that will hold project versions and runs.",
+      },
+      {
+        tag: "Step 2",
+        title: "Create project",
+        detail: "Inside workspace create a project to activate the optimization lifecycle.",
+      },
     ],
-    issues: [],
-    bottleneckId: "waiting_for_run",
-    bottleneckText: "Run C1 to detect compile bottlenecks and validation risks.",
-    suggestions: [],
     exportMeta: "No payload available yet.",
     lastPayload: null,
-    lastErrorPayload: null,
   });
 
-  // Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: С‚РµРєСѓС‰Р°СЏ Р°РєС‚РёРІРЅР°СЏ capability, РІС‹С‡РёСЃР»СЏРµС‚СЃСЏ РёР· РєР°С‚Р°Р»РѕРіР°.
+  // Русский комментарий: активная capability, отображаемая в центре интерфейса.
   const activeCapability = useMemo(
     () => state.capabilities.find((item) => item.id === state.activeCapabilityId) ?? FALLBACK_CAPABILITIES[0],
     [state.capabilities, state.activeCapabilityId],
   );
 
-  // Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: РїСЂРё СЃС‚Р°СЂС‚Рµ РїРѕРґС‚СЏРіРёРІР°РµРј capability-РєР°С‚Р°Р»РѕРі РѕС‚ backend.
+  // Русский комментарий: выбранный workspace для заголовков/формы project.
+  const activeWorkspace = useMemo(
+    () => state.workspaces.find((item) => item.workspace_id === state.activeWorkspaceId) ?? null,
+    [state.workspaces, state.activeWorkspaceId],
+  );
+
+  // Русский комментарий: выбранный project для метрик и sidebar-индикаторов.
+  const activeProject = useMemo(
+    () => state.projects.find((item) => item.project_id === state.activeProjectId) ?? null,
+    [state.projects, state.activeProjectId],
+  );
+
+  // Русский комментарий: загрузка capability-каталога при старте приложения.
   useEffect(() => {
     void (async () => {
       try {
         const catalog = await fetchCapabilityCatalog();
         setState((prev) => ({ ...prev, capabilities: catalog.capabilities }));
       } catch {
-        // Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: fallback РѕСЃС‚Р°РµС‚СЃСЏ Р°РєС‚РёРІРЅС‹Рј, РїРѕСЌС‚РѕРјСѓ РѕС€РёР±РєСѓ РјРѕР¶РЅРѕ Р±РµР·РѕРїР°СЃРЅРѕ РёРіРЅРѕСЂРёСЂРѕРІР°С‚СЊ.
+        // Русский комментарий: fallback остается активным, чтобы UI не ломался при сетевых сбоях.
       }
     })();
   }, []);
 
-  // Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: РїРѕСЃР»Рµ РєР°Р¶РґРѕРіРѕ СЂРµРЅРґРµСЂР° РїРµСЂРµРёРЅРёС†РёР°Р»РёР·РёСЂСѓРµРј Lucide-РёРєРѕРЅРєРё.
+  // Русский комментарий: первичная загрузка workspace/project данных для C1.
+  useEffect(() => {
+    void refreshWorkspacesAndProjects();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Русский комментарий: после каждого рендера переинициализируем Lucide-иконки.
   useEffect(() => {
     if (window.lucide && typeof window.lucide.createIcons === "function") {
       window.lucide.createIcons();
     }
   });
 
-  // Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: РѕР±СЂР°Р±РѕС‚С‡РёРє РїРµСЂРµРєР»СЋС‡РµРЅРёСЏ capability РІ Р»РµРІРѕРј РјРµРЅСЋ.
+  // Русский комментарий: обновляет список workspace и автоматически подгружает проекты выбранного workspace.
+  async function refreshWorkspacesAndProjects(preferredWorkspaceId?: string): Promise<void> {
+    try {
+      const workspacesResponse = await listWorkspaces();
+      const workspaces = workspacesResponse.workspaces;
+
+      const nextWorkspaceId =
+        preferredWorkspaceId && workspaces.some((item) => item.workspace_id === preferredWorkspaceId)
+          ? preferredWorkspaceId
+          : workspaces[0]?.workspace_id ?? "";
+
+      let projects: ProjectRecord[] = [];
+      if (nextWorkspaceId) {
+        const projectsResponse = await listProjects(nextWorkspaceId);
+        projects = projectsResponse.projects;
+      }
+
+      const nextProjectId = projects[0]?.project_id ?? "";
+      const snapshot = {
+        status: "success",
+        c1_slice: "workspace_registry_v0",
+        workspaces,
+        active_workspace_id: nextWorkspaceId,
+        projects,
+        active_project_id: nextProjectId,
+      };
+
+      setState((prev) => ({
+        ...prev,
+        workspaces,
+        activeWorkspaceId: nextWorkspaceId,
+        projects,
+        activeProjectId: nextProjectId,
+        budgetPercent: 100,
+        budgetStage: "loaded",
+        metricWorkspaces: String(workspaces.length),
+        metricProjects: String(projects.length),
+        metricWorkspaceStatus: nextWorkspaceId ? "selected" : "not selected",
+        metricProjectStatus: nextProjectId ? "selected" : "not selected",
+        jsonText: prettyJson(snapshot),
+        lastPayload: snapshot,
+      }));
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        budgetPercent: 100,
+        budgetStage: "failed",
+        jsonText: prettyJson({ status: "error", message: String(error) }),
+        bottleneckId: "workspace_api_error",
+        bottleneckText: "Cannot load workspace registry. Verify backend dev server status.",
+        suggestions: [
+          {
+            tag: "Backend",
+            title: "Check dev server",
+            detail: "Ensure python dev server is running and /api/workspaces responds with 200.",
+          },
+        ],
+      }));
+    }
+  }
+
+  // Русский комментарий: обрабатывает переключение capability в левом меню.
   async function handleSwitchCapability(capabilityId: string): Promise<void> {
     setState((prev) => ({
       ...prev,
@@ -161,29 +258,17 @@ export function App(): JSX.Element {
     }
 
     try {
-      const payload = await fetchStubCapability(capabilityId);
+      const payload: StubPayload = await fetchStubCapability(capabilityId);
       setState((prev) => ({
         ...prev,
         jsonText: prettyJson(payload),
-        compileSummaryCells: [
-          { key: "Status", value: "planned" },
-          { key: "Mappings", value: "0" },
-          { key: "Warnings", value: "0" },
-          { key: "Errors", value: "0" },
-        ],
-        issues: [
-          {
-            severity: "warning",
-            message: "Capability is in planned state. Real backend path will be unlocked in next slices.",
-          },
-        ],
         bottleneckId: "planned_capability",
         bottleneckText: "This capability is intentionally locked until its vertical slice is delivered.",
         suggestions: [
           {
             tag: "Roadmap",
-            title: "Stay in C1 for real flow",
-            detail: "Use DSL validate/compile run to verify backend + frontend integration now.",
+            title: "Continue with C1",
+            detail: "Use C1 workspace/project flow before unlocking next capability slices.",
           },
         ],
       }));
@@ -195,150 +280,229 @@ export function App(): JSX.Element {
     }
   }
 
-  // Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: РѕР±СЂР°Р±РѕС‚С‡РёРє Р·Р°РїСѓСЃРєР° СЂРµР°Р»СЊРЅРѕРіРѕ C1 validate+compile.
-  async function handleRunC1(): Promise<void> {
-    const dslFilePath = state.dslFilePath.trim();
-    if (!dslFilePath) {
+  // Русский комментарий: создает workspace и обновляет списки/метрики.
+  async function handleCreateWorkspace(): Promise<void> {
+    const name = state.workspaceNameInput.trim();
+    const description = state.workspaceDescriptionInput.trim();
+    if (!name) {
       setState((prev) => ({
         ...prev,
-        jsonText: prettyJson({ status: "error", message: "DSL file path is required." }),
+        jsonText: prettyJson({ status: "error", message: "Workspace name is required." }),
       }));
       return;
     }
 
-    setState((prev) => ({
-      ...prev,
-      budgetPercent: 35,
-      budgetStage: "running",
-      metricValidation: "running",
-      metricValidationDelta: { text: "in progress", tone: "neutral" },
-      jsonText: "Running C1 validate + compile...",
-      bottleneckId: "compile_in_progress",
-      bottleneckText: "Backend is validating DSL and compiling Graph IR.",
-      suggestions: [],
-      lastPayload: null,
-      lastErrorPayload: null,
-    }));
+    setState((prev) => ({ ...prev, budgetPercent: 35, budgetStage: "creating workspace" }));
 
-    const result = await runC1ValidateCompile(dslFilePath);
-
-    if (!result.ok) {
-      const payload = result.payload;
+    try {
+      const created = await createWorkspace(name, description);
+      await refreshWorkspacesAndProjects(created.workspace.workspace_id);
+      setState((prev) => ({
+        ...prev,
+        workspaceNameInput: "",
+        workspaceDescriptionInput: "",
+        bottleneckId: "workspace_created",
+        bottleneckText: "Workspace created. Next step: create the first project.",
+        suggestions: [
+          {
+            tag: "Step",
+            title: "Create project",
+            detail: "Use the project form below to create a project inside selected workspace.",
+          },
+        ],
+      }));
+    } catch (error) {
       setState((prev) => ({
         ...prev,
         budgetPercent: 100,
         budgetStage: "failed",
-        metricValidation: "failed",
-        metricValidationDelta: { text: "error", tone: "negative" },
-        metricNodes: "-",
-        metricEdges: "-",
-        metricIssues: "1",
-        compileSource: dslFilePath,
-        compileSummaryCells: [
-          { key: "Status", value: "failure" },
-          { key: "Mappings", value: "0" },
-          { key: "Warnings", value: "0" },
-          { key: "Errors", value: "1" },
-        ],
-        issues: [{ severity: "error", message: payload.message ?? "Unknown error" }],
-        bottleneckId: "compile_failed",
-        bottleneckText: "C1 call failed. Check DSL path and schema validity before retry.",
-        suggestions: [
-          {
-            tag: "Path",
-            title: "Verify DSL path",
-            detail: "Ensure dsl_file points to an existing file inside repository.",
-          },
-          {
-            tag: "Schema",
-            title: "Fix schema violations",
-            detail: "Open the error message and correct DSL fields before retry.",
-          },
-        ],
-        jsonText: prettyJson(payload),
-        exportMeta: "Error payload ready. Export can still be used for debugging.",
-        lastErrorPayload: payload,
+        jsonText: prettyJson({ status: "error", message: String(error) }),
+        bottleneckId: "workspace_create_failed",
+        bottleneckText: "Workspace create request failed. Check validation and duplicate names.",
+      }));
+    }
+  }
+
+  // Русский комментарий: загружает проекты выбранного workspace и фиксирует активный контекст.
+  async function handleSelectWorkspace(workspaceId: string): Promise<void> {
+    setState((prev) => ({ ...prev, activeWorkspaceId: workspaceId, activeProjectId: "", budgetStage: "loading projects" }));
+    try {
+      const projectsResponse = await listProjects(workspaceId);
+      const projects = projectsResponse.projects;
+      const nextProjectId = projects[0]?.project_id ?? "";
+      const snapshot = {
+        status: "success",
+        action: "select_workspace",
+        workspace_id: workspaceId,
+        projects,
+      };
+
+      setState((prev) => ({
+        ...prev,
+        projects,
+        activeProjectId: nextProjectId,
+        budgetPercent: 100,
+        budgetStage: "workspace selected",
+        metricProjects: String(projects.length),
+        metricWorkspaceStatus: "selected",
+        metricProjectStatus: nextProjectId ? "selected" : "not selected",
+        jsonText: prettyJson(snapshot),
+        lastPayload: snapshot,
+      }));
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        budgetPercent: 100,
+        budgetStage: "failed",
+        jsonText: prettyJson({ status: "error", message: String(error) }),
+      }));
+    }
+  }
+
+  // Русский комментарий: создает project в выбранном workspace.
+  async function handleCreateProject(): Promise<void> {
+    const workspaceId = state.activeWorkspaceId;
+    if (!workspaceId) {
+      setState((prev) => ({
+        ...prev,
+        jsonText: prettyJson({ status: "error", message: "Select workspace before creating project." }),
       }));
       return;
     }
 
-    const payload = result.payload;
-    const summary = payload.compile_summary;
-    const graphSummary = payload.graph_ir_summary;
+    const name = state.projectNameInput.trim();
+    const description = state.projectDescriptionInput.trim();
+    if (!name) {
+      setState((prev) => ({
+        ...prev,
+        jsonText: prettyJson({ status: "error", message: "Project name is required." }),
+      }));
+      return;
+    }
 
-    setState((prev) => ({
-      ...prev,
-      budgetPercent: 100,
-      budgetStage: "completed",
-      metricValidation: summary.status,
-      metricValidationDelta: { text: "pass", tone: "positive" },
-      metricNodes: String(graphSummary.nodes_total ?? 0),
-      metricEdges: String(graphSummary.edges_total ?? 0),
-      metricIssues: String((summary.warnings ?? 0) + (summary.errors ?? 0)),
-      compileSource: payload.dsl_file,
-      compileSummaryCells: [
-        { key: "Status", value: summary.status },
-        { key: "Mappings", value: String(summary.node_mappings ?? 0) },
-        { key: "Warnings", value: String(summary.warnings ?? 0) },
-        { key: "Errors", value: String(summary.errors ?? 0) },
-      ],
-      issues: payload.compile_report.issues ?? [],
-      bottleneckId:
-        (payload.compile_report.issues ?? []).length > 0 ? "compile_issues_detected" : "no_compile_issues",
-      bottleneckText:
-        (payload.compile_report.issues ?? []).length > 0
-          ? "Compilation succeeded but produced issues. Review warnings/errors before promotion."
-          : "Compilation finished with zero issues. Candidate is ready for next slices.",
-      suggestions:
-        (payload.compile_report.issues ?? []).length > 0
-          ? [
-              {
-                tag: "Quality",
-                title: "Review warning contexts",
-                detail:
-                  "Inspect warning messages and decide whether to enforce stricter DSL conventions.",
-              },
-              {
-                tag: "Next",
-                title: "Prepare C2 run",
-                detail: "After warning review, this candidate is ready for runtime tracing in the next slice.",
-              },
-            ]
-          : [
-              {
-                tag: "Promotion",
-                title: "Move to C2 runtime run",
-                detail: "C1 checks are green. Next step is runtime execution and white-box tracing.",
-              },
-            ],
-      jsonText: prettyJson(payload),
-      exportMeta: "Payload ready. Click export to save current compile result.",
-      lastPayload: payload,
-      lastErrorPayload: null,
-    }));
+    setState((prev) => ({ ...prev, budgetPercent: 50, budgetStage: "creating project" }));
+
+    try {
+      const created = await createProject(workspaceId, name, description);
+      const projectsResponse = await listProjects(workspaceId);
+      const projects = projectsResponse.projects;
+      const snapshot = {
+        status: "success",
+        action: "create_project",
+        workspace_id: workspaceId,
+        created_project_id: created.project.project_id,
+        projects,
+      };
+
+      setState((prev) => ({
+        ...prev,
+        projects,
+        activeProjectId: created.project.project_id,
+        projectNameInput: "",
+        projectDescriptionInput: "",
+        budgetPercent: 100,
+        budgetStage: "project created",
+        metricProjects: String(projects.length),
+        metricProjectStatus: "selected",
+        jsonText: prettyJson(snapshot),
+        lastPayload: snapshot,
+        bottleneckId: "project_created",
+        bottleneckText: "Project is active. Next slices will unlock chat and candidate generation.",
+        suggestions: [
+          {
+            tag: "Next",
+            title: "Proceed to C2",
+            detail: "When C2 is unlocked, use this active project as chat context for candidate synthesis.",
+          },
+        ],
+      }));
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        budgetPercent: 100,
+        budgetStage: "failed",
+        jsonText: prettyJson({ status: "error", message: String(error) }),
+      }));
+    }
   }
 
-  // Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: РѕР±СЂР°Р±РѕС‚С‡РёРє СЌРєСЃРїРѕСЂС‚Р° РїРѕСЃР»РµРґРЅРµРіРѕ payload РІ Р»РѕРєР°Р»СЊРЅС‹Р№ JSON С„Р°Р№Р».
+  // Русский комментарий: выбирает project и подтверждает выбор через GET /api/projects/{id}.
+  async function handleSelectProject(projectId: string): Promise<void> {
+    setState((prev) => ({ ...prev, activeProjectId: projectId, budgetStage: "loading project" }));
+    try {
+      const response = await getProject(projectId);
+      const snapshot = {
+        status: "success",
+        action: "select_project",
+        project: response.project,
+      };
+
+      setState((prev) => ({
+        ...prev,
+        budgetPercent: 100,
+        budgetStage: "project selected",
+        metricProjectStatus: "selected",
+        jsonText: prettyJson(snapshot),
+        lastPayload: snapshot,
+      }));
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        budgetPercent: 100,
+        budgetStage: "failed",
+        jsonText: prettyJson({ status: "error", message: String(error) }),
+      }));
+    }
+  }
+
+  // Русский комментарий: экспортирует последний JSON payload для ручной инспекции.
   function handleExportPayload(): void {
-    const payload = state.lastPayload ?? state.lastErrorPayload;
-    if (!payload) {
+    if (!state.lastPayload) {
       setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "notice", message: "No payload to export yet." }) }));
       return;
     }
 
-    const fileName = makeTimestampedFileName("c1_compile_payload");
-    exportJsonToFile(payload, fileName);
+    const fileName = makeTimestampedFileName("c1_workspace_snapshot");
+    exportJsonToFile(state.lastPayload, fileName);
     setState((prev) => ({ ...prev, exportMeta: `Saved: ${fileName}` }));
   }
 
-  // Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: helper РґР»СЏ РёР·РјРµРЅРµРЅРёСЏ DSL РїСѓС‚Рё РІ input.
-  function handleDslPathChange(nextValue: string): void {
-    setState((prev) => ({ ...prev, dslFilePath: nextValue }));
+  // Русский комментарий: синхронизирует input названия workspace.
+  function handleWorkspaceNameChange(nextValue: string): void {
+    setState((prev) => ({ ...prev, workspaceNameInput: nextValue }));
   }
 
-  // Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: helper РґР»СЏ РјРіРЅРѕРІРµРЅРЅРѕРіРѕ РІРѕР·РІСЂР°С‚Р° Рє РєР°РЅРѕРЅРёС‡РµСЃРєРѕРјСѓ DSL РїСЂРёРјРµСЂСѓ.
-  function handleFillExample(): void {
-    setState((prev) => ({ ...prev, dslFilePath: "examples/dsl/style_direct_llm.yaml" }));
+  // Русский комментарий: синхронизирует input описания workspace.
+  function handleWorkspaceDescriptionChange(nextValue: string): void {
+    setState((prev) => ({ ...prev, workspaceDescriptionInput: nextValue }));
+  }
+
+  // Русский комментарий: синхронизирует input названия project.
+  function handleProjectNameChange(nextValue: string): void {
+    setState((prev) => ({ ...prev, projectNameInput: nextValue }));
+  }
+
+  // Русский комментарий: синхронизирует input описания project.
+  function handleProjectDescriptionChange(nextValue: string): void {
+    setState((prev) => ({ ...prev, projectDescriptionInput: nextValue }));
+  }
+
+  // Русский комментарий: подставляет demo-значения в форму workspace.
+  function handleFillWorkspaceExample(): void {
+    setState((prev) => ({
+      ...prev,
+      workspaceNameInput: "support-qa",
+      workspaceDescriptionInput: "Workspace for support quality optimization experiments.",
+    }));
+  }
+
+  // Русский комментарий: подставляет demo-значения в форму project.
+  function handleFillProjectExample(): void {
+    setState((prev) => ({
+      ...prev,
+      projectNameInput: "support-qa.v1",
+      projectDescriptionInput: "First project version for stylizer and support benchmark loops.",
+    }));
   }
 
   const isC1Enabled = activeCapability.id === "c1" && activeCapability.status === "enabled";
@@ -354,7 +518,7 @@ export function App(): JSX.Element {
           <div className="app-side-label">Workspace</div>
           <button type="button" className="app-side-pick" id="workspace-pick">
             <span className="ws-dot" />
-            <span>autoagent-optimizer</span>
+            <span>{activeWorkspace?.name ?? "no workspace"}</span>
             <i data-lucide="chevrons-up-down" />
           </button>
         </div>
@@ -400,16 +564,16 @@ export function App(): JSX.Element {
       <div className="app-main">
         <header className="app-topbar">
           <div className="tb-left">
-            <span className="tb-crumb">Runs</span>
+            <span className="tb-crumb">Workspaces</span>
             <span className="tb-sep">/</span>
-            <span className="tb-id">run_c1</span>
+            <span className="tb-id">registry_v0</span>
             <span className="tb-pill">{isC1Enabled ? "C1 enabled" : "planned capability"}</span>
           </div>
 
           <div className="tb-budget" id="budget-box">
             <div className="tb-budget-label">
               <i data-lucide="gauge" />
-              <span>Compile budget</span>
+              <span>C1 progress</span>
             </div>
             <div className="tb-budget-bar">
               <div className="tb-budget-fill" style={{ width: `${state.budgetPercent}%` }} />
@@ -427,7 +591,7 @@ export function App(): JSX.Element {
               onClick={() => {
                 setState((prev) => ({
                   ...prev,
-                  jsonText: prettyJson({ status: "notice", message: "Compare action is planned for C4 slice." }),
+                  jsonText: prettyJson({ status: "notice", message: "Compare action is planned for C5/C6 slices." }),
                 }));
               }}
             >
@@ -454,11 +618,11 @@ export function App(): JSX.Element {
             <section className="content-head">
               <div>
                 <h1 className="ch-title">
-                  DSL/IR Studio <span>- C1 vertical slice</span>
+                  Workspace &amp; Project Registry <span>- C1 vertical slice</span>
                 </h1>
                 <p className="ch-sub">
                   {isC1Enabled
-                    ? "Validate DSL, compile to Graph IR and inspect compile diagnostics."
+                    ? "Create and manage workspace/project context for future chat, dataset, and optimization runs."
                     : "Capability is visible in the product shell and will be unlocked by roadmap slices."}
                 </p>
               </div>
@@ -472,108 +636,195 @@ export function App(): JSX.Element {
 
             <section className="metric-strip" id="metric-strip">
               <article className="ms-cell">
-                <div className="ms-lbl">Validation</div>
+                <div className="ms-lbl">Workspaces</div>
                 <div className="ms-row">
-                  <div className="ms-val">{state.metricValidation}</div>
-                  <span
-                    className={`ms-delta${
-                      state.metricValidationDelta.tone === "positive"
-                        ? " pos"
-                        : state.metricValidationDelta.tone === "negative"
-                          ? " neg"
-                          : ""
-                    }`}
-                  >
-                    {state.metricValidationDelta.text}
-                  </span>
+                  <div className="ms-val">{state.metricWorkspaces}</div>
                 </div>
-                <div className="ms-cap">Schema and graph integrity check</div>
+                <div className="ms-cap">Registry size</div>
               </article>
 
               <article className="ms-cell">
-                <div className="ms-lbl">Graph nodes</div>
+                <div className="ms-lbl">Projects</div>
                 <div className="ms-row">
-                  <div className="ms-val">{state.metricNodes}</div>
+                  <div className="ms-val">{state.metricProjects}</div>
                 </div>
-                <div className="ms-cap">IR nodes total</div>
+                <div className="ms-cap">Selected workspace scope</div>
               </article>
 
               <article className="ms-cell">
-                <div className="ms-lbl">Graph edges</div>
+                <div className="ms-lbl">Workspace context</div>
                 <div className="ms-row">
-                  <div className="ms-val">{state.metricEdges}</div>
+                  <div className="ms-val">{state.metricWorkspaceStatus}</div>
                 </div>
-                <div className="ms-cap">IR edges total</div>
+                <div className="ms-cap">Required for C2</div>
               </article>
 
               <article className="ms-cell">
-                <div className="ms-lbl">Issues</div>
+                <div className="ms-lbl">Project context</div>
                 <div className="ms-row">
-                  <div className="ms-val">{state.metricIssues}</div>
+                  <div className="ms-val">{state.metricProjectStatus}</div>
                 </div>
-                <div className="ms-cap">Warnings + errors</div>
+                <div className="ms-cap">Run-ready context</div>
               </article>
             </section>
 
             <section className="arch-list">
               <header className="arch-list-head">
-                <div className="al-label">C1 run input</div>
+                <div className="al-label">Create workspace</div>
                 <div className="al-tools">
-                  <button type="button" className="al-tool" onClick={handleFillExample} disabled={!isC1Enabled}>
+                  <button type="button" className="al-tool" onClick={handleFillWorkspaceExample} disabled={!isC1Enabled}>
                     <i data-lucide="wand-sparkles" />
                     Example
                   </button>
                 </div>
               </header>
               <div className="c1-form-row">
-                <label className="c1-field-label" htmlFor="dsl-file-input">
-                  DSL file path
+                <label className="c1-field-label" htmlFor="workspace-name-input">
+                  Workspace name
                 </label>
-                <div className="c1-form-controls">
+                <div className="c1-form-controls c1-form-stack">
                   <input
-                    id="dsl-file-input"
+                    id="workspace-name-input"
                     type="text"
-                    value={state.dslFilePath}
+                    value={state.workspaceNameInput}
                     onChange={(event) => {
-                      handleDslPathChange(event.target.value);
+                      handleWorkspaceNameChange(event.target.value);
                     }}
+                    placeholder="support-qa"
                     disabled={!isC1Enabled}
                   />
-                  <button type="button" className="tb-btn tb-btn-primary" onClick={() => void handleRunC1()} disabled={!isC1Enabled}>
-                    Validate + compile
+                  <textarea
+                    id="workspace-description-input"
+                    value={state.workspaceDescriptionInput}
+                    onChange={(event) => {
+                      handleWorkspaceDescriptionChange(event.target.value);
+                    }}
+                    placeholder="Optional workspace description"
+                    disabled={!isC1Enabled}
+                  />
+                  <button type="button" className="tb-btn tb-btn-primary" onClick={() => void handleCreateWorkspace()} disabled={!isC1Enabled}>
+                    Create workspace
                   </button>
                 </div>
-                <p className="c1-hint">
-                  Use relative path from repo root. Example: <code>examples/dsl/style_direct_llm.yaml</code>
-                </p>
               </div>
             </section>
 
             <section className="trace-view">
               <header className="tv-head">
                 <div className="tv-title">
-                  <i data-lucide="workflow" />
-                  <span>Compile report</span>
-                  <span className="tv-arch">{state.compileSource}</span>
+                  <i data-lucide="folders" />
+                  <span>Workspace list</span>
+                  <span className="tv-arch">{state.workspaces.length} total</span>
                 </div>
               </header>
               <div className="tv-body">
-                <div className="compile-summary-grid">
-                  {state.compileSummaryCells.map((item) => (
-                    <div className="summary-cell" key={item.key}>
-                      <div className="summary-key">{item.key}</div>
-                      <div className="summary-value">{item.value}</div>
-                    </div>
-                  ))}
-                </div>
-
                 <div className="issues-box">
-                  {state.issues.length === 0 ? (
-                    <div className="issue-row info">No issues detected for the current payload.</div>
+                  {state.workspaces.length === 0 ? (
+                    <div className="issue-row info">No workspace yet. Create one to continue.</div>
                   ) : (
-                    state.issues.map((issue, index) => (
-                      <div key={`${issue.severity}-${index}`} className={`issue-row ${issue.severity}`}>
-                        <b>{issue.severity.toUpperCase()}:</b> {issue.message}
+                    state.workspaces.map((workspace) => (
+                      <div key={workspace.workspace_id} className={`issue-row info${workspace.workspace_id === state.activeWorkspaceId ? " selected-row" : ""}`}>
+                        <div className="row-main">
+                          <b>{workspace.name}</b> <span className="muted">({workspace.workspace_id})</span>
+                          <div className="row-sub">{workspace.description || "No description"}</div>
+                        </div>
+                        <button
+                          type="button"
+                          className="sg-apply"
+                          onClick={() => {
+                            void handleSelectWorkspace(workspace.workspace_id);
+                          }}
+                        >
+                          Open
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </section>
+
+            <section className="arch-list">
+              <header className="arch-list-head">
+                <div className="al-label">Create project in active workspace</div>
+                <div className="al-tools">
+                  <button
+                    type="button"
+                    className="al-tool"
+                    onClick={handleFillProjectExample}
+                    disabled={!isC1Enabled || !state.activeWorkspaceId}
+                  >
+                    <i data-lucide="wand-sparkles" />
+                    Example
+                  </button>
+                </div>
+              </header>
+              <div className="c1-form-row">
+                <label className="c1-field-label" htmlFor="project-name-input">
+                  Project name ({activeWorkspace?.name ?? "no workspace"})
+                </label>
+                <div className="c1-form-controls c1-form-stack">
+                  <input
+                    id="project-name-input"
+                    type="text"
+                    value={state.projectNameInput}
+                    onChange={(event) => {
+                      handleProjectNameChange(event.target.value);
+                    }}
+                    placeholder="support-qa.v1"
+                    disabled={!isC1Enabled || !state.activeWorkspaceId}
+                  />
+                  <textarea
+                    id="project-description-input"
+                    value={state.projectDescriptionInput}
+                    onChange={(event) => {
+                      handleProjectDescriptionChange(event.target.value);
+                    }}
+                    placeholder="Optional project description"
+                    disabled={!isC1Enabled || !state.activeWorkspaceId}
+                  />
+                  <button
+                    type="button"
+                    className="tb-btn tb-btn-primary"
+                    onClick={() => {
+                      void handleCreateProject();
+                    }}
+                    disabled={!isC1Enabled || !state.activeWorkspaceId}
+                  >
+                    Create project
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <section className="trace-view">
+              <header className="tv-head">
+                <div className="tv-title">
+                  <i data-lucide="folder-open" />
+                  <span>Projects in workspace</span>
+                  <span className="tv-arch">{state.projects.length} total</span>
+                </div>
+              </header>
+              <div className="tv-body">
+                <div className="issues-box">
+                  {state.projects.length === 0 ? (
+                    <div className="issue-row info">No project in selected workspace yet.</div>
+                  ) : (
+                    state.projects.map((project) => (
+                      <div key={project.project_id} className={`issue-row info${project.project_id === state.activeProjectId ? " selected-row" : ""}`}>
+                        <div className="row-main">
+                          <b>{project.name}</b> <span className="muted">({project.project_id})</span>
+                          <div className="row-sub">{project.description || "No description"}</div>
+                        </div>
+                        <button
+                          type="button"
+                          className="sg-apply"
+                          onClick={() => {
+                            void handleSelectProject(project.project_id);
+                          }}
+                        >
+                          Select
+                        </button>
                       </div>
                     ))
                   )}
@@ -606,7 +857,7 @@ export function App(): JSX.Element {
                     <div>
                       <div className="sg-tag">Idle</div>
                       <div className="sg-title">No interventions yet</div>
-                      <div className="sg-sub">Run C1 to generate actionable guidance.</div>
+                      <div className="sg-sub">Run C1 actions to generate actionable guidance.</div>
                     </div>
                     <button type="button" className="sg-apply" disabled>
                       Apply
@@ -633,9 +884,18 @@ export function App(): JSX.Element {
               <div className="rail-label">Export</div>
               <button type="button" className="rail-export" onClick={handleExportPayload}>
                 <i data-lucide="file-json-2" />
-                Export compile payload
+                Export C1 snapshot
               </button>
               <div className="rail-export-meta">{state.exportMeta}</div>
+            </section>
+
+            <section className="rail-section">
+              <div className="rail-label">Active context</div>
+              <div className="rail-export-meta">
+                Workspace: {activeWorkspace?.name ?? "none"}
+                <br />
+                Project: {activeProject?.name ?? "none"}
+              </div>
             </section>
           </aside>
         </div>
@@ -643,3 +903,4 @@ export function App(): JSX.Element {
     </div>
   );
 }
+

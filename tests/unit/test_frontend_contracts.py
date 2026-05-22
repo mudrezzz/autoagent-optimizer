@@ -17,10 +17,12 @@ def test_capability_catalog_contains_six_items() -> None:
     capabilities = payload["capabilities"]
     assert len(capabilities) == 6
     assert [item["id"] for item in capabilities] == ["c1", "c2", "c3", "c4", "c5", "c6"]
+    assert capabilities[0]["name"] == "Workspace & Projects"
+    assert capabilities[0]["route"] == "/workspaces"
 
 
-def test_capability_catalog_statuses_match_v2_1_s2_scope() -> None:
-    """Проверяет, что в V2.1.S2 только C1 открыт как enabled, а остальные capability остаются planned."""
+def test_capability_catalog_statuses_match_v2_3_s1_scope() -> None:
+    """Проверяет, что в V2.3.S1 только C1 открыт как enabled, а остальные capability остаются planned."""
 
     payload = build_capability_catalog_payload()
     capabilities = payload["capabilities"]

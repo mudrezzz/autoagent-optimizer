@@ -16,7 +16,7 @@
 ## Active Window (Now)
 
 - `Current Focus`: MVP-2 product realignment vertical delivery (`Roadmap v3`)
-- `Active Next Slice`: V2.3.S1
+- `Active Next Slice`: V2.3.S2
 
 ## Active Capability Board
 
@@ -53,7 +53,7 @@
 
 ### V2.2 - Evaluation Fabric Expansion
 
-- Status: Planned
+- Status: In Progress
 - Goal: расширить configurable evaluation fabric и связать ее с UI без ухода в ad-hoc.
 - Design constraint: расширения UI допускаются только в рамках `design_system` visual/content rules.
 - Slices:
@@ -69,7 +69,7 @@
 - Goal: выстроить пользовательский flow по ТЗ (workspace -> chat -> candidates -> dataset/metrics -> run -> report -> champion -> import loop).
 - Design constraint: каждый слайс обязателен как `BE + FE + Demo + QA` и проверяется в UI.
 - Slices:
-  1. `V2.3.S1` C1 workspace/project registry.
+  1. `V2.3.S1` C1 workspace/project registry. (`Done`)
   2. `V2.3.S2` C2 project chat brief-to-candidates v0.
   3. `V2.3.S3` C3 pattern library + RAG include/exclude controls.
   4. `V2.3.S4` candidate assembly + internal compile readiness gate.

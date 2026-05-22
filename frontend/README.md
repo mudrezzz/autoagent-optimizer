@@ -5,9 +5,12 @@
 ## Что реализовано
 
 1. App-v3-подобный каркас интерфейса (левый nav, центральный workbench, правый intervention rail).
-2. Реальный C1 поток `validate + compile` через backend endpoint `/api/c1/validate-compile`.
+2. Реальный C1 поток `Workspace & Projects` через backend endpoints:
+   - `GET/POST /api/workspaces`
+   - `GET/POST /api/workspaces/{workspace_id}/projects`
+   - `GET /api/projects/{project_id}`
 3. Capability-каталог со статусами `enabled/planned`.
-4. Экспорт compile payload из UI в JSON.
+4. Экспорт C1 snapshot payload из UI в JSON.
 
 ## Локальная разработка фронтенда
 

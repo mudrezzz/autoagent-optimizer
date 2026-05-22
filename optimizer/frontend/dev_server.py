@@ -1,44 +1,51 @@
-﻿"""Dev server frontend shell: СЃС‚Р°С‚РёС‡РµСЃРєРёР№ UI + РјРёРЅРёРјР°Р»СЊРЅС‹Р№ API РґР»СЏ capability-РїСЂРѕРІРµСЂРѕРє."""
+﻿"""Dev server frontend shell: статический UI + минимальный API для capability-проверок."""
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
+import re
 import sys
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from optimizer.dsl.compiler import DslToGraphIRCompiler
 from optimizer.dsl.io import DslLoadError, DslValidationError, load_dsl_spec
 from optimizer.frontend.contracts import build_capability_catalog_payload, build_stub_capability_payload
+from optimizer.workspace import WorkspaceRegistryStore
 
 
 class FrontendDevServerCli:
-    """CLI-РєРѕРјРїРѕРЅРµРЅС‚ Р·Р°РїСѓСЃРєР° frontend shell dev server."""
+    """CLI-компонент запуска frontend shell dev server."""
 
     @staticmethod
     def build_parser() -> argparse.ArgumentParser:
-        """РЎРѕР·РґР°РµС‚ CLI-РїР°СЂСЃРµСЂ РґР»СЏ dev server."""
+        """Создает CLI-парсер для dev server."""
 
         parser = argparse.ArgumentParser(description="AutoAgent Optimizer frontend shell dev server")
-        parser.add_argument("--host", default="127.0.0.1", help="РҐРѕСЃС‚ bind РґР»СЏ HTTP-СЃРµСЂРІРµСЂР°.")
-        parser.add_argument("--port", type=int, default=4173, help="РџРѕСЂС‚ bind РґР»СЏ HTTP-СЃРµСЂРІРµСЂР°.")
+        parser.add_argument("--host", default="127.0.0.1", help="Хост bind для HTTP-сервера.")
+        parser.add_argument("--port", type=int, default=4173, help="Порт bind для HTTP-сервера.")
         return parser
 
     @staticmethod
     def run(argv: list[str] | None = None) -> int:
-        """Р—Р°РїСѓСЃРєР°РµС‚ HTTP-СЃРµСЂРІРµСЂ Рё РІРѕР·РІСЂР°С‰Р°РµС‚ РєРѕРґ Р·Р°РІРµСЂС€РµРЅРёСЏ РїСЂРѕС†РµСЃСЃР°."""
+        """Запускает HTTP-сервер и возвращает код завершения процесса."""
 
         parser = FrontendDevServerCli.build_parser()
         args = parser.parse_args(argv)
 
         project_root = Path(__file__).resolve().parents[2]
-        handler_class = _build_handler(project_root=project_root)
+        store_file = _resolve_workspace_store_file(project_root=project_root)
+        workspace_store = WorkspaceRegistryStore(store_file=store_file)
+        handler_class = _build_handler(project_root=project_root, workspace_store=workspace_store)
         server = ThreadingHTTPServer((args.host, args.port), handler_class)
 
         print(f"[FRONTEND] dev server started at http://{args.host}:{args.port}", flush=True)
+        print(f"[FRONTEND] workspace store: {store_file}", flush=True)
         try:
             server.serve_forever()
         except KeyboardInterrupt:
@@ -48,50 +55,188 @@ class FrontendDevServerCli:
         return 0
 
 
-def _build_handler(*, project_root: Path) -> type[SimpleHTTPRequestHandler]:
-    """РЎРѕР·РґР°РµС‚ handler-РєР»Р°СЃСЃ СЃ Р·Р°РјС‹РєР°РЅРёРµРј РЅР° project_root, С‡С‚РѕР±С‹ API Рё static Р¶РёР»Рё РІ РѕРґРЅРѕРј СЃРµСЂРІРµСЂРµ."""
+def _resolve_workspace_store_file(*, project_root: Path) -> Path:
+    """Определяет путь к JSON-store workspace/project с возможностью override через env."""
+
+    raw = os.environ.get("AUTOAGENT_WORKSPACE_STORE_FILE", "").strip()
+    if raw:
+        return Path(raw).expanduser().resolve()
+    return (project_root / "tmp" / "workspace_registry.json").resolve()
+
+
+def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStore) -> type[SimpleHTTPRequestHandler]:
+    """Создает handler-класс с замыканием на project_root и workspace_store."""
 
     class FrontendRequestHandler(SimpleHTTPRequestHandler):
-        """HTTP handler РґР»СЏ frontend shell: static + C1..C6 API endpoints."""
+        """HTTP handler для frontend shell: static + capability API + C1 workspace/project API."""
 
-        # Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: РѕС‚РґР°С‘Рј СЃС‚Р°С‚РёРєСѓ РёР· РєРѕСЂРЅСЏ РїСЂРѕРµРєС‚Р°, С‡С‚РѕР±С‹ Р±С‹Р»Рё РґРѕСЃС‚СѓРїРЅС‹ `frontend/` Рё `design_system/`.
         def __init__(self, *args: Any, **kwargs: Any) -> None:
+            """Инициализирует handler и настраивает root директорию раздачи статики."""
+
             super().__init__(*args, directory=str(project_root), **kwargs)
 
         def do_GET(self) -> None:  # noqa: N802
-            """РћР±СЂР°Р±Р°С‚С‹РІР°РµС‚ GET: health, capability-РєР°С‚Р°Р»РѕРі, stub-endpoints Рё СЃС‚Р°С‚РёРєСѓ."""
+            """Обрабатывает GET-запросы API и static-файлов."""
 
-            if self.path == "/api/health":
+            path = urlparse(self.path).path
+            if path == "/api/health":
                 self._send_json({"status": "ok", "service": "frontend_dev_server"})
                 return
-            if self.path == "/api/capabilities":
+
+            if path == "/api/capabilities":
                 self._send_json(build_capability_catalog_payload())
                 return
-            if self.path in {"/api/c2/sample", "/api/c3/sample", "/api/c4/sample", "/api/c5/sample", "/api/c6/sample"}:
-                capability_id = self.path.split("/")[2]
+
+            if path in {"/api/c2/sample", "/api/c3/sample", "/api/c4/sample", "/api/c5/sample", "/api/c6/sample"}:
+                capability_id = path.split("/")[2]
                 self._send_json(build_stub_capability_payload(capability_id))
                 return
+
+            if path == "/api/workspaces":
+                workspaces = [record.__dict__ for record in workspace_store.list_workspaces()]
+                self._send_json({"status": "success", "workspaces": workspaces, "total": len(workspaces)})
+                return
+
+            workspace_projects_match = re.fullmatch(r"/api/workspaces/([^/]+)/projects", path)
+            if workspace_projects_match is not None:
+                workspace_id = workspace_projects_match.group(1)
+                try:
+                    projects = [record.__dict__ for record in workspace_store.list_projects(workspace_id=workspace_id)]
+                except KeyError as exc:
+                    self._send_json(
+                        {"status": "error", "code": "workspace_not_found", "message": str(exc)},
+                        status=HTTPStatus.NOT_FOUND,
+                    )
+                    return
+                self._send_json({"status": "success", "workspace_id": workspace_id, "projects": projects, "total": len(projects)})
+                return
+
+            project_match = re.fullmatch(r"/api/projects/([^/]+)", path)
+            if project_match is not None:
+                project_id = project_match.group(1)
+                try:
+                    project = workspace_store.get_project(project_id=project_id)
+                except KeyError as exc:
+                    self._send_json(
+                        {"status": "error", "code": "project_not_found", "message": str(exc)},
+                        status=HTTPStatus.NOT_FOUND,
+                    )
+                    return
+                self._send_json({"status": "success", "project": project.__dict__})
+                return
+
             if self.path.startswith("/assets/"):
-                # Русский комментарий: built index.html использует `/assets/*`, поэтому пробрасываем на `frontend/dist/assets/*`.
                 dist_assets_path = project_root / "frontend" / "dist" / "assets"
                 if dist_assets_path.exists():
                     self.path = f"/frontend/dist{self.path}"
+
             if self.path == "/" or self.path == "/index.html":
-                # Русский комментарий: в режиме React/TS по умолчанию отдаем собранный dist entrypoint.
                 dist_index_path = project_root / "frontend" / "dist" / "index.html"
                 if dist_index_path.exists():
                     self.path = "/frontend/dist/index.html"
                 else:
-                    # Русский комментарий: fallback на исходный index для случаев, когда build еще не выполнен.
                     self.path = "/frontend/index.html"
+
             super().do_GET()
 
         def do_POST(self) -> None:  # noqa: N802
-            """РћР±СЂР°Р±Р°С‚С‹РІР°РµС‚ POST: СЂРµР°Р»СЊРЅС‹Р№ C1 endpoint validate+compile."""
+            """Обрабатывает POST-запросы API для C1 workspace/project и legacy debug endpoint."""
 
-            if self.path != "/api/c1/validate-compile":
-                self._send_json({"status": "error", "message": "Not found"}, status=HTTPStatus.NOT_FOUND)
+            path = urlparse(self.path).path
+            if path == "/api/workspaces":
+                self._handle_create_workspace()
                 return
+
+            workspace_projects_match = re.fullmatch(r"/api/workspaces/([^/]+)/projects", path)
+            if workspace_projects_match is not None:
+                workspace_id = workspace_projects_match.group(1)
+                self._handle_create_project(workspace_id=workspace_id)
+                return
+
+            if path == "/api/c1/validate-compile":
+                self._handle_legacy_validate_compile()
+                return
+
+            self._send_json({"status": "error", "message": "Not found"}, status=HTTPStatus.NOT_FOUND)
+
+        def _handle_create_workspace(self) -> None:
+            """Создает workspace из JSON-пейлоада и возвращает созданную сущность."""
+
+            try:
+                payload = self._read_json_body()
+            except ValueError as exc:
+                self._send_json({"status": "error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            name = payload.get("name")
+            description = payload.get("description", "")
+            if not isinstance(name, str) or not name.strip():
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Field `name` must be a non-empty string."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            if not isinstance(description, str):
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Field `description` must be a string."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            try:
+                workspace = workspace_store.create_workspace(name=name, description=description)
+            except ValueError as exc:
+                self._send_json(
+                    {"status": "error", "code": "workspace_conflict", "message": str(exc)},
+                    status=HTTPStatus.CONFLICT,
+                )
+                return
+
+            self._send_json({"status": "success", "workspace": workspace.__dict__}, status=HTTPStatus.CREATED)
+
+        def _handle_create_project(self, *, workspace_id: str) -> None:
+            """Создает project в указанном workspace и возвращает созданную сущность."""
+
+            try:
+                payload = self._read_json_body()
+            except ValueError as exc:
+                self._send_json({"status": "error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            name = payload.get("name")
+            description = payload.get("description", "")
+            if not isinstance(name, str) or not name.strip():
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Field `name` must be a non-empty string."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            if not isinstance(description, str):
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Field `description` must be a string."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            try:
+                project = workspace_store.create_project(workspace_id=workspace_id, name=name, description=description)
+            except KeyError as exc:
+                self._send_json(
+                    {"status": "error", "code": "workspace_not_found", "message": str(exc)},
+                    status=HTTPStatus.NOT_FOUND,
+                )
+                return
+            except ValueError as exc:
+                self._send_json(
+                    {"status": "error", "code": "project_conflict", "message": str(exc)},
+                    status=HTTPStatus.CONFLICT,
+                )
+                return
+
+            self._send_json({"status": "success", "project": project.__dict__}, status=HTTPStatus.CREATED)
+
+        def _handle_legacy_validate_compile(self) -> None:
+            """Оставляет legacy C1 validate+compile как debug-route для обратной совместимости."""
 
             try:
                 payload = self._read_json_body()
@@ -108,7 +253,6 @@ def _build_handler(*, project_root: Path) -> type[SimpleHTTPRequestHandler]:
                 return
 
             dsl_file = (project_root / dsl_file_raw).resolve()
-            # Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: Р·Р°С‰РёС‰Р°РµРј endpoint РѕС‚ РІС‹С…РѕРґР° Р·Р° РїСЂРµРґРµР»С‹ СЂР°Р±РѕС‡РµР№ РґРёСЂРµРєС‚РѕСЂРёРё РїСЂРѕРµРєС‚Р°.
             if not str(dsl_file).startswith(str(project_root.resolve())):
                 self._send_json(
                     {"status": "error", "message": "DSL file path must stay inside project workspace."},
@@ -157,12 +301,12 @@ def _build_handler(*, project_root: Path) -> type[SimpleHTTPRequestHandler]:
             )
 
         def log_message(self, format: str, *args: Any) -> None:
-            """РџРµСЂРµРѕРїСЂРµРґРµР»СЏРµС‚ СЃС‚Р°РЅРґР°СЂС‚РЅС‹Р№ Р»РѕРі РІ stderr, С‡С‚РѕР±С‹ СЃРѕРѕР±С‰РµРЅРёСЏ РѕСЃС‚Р°РІР°Р»РёСЃСЊ РєРѕРјРїР°РєС‚РЅС‹РјРё Рё С‡РёС‚Р°РµРјС‹РјРё."""
+            """Переопределяет стандартный лог в stderr, чтобы сообщения были компактными."""
 
             sys.stderr.write("[FRONTEND] " + format % args + "\n")
 
         def _read_json_body(self) -> dict[str, Any]:
-            """Р§РёС‚Р°РµС‚ JSON body РІС…РѕРґСЏС‰РµРіРѕ Р·Р°РїСЂРѕСЃР° Рё РІРѕР·РІСЂР°С‰Р°РµС‚ СЃР»РѕРІР°СЂСЊ."""
+            """Читает JSON body входящего запроса и возвращает словарь."""
 
             content_length = int(self.headers.get("Content-Length", "0"))
             raw_body = self.rfile.read(content_length)
@@ -177,7 +321,7 @@ def _build_handler(*, project_root: Path) -> type[SimpleHTTPRequestHandler]:
             return payload
 
         def _send_json(self, payload: dict[str, Any], *, status: HTTPStatus = HTTPStatus.OK) -> None:
-            """РћС‚РїСЂР°РІР»СЏРµС‚ JSON РѕС‚РІРµС‚ СЃ РєРѕСЂСЂРµРєС‚РЅС‹РјРё Р·Р°РіРѕР»РѕРІРєР°РјРё content-type Рё РґР»РёРЅС‹."""
+            """Отправляет JSON ответ с корректными заголовками content-type и длины."""
 
             raw = json.dumps(payload, ensure_ascii=False).encode("utf-8")
             self.send_response(int(status))
@@ -190,11 +334,10 @@ def _build_handler(*, project_root: Path) -> type[SimpleHTTPRequestHandler]:
 
 
 def main() -> None:
-    """РўРѕС‡РєР° РІС…РѕРґР° РґР»СЏ `python -m optimizer.frontend.dev_server`."""
+    """Точка входа для `python -m optimizer.frontend.dev_server`."""
 
     raise SystemExit(FrontendDevServerCli.run())
 
 
 if __name__ == "__main__":
     main()
-

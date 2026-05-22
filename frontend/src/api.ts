@@ -1,11 +1,16 @@
-import type {
+﻿import type {
   C1SuccessPayload,
   CapabilityCatalogResponse,
   ErrorPayload,
+  ProjectCreateResponse,
+  ProjectGetResponse,
+  ProjectsListResponse,
   StubPayload,
+  WorkspaceCreateResponse,
+  WorkspacesListResponse,
 } from "./types";
 
-// Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: helper, РєРѕС‚РѕСЂС‹Р№ РїР°СЂСЃРёС‚ JSON Рё РїСЂРё РѕС€РёР±РєРµ СЃРѕР·РґР°РµС‚ С‡РµР»РѕРІРµРєРѕС‡РёС‚Р°РµРјРѕРµ СЃРѕРѕР±С‰РµРЅРёРµ.
+// Русский комментарий: helper, который парсит JSON и при ошибке создает человекочитаемое сообщение.
 async function parseJsonOrThrow<T>(response: Response): Promise<T> {
   let payload: unknown;
   try {
@@ -16,7 +21,7 @@ async function parseJsonOrThrow<T>(response: Response): Promise<T> {
   return payload as T;
 }
 
-// Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: Р·Р°РіСЂСѓР¶Р°РµС‚ capability-РєР°С‚Р°Р»РѕРі РґР»СЏ РїРѕСЃС‚СЂРѕРµРЅРёСЏ Р»РµРІРѕРіРѕ РјРµРЅСЋ.
+// Русский комментарий: загружает capability-каталог для построения левого меню.
 export async function fetchCapabilityCatalog(): Promise<CapabilityCatalogResponse> {
   const response = await fetch("/api/capabilities");
   if (!response.ok) {
@@ -25,7 +30,70 @@ export async function fetchCapabilityCatalog(): Promise<CapabilityCatalogRespons
   return parseJsonOrThrow<CapabilityCatalogResponse>(response);
 }
 
-// Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: РІС‹Р·С‹РІР°РµС‚ СЂРµР°Р»СЊРЅС‹Р№ C1 endpoint validate+compile.
+// Русский комментарий: загружает список workspace из C1 backend API.
+export async function listWorkspaces(): Promise<WorkspacesListResponse> {
+  const response = await fetch("/api/workspaces");
+  if (!response.ok) {
+    throw new Error(`Failed to load workspaces: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<WorkspacesListResponse>(response);
+}
+
+// Русский комментарий: создает workspace через C1 backend API.
+export async function createWorkspace(name: string, description: string): Promise<WorkspaceCreateResponse> {
+  const response = await fetch("/api/workspaces", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, description }),
+  });
+
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to create workspace: HTTP ${response.status}`);
+  }
+
+  return parseJsonOrThrow<WorkspaceCreateResponse>(response);
+}
+
+// Русский комментарий: загружает проекты выбранного workspace.
+export async function listProjects(workspaceId: string): Promise<ProjectsListResponse> {
+  const response = await fetch(`/api/workspaces/${encodeURIComponent(workspaceId)}/projects`);
+  if (!response.ok) {
+    throw new Error(`Failed to load projects: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<ProjectsListResponse>(response);
+}
+
+// Русский комментарий: создает проект в выбранном workspace.
+export async function createProject(
+  workspaceId: string,
+  name: string,
+  description: string,
+): Promise<ProjectCreateResponse> {
+  const response = await fetch(`/api/workspaces/${encodeURIComponent(workspaceId)}/projects`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, description }),
+  });
+
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to create project: HTTP ${response.status}`);
+  }
+
+  return parseJsonOrThrow<ProjectCreateResponse>(response);
+}
+
+// Русский комментарий: загружает проект по id, чтобы подтвердить активный выбор.
+export async function getProject(projectId: string): Promise<ProjectGetResponse> {
+  const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}`);
+  if (!response.ok) {
+    throw new Error(`Failed to load project: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<ProjectGetResponse>(response);
+}
+
+// Русский комментарий: legacy debug endpoint validate+compile оставлен для обратной совместимости.
 export async function runC1ValidateCompile(
   dslFile: string,
 ): Promise<{ ok: true; payload: C1SuccessPayload } | { ok: false; payload: ErrorPayload }> {
@@ -44,7 +112,7 @@ export async function runC1ValidateCompile(
   return { ok: true, payload };
 }
 
-// Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: Р·Р°РіСЂСѓР¶Р°РµС‚ planned-preview payload РґР»СЏ C2..C6.
+// Русский комментарий: загружает planned-preview payload для C2..C6.
 export async function fetchStubCapability(capabilityId: string): Promise<StubPayload> {
   const response = await fetch(`/api/${capabilityId}/sample`);
   if (!response.ok) {

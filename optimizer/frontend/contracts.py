@@ -5,54 +5,54 @@ from __future__ import annotations
 from typing import Any
 
 
-# Русский комментарий: канонический список capability для Roadmap v2 с UI-статусом.
+# Русский комментарий: канонический список capability для Roadmap v3 с UI-статусом.
 CAPABILITY_CATALOG: tuple[dict[str, str | int], ...] = (
     {
         "id": "c1",
-        "name": "DSL/IR Studio",
-        "description": "Валидация DSL и compile report в Graph IR.",
+        "name": "Workspace & Projects",
+        "description": "Управление workspace и project как входной точкой продукта.",
         "status": "enabled",
-        "route": "/workbench/c1",
+        "route": "/workspaces",
         "badge_count": 1,
     },
     {
         "id": "c2",
-        "name": "Runtime Run",
-        "description": "Запуск workflow и просмотр white-box trace.",
+        "name": "Task Chat + Candidates",
+        "description": "Постановка задачи в чате и генерация кандидатов.",
         "status": "planned",
-        "route": "/workbench/c2",
+        "route": "/projects/chat",
         "badge_count": 0,
     },
     {
         "id": "c3",
-        "name": "Evaluation Profile",
-        "description": "Profile-runner для dsl/native target.",
+        "name": "Pattern Library + RAG",
+        "description": "Поиск и выбор архитектурных паттернов для кандидатов.",
         "status": "planned",
-        "route": "/workbench/c3",
+        "route": "/patterns",
         "badge_count": 0,
     },
     {
         "id": "c4",
-        "name": "Arena Ranking",
-        "description": "Сравнение кандидатов, ranking и winner.",
+        "name": "Dataset & Metrics Studio",
+        "description": "Управление датасетами, метриками и методами оценки.",
         "status": "planned",
-        "route": "/workbench/c4",
+        "route": "/datasets",
         "badge_count": 0,
     },
     {
         "id": "c5",
-        "name": "Evidence & Diagnostics",
-        "description": "Comparative и diagnostic слои анализа.",
+        "name": "Optimizer Run Monitor",
+        "description": "Запуск оптимизации и мониторинг эпох, логов и метрик.",
         "status": "planned",
-        "route": "/workbench/c5",
+        "route": "/runs",
         "badge_count": 0,
     },
     {
         "id": "c6",
-        "name": "Champion Bundle",
-        "description": "Native-first экспорт и parity артефакты.",
+        "name": "Report + Champion Export/Import",
+        "description": "Финальный отчет, выбор победителя и native loop.",
         "status": "planned",
-        "route": "/workbench/c6",
+        "route": "/champion",
         "badge_count": 0,
     },
 )

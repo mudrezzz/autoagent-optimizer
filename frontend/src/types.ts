@@ -1,4 +1,4 @@
-// Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: С‚РёРї capability, РїСЂРёС…РѕРґСЏС‰РёР№ РёР· backend capability-РєР°С‚Р°Р»РѕРіР°.
+﻿// Русский комментарий: тип capability, приходящий из backend capability-каталога.
 export type Capability = {
   id: string;
   name: string;
@@ -8,20 +8,72 @@ export type Capability = {
   badge_count?: number;
 };
 
-// Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: С‚РёРї РѕС‚РІРµС‚Р° capability-РєР°С‚Р°Р»РѕРіР°.
+// Русский комментарий: тип ответа capability-каталога.
 export type CapabilityCatalogResponse = {
   version: string;
   ux_reference?: string;
   capabilities: Capability[];
 };
 
-// Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: С‚РёРї issue РІ compile report.
+// Русский комментарий: тип записи workspace в C1 API.
+export type WorkspaceRecord = {
+  workspace_id: string;
+  name: string;
+  description: string;
+  created_at: string;
+};
+
+// Русский комментарий: тип записи project в C1 API.
+export type ProjectRecord = {
+  project_id: string;
+  workspace_id: string;
+  name: string;
+  description: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
+
+// Русский комментарий: ответ списка workspace.
+export type WorkspacesListResponse = {
+  status: "success";
+  workspaces: WorkspaceRecord[];
+  total: number;
+};
+
+// Русский комментарий: ответ создания workspace.
+export type WorkspaceCreateResponse = {
+  status: "success";
+  workspace: WorkspaceRecord;
+};
+
+// Русский комментарий: ответ списка project в workspace.
+export type ProjectsListResponse = {
+  status: "success";
+  workspace_id: string;
+  projects: ProjectRecord[];
+  total: number;
+};
+
+// Русский комментарий: ответ создания project.
+export type ProjectCreateResponse = {
+  status: "success";
+  project: ProjectRecord;
+};
+
+// Русский комментарий: ответ получения project по id.
+export type ProjectGetResponse = {
+  status: "success";
+  project: ProjectRecord;
+};
+
+// Русский комментарий: тип issue в compile report legacy debug endpoint.
 export type CompileIssue = {
   severity: "warning" | "error" | string;
   message: string;
 };
 
-// Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: С‚РёРї compile summary РґР»СЏ KPI-РІРёРґР¶РµС‚РѕРІ.
+// Русский комментарий: тип compile summary для legacy debug endpoint.
 export type CompileSummary = {
   status: string;
   source: string;
@@ -30,7 +82,7 @@ export type CompileSummary = {
   errors: number;
 };
 
-// Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: С‚РёРї graph IR summary РґР»СЏ KPI-РІРёРґР¶РµС‚РѕРІ.
+// Русский комментарий: тип graph IR summary для legacy debug endpoint.
 export type GraphIrSummary = {
   available: boolean;
   entry_node?: string;
@@ -39,7 +91,7 @@ export type GraphIrSummary = {
   terminal_nodes?: string[];
 };
 
-// Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: С‚РёРї РѕС‚РІРµС‚Р° СѓСЃРїРµС€РЅРѕРіРѕ C1 РІС‹Р·РѕРІР°.
+// Русский комментарий: тип ответа успешного C1 legacy вызова.
 export type C1SuccessPayload = {
   status: "success";
   capability_id: "c1";
@@ -55,14 +107,15 @@ export type C1SuccessPayload = {
   graph_ir_summary: GraphIrSummary;
 };
 
-// Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: С‚РёРї РѕС€РёР±РѕС‡РЅРѕРіРѕ payload РѕС‚ backend.
+// Русский комментарий: тип error payload от backend.
 export type ErrorPayload = {
   status: "error";
   message: string;
+  code?: string;
   [key: string]: unknown;
 };
 
-// Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: С‚РёРї payload planned capability РґР»СЏ C2..C6.
+// Русский комментарий: тип payload planned capability для C2..C6.
 export type StubPayload = {
   status: "stub_success";
   capability_id: string;

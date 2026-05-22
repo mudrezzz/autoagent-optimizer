@@ -1,9 +1,15 @@
-﻿# Smoke runner for frontend capability shell (V2.1.S2 / C1 vertical slice).
+﻿# Smoke runner for frontend capability shell (V2.3.S1 / C1 vertical slice).
 param()
 
 $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $env:PYTHONIOENCODING = "utf-8"
+
+$storeFile = Join-Path $repoRoot "tmp\tests\smoke_frontend_workspace_registry.json"
+New-Item -ItemType Directory -Path (Split-Path -Parent $storeFile) -Force | Out-Null
+if (Test-Path -LiteralPath $storeFile) {
+  Remove-Item -LiteralPath $storeFile -Force
+}
 
 $bindHost = "127.0.0.1"
 $port = 4173
@@ -12,6 +18,7 @@ $process = $null
 
 try {
   Write-Host "[SMOKE] start frontend dev server"
+  $env:AUTOAGENT_WORKSPACE_STORE_FILE = $storeFile
   $process = Start-Process `
     -FilePath "python" `
     -ArgumentList @("-m", "optimizer.frontend.dev_server", "--host", $bindHost, "--port", "$port") `
@@ -45,18 +52,30 @@ try {
 
   $c1 = $capabilities.capabilities | Where-Object { $_.id -eq "c1" }
   if ($null -eq $c1 -or $c1.status -ne "enabled") {
-    throw "C1 capability must be enabled in V2.1.S2."
+    throw "C1 capability must be enabled in V2.3.S1."
+  }
+  if ($c1.name -ne "Workspace & Projects") {
+    throw "C1 capability name must match product capability model."
   }
 
-  Write-Host "[SMOKE] run real C1 validate+compile call"
-  $payload = @{ dsl_file = "examples/dsl/style_direct_llm.yaml" } | ConvertTo-Json -Compress
-  $compileResult = Invoke-RestMethod -Uri "$baseUrl/api/c1/validate-compile" -Method Post -Body $payload -ContentType "application/json" -TimeoutSec 8
-  if ($compileResult.status -ne "success") {
-    throw "C1 endpoint returned non-success status."
+  Write-Host "[SMOKE] run C1 workspace/project flow"
+  $workspacePayload = @{ name = "support-qa"; description = "Smoke workspace" } | ConvertTo-Json -Compress
+  $workspaceResult = Invoke-RestMethod -Uri "$baseUrl/api/workspaces" -Method Post -Body $workspacePayload -ContentType "application/json" -TimeoutSec 8
+  if ($workspaceResult.status -ne "success") {
+    throw "Workspace create endpoint returned non-success status."
   }
+  $workspaceId = $workspaceResult.workspace.workspace_id
 
-  if ($compileResult.compile_summary.status -ne "success") {
-    throw "Compile summary status must be success for canonical DSL."
+  $projectPayload = @{ name = "support-qa.v1"; description = "Smoke project" } | ConvertTo-Json -Compress
+  $projectResult = Invoke-RestMethod -Uri "$baseUrl/api/workspaces/$workspaceId/projects" -Method Post -Body $projectPayload -ContentType "application/json" -TimeoutSec 8
+  if ($projectResult.status -ne "success") {
+    throw "Project create endpoint returned non-success status."
+  }
+  $projectId = $projectResult.project.project_id
+
+  $projectGet = Invoke-RestMethod -Uri "$baseUrl/api/projects/$projectId" -Method Get -TimeoutSec 8
+  if ($projectGet.status -ne "success" -or $projectGet.project.project_id -ne $projectId) {
+    throw "Project get endpoint returned unexpected payload."
   }
 
   Write-Host "[SMOKE] frontend capability shell completed successfully."
@@ -64,4 +83,8 @@ try {
   if ($null -ne $process -and -not $process.HasExited) {
     Stop-Process -Id $process.Id -Force
   }
+  if (Test-Path -LiteralPath $storeFile) {
+    Remove-Item -LiteralPath $storeFile -Force
+  }
+  Remove-Item Env:AUTOAGENT_WORKSPACE_STORE_FILE -ErrorAction SilentlyContinue
 }

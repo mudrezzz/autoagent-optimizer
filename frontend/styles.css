@@ -385,10 +385,31 @@ code { font-family: var(--font-mono); }
   color: var(--gray-900);
 }
 
+.c1-form-controls textarea {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  min-height: 80px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--gray-900);
+  resize: vertical;
+  font-family: var(--font-ui);
+}
+
 .c1-form-controls input:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: var(--focus-ring);
+}
+
+.c1-form-controls textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring);
+}
+
+.c1-form-stack {
+  grid-template-columns: 1fr;
 }
 
 .c1-hint {
@@ -451,6 +472,21 @@ code { font-family: var(--font-mono); }
 .issue-row.warning { background: var(--amber-50); color: var(--amber-800); }
 .issue-row.error { background: var(--red-50); color: var(--red-700); }
 .issue-row.info { background: var(--blue-50); color: var(--blue-700); }
+.issue-row.selected-row {
+  border: 1px solid var(--accent-400);
+  background: var(--accent-50);
+}
+
+.row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.row-sub {
+  font-size: 11px;
+  color: var(--gray-600);
+}
 
 .json-view {
   margin: 0;
