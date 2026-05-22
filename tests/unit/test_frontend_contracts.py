@@ -1,4 +1,4 @@
-"""Unit-тесты контрактов frontend capability shell."""
+﻿"""Unit-тесты контрактов frontend capability shell."""
 
 from __future__ import annotations
 
@@ -12,17 +12,35 @@ def test_capability_catalog_contains_six_items() -> None:
 
     payload = build_capability_catalog_payload()
     assert payload["version"] == "capability_catalog_v1"
+    assert payload["ux_reference"] == "design_system/screenshots/app-v3.png"
+
     capabilities = payload["capabilities"]
     assert len(capabilities) == 6
     assert [item["id"] for item in capabilities] == ["c1", "c2", "c3", "c4", "c5", "c6"]
 
 
+def test_capability_catalog_statuses_match_v2_1_s2_scope() -> None:
+    """Проверяет, что в V2.1.S2 только C1 открыт как enabled, а остальные capability остаются planned."""
+
+    payload = build_capability_catalog_payload()
+    capabilities = payload["capabilities"]
+    statuses = {item["id"]: item["status"] for item in capabilities}
+
+    assert statuses["c1"] == "enabled"
+    assert statuses["c2"] == "planned"
+    assert statuses["c3"] == "planned"
+    assert statuses["c4"] == "planned"
+    assert statuses["c5"] == "planned"
+    assert statuses["c6"] == "planned"
+
+
 def test_stub_payload_contains_expected_shape() -> None:
-    """Проверяет, что stub-payload содержит стабильный контракт полей для frontend success-state."""
+    """Проверяет, что stub-payload содержит стабильный контракт полей для planned capability preview."""
 
     payload = build_stub_capability_payload("c4")
     assert payload["status"] == "stub_success"
     assert payload["capability_id"] == "c4"
+    assert payload["capability_status"] == "planned"
     assert "summary" in payload
     assert "next_step" in payload
 
@@ -32,4 +50,3 @@ def test_stub_payload_raises_on_unknown_capability() -> None:
 
     with pytest.raises(ValueError):
         build_stub_capability_payload("cx")
-

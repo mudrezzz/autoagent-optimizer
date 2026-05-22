@@ -1,4 +1,4 @@
-# Smoke runner for frontend capability shell (V2.1.S1).
+﻿# Smoke runner for frontend capability shell (V2.1.S2 / C1 vertical slice).
 param()
 
 $ErrorActionPreference = "Stop"
@@ -43,11 +43,20 @@ try {
     throw "Capability catalog must contain 6 items."
   }
 
+  $c1 = $capabilities.capabilities | Where-Object { $_.id -eq "c1" }
+  if ($null -eq $c1 -or $c1.status -ne "enabled") {
+    throw "C1 capability must be enabled in V2.1.S2."
+  }
+
   Write-Host "[SMOKE] run real C1 validate+compile call"
   $payload = @{ dsl_file = "examples/dsl/style_direct_llm.yaml" } | ConvertTo-Json -Compress
-  $c1 = Invoke-RestMethod -Uri "$baseUrl/api/c1/validate-compile" -Method Post -Body $payload -ContentType "application/json" -TimeoutSec 8
-  if ($c1.status -ne "success") {
+  $compileResult = Invoke-RestMethod -Uri "$baseUrl/api/c1/validate-compile" -Method Post -Body $payload -ContentType "application/json" -TimeoutSec 8
+  if ($compileResult.status -ne "success") {
     throw "C1 endpoint returned non-success status."
+  }
+
+  if ($compileResult.compile_summary.status -ne "success") {
+    throw "Compile summary status must be success for canonical DSL."
   }
 
   Write-Host "[SMOKE] frontend capability shell completed successfully."

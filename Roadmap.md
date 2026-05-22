@@ -104,7 +104,7 @@
 | Slice | Description | Status | Output |
 |---|---|---|---|
 | V2.1.S1 | UI shell + API contract skeleton for C1-C6 | Done | frontend shell + lightweight API (`C1 real`, `C2..C6 stub`) + smoke/e2e checks |
-| V2.1.S2 | C1 vertical slice | Planned | DSL validate/compile + compile-report visible in UI |
+| V2.1.S2 | C1 vertical slice | Done | app-v3-aligned workbench shell + real DSL validate/compile + compile-report/diagnostics visible in UI |
 | V2.1.S3 | C2 vertical slice | Planned | runtime run + trace explorer in UI |
 | V2.1.S4 | C4 vertical slice (smoke budget) | Planned | arena ranking/winner visible in UI |
 | V2.1.S5 | C6 read-only vertical slice | Planned | bundle inspector in UI (manifest/parity/evidence) |

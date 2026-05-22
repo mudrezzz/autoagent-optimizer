@@ -145,7 +145,7 @@ Input (Task + Constraints + Data + Tools + Budget)
    - `optimizer.evidence` (Evidence Pack v0 JSON/Markdown artifacts with winner/challenger explainable diff),
    - `optimizer.champion` (Champion Export Bundle v0: arena/evidence/diagnostic/codegen bundle + manifest).
    - `optimizer.champion.native_export` (standalone `langgraph-dai` native runtime export v0).
-   - `optimizer.frontend.dev_server` + `frontend/` (V2.1.S1 capability shell C1..C6 with C1 real endpoint and C2..C6 stubs).
+   - `optimizer.frontend.dev_server` + `frontend/` (V2.1.S2 app-v3-aligned workbench shell: C1 real validate/compile+report path, C2..C6 planned surfaces).
 2. Next:
    - Vertical product delivery track (`V2.1`, `V2.2`) for deepening capability surfaces C1..C6 on UI.
    - Evaluation Fabric & MetricOps (`I5.*`) including evaluator adapter layer and post-export native evaluation loop.

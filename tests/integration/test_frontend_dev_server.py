@@ -1,4 +1,4 @@
-"""Integration-тесты frontend dev server (static shell + capability API)."""
+﻿"""Integration-тесты frontend dev server (static shell + capability API)."""
 
 from __future__ import annotations
 
@@ -59,7 +59,7 @@ def _json_post(url: str, payload: dict[str, object]) -> tuple[int, dict[str, obj
 
 @pytest.mark.integration
 def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
-    """Проверяет, что dev server отдает UI shell, capability-каталог и реальный C1 endpoint."""
+    """Проверяет, что dev server отдает workbench shell, capability-каталог и реальный C1 endpoint."""
 
     port = _find_free_port()
     base_url = f"http://127.0.0.1:{port}"
@@ -76,14 +76,17 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         with urlopen(f"{base_url}/", timeout=5.0) as response:
             html = response.read().decode("utf-8")
             assert response.status == 200
-            assert "Capability shell" in html
+            assert "C1 Workbench" in html
+            assert "id=\"capability-nav\"" in html
             assert "/design_system/colors_and_type.css" in html
-            assert 'id="capability-tabs"' in html
 
         with urlopen(f"{base_url}/api/capabilities", timeout=5.0) as response:
             payload = json.loads(response.read().decode("utf-8"))
             assert payload["version"] == "capability_catalog_v1"
+            assert payload["ux_reference"] == "design_system/screenshots/app-v3.png"
             assert len(payload["capabilities"]) == 6
+            assert payload["capabilities"][0]["id"] == "c1"
+            assert payload["capabilities"][0]["status"] == "enabled"
 
         status_ok, c1_payload = _json_post(
             f"{base_url}/api/c1/validate-compile",
@@ -99,6 +102,13 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         )
         assert status_bad == 400
         assert bad_payload["status"] == "error"
+
+        status_escape, escape_payload = _json_post(
+            f"{base_url}/api/c1/validate-compile",
+            {"dsl_file": "..\\..\\Windows\\system.ini"},
+        )
+        assert status_escape == 400
+        assert escape_payload["status"] == "error"
     finally:
         proc.terminate()
         try:

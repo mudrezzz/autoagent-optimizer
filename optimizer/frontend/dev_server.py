@@ -97,6 +97,13 @@ def _build_handler(*, project_root: Path) -> type[SimpleHTTPRequestHandler]:
                 return
 
             dsl_file = (project_root / dsl_file_raw).resolve()
+            # Русский комментарий: защищаем endpoint от выхода за пределы рабочей директории проекта.
+            if not str(dsl_file).startswith(str(project_root.resolve())):
+                self._send_json(
+                    {"status": "error", "message": "DSL file path must stay inside project workspace."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
             if not dsl_file.exists():
                 self._send_json(
                     {"status": "error", "message": f"DSL file not found: {dsl_file_raw}"},
@@ -179,4 +186,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

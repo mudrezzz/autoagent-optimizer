@@ -1,46 +1,177 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AutoAgent Optimizer · Capability Shell</title>
+  <title>AutoAgent Optimizer - C1 Workbench</title>
   <link rel="icon" href="/design_system/assets/favicon.svg" />
   <link rel="stylesheet" href="/design_system/colors_and_type.css" />
   <link rel="stylesheet" href="/frontend/styles.css" />
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="brand">
-        <img src="/design_system/assets/logo-mark.svg" alt="AutoAgent Optimizer logo" />
-        <div class="brand-copy">
-          <div class="brand-title">AutoAgent Optimizer</div>
-          <div class="brand-sub">Capability shell · V2.1.S1</div>
+  <div class="app" id="app-root">
+    <aside class="app-sidebar">
+      <div class="app-sidebar-brand">
+        <img src="/design_system/assets/logo-lockup.svg" alt="AutoAgent Optimizer" />
+      </div>
+
+      <div class="app-sidebar-section">
+        <div class="app-side-label">Workspace</div>
+        <button type="button" class="app-side-pick" id="workspace-pick">
+          <span class="ws-dot"></span>
+          <span>autoagent-optimizer</span>
+          <i data-lucide="chevrons-up-down"></i>
+        </button>
+      </div>
+
+      <nav class="app-side-nav" id="capability-nav" aria-label="Capabilities"></nav>
+
+      <div class="app-sidebar-foot">
+        <div class="app-side-user">
+          <div class="avatar">AO</div>
+          <div>
+            <div class="user-name">Optimizer Team</div>
+            <div class="user-org">vertical delivery mode</div>
+          </div>
+          <i data-lucide="settings-2"></i>
         </div>
       </div>
-      <nav id="capability-tabs" class="capability-tabs" aria-label="Capability tabs"></nav>
     </aside>
 
-    <main class="main">
-      <header class="topbar">
-        <div>
-          <div class="eyebrow">Roadmap v2</div>
-          <h1 class="h3">Backend + Frontend + Demo + QA</h1>
+    <div class="app-main">
+      <header class="app-topbar">
+        <div class="tb-left">
+          <span class="tb-crumb">Runs</span>
+          <span class="tb-sep">/</span>
+          <span class="tb-id" id="run-id">run_c1</span>
+          <span class="tb-pill" id="run-pill">C1 enabled</span>
         </div>
-        <div class="topbar-status">
-          <span class="pill p-info"><span class="pd"></span>Frontend shell active</span>
+
+        <div class="tb-budget" id="budget-box">
+          <div class="tb-budget-label">
+            <i data-lucide="gauge"></i>
+            <span>Compile budget</span>
+          </div>
+          <div class="tb-budget-bar"><div class="tb-budget-fill" id="budget-fill"></div></div>
+          <div class="tb-budget-vals"><span id="budget-value">0%</span><span class="muted" id="budget-sub">idle</span></div>
+        </div>
+
+        <div class="tb-right">
+          <button type="button" class="tb-btn tb-btn-ghost" id="compare-btn">
+            <i data-lucide="git-compare"></i>
+            Compare
+          </button>
+          <button type="button" class="tb-btn tb-btn-primary" id="promote-btn">
+            Promote champion
+          </button>
         </div>
       </header>
 
-      <section class="panel">
-        <div id="capability-header" class="capability-header"></div>
-        <div id="capability-content" class="capability-content"></div>
-      </section>
-    </main>
+      <div class="app-content">
+        <main class="app-center">
+          <section class="content-head">
+            <div>
+              <h1 class="ch-title">DSL/IR Studio <span>- C1 vertical slice</span></h1>
+              <p class="ch-sub" id="content-subtitle">Validate DSL, compile to Graph IR and inspect compile diagnostics.</p>
+            </div>
+            <div class="ch-actions">
+              <span class="ch-pill"><span class="dot"></span><span id="active-capability-label">C1 active</span></span>
+            </div>
+          </section>
+
+          <section class="metric-strip" id="metric-strip">
+            <article class="ms-cell">
+              <div class="ms-lbl">Validation</div>
+              <div class="ms-row">
+                <div class="ms-val" id="metric-validation">idle</div>
+                <span class="ms-delta" id="metric-validation-delta">pending</span>
+              </div>
+              <div class="ms-cap">Schema and graph integrity check</div>
+            </article>
+            <article class="ms-cell">
+              <div class="ms-lbl">Graph nodes</div>
+              <div class="ms-row"><div class="ms-val" id="metric-nodes">-</div></div>
+              <div class="ms-cap">IR nodes total</div>
+            </article>
+            <article class="ms-cell">
+              <div class="ms-lbl">Graph edges</div>
+              <div class="ms-row"><div class="ms-val" id="metric-edges">-</div></div>
+              <div class="ms-cap">IR edges total</div>
+            </article>
+            <article class="ms-cell">
+              <div class="ms-lbl">Issues</div>
+              <div class="ms-row"><div class="ms-val" id="metric-issues">0</div></div>
+              <div class="ms-cap">Warnings + errors</div>
+            </article>
+          </section>
+
+          <section class="arch-list">
+            <header class="arch-list-head">
+              <div class="al-label">C1 run input</div>
+              <div class="al-tools">
+                <button type="button" class="al-tool" id="fill-example-btn">
+                  <i data-lucide="wand-sparkles"></i>
+                  Example
+                </button>
+              </div>
+            </header>
+            <div class="c1-form-row">
+              <label class="c1-field-label" for="dsl-file-input">DSL file path</label>
+              <div class="c1-form-controls">
+                <input id="dsl-file-input" type="text" value="examples/dsl/style_direct_llm.yaml" />
+                <button type="button" class="tb-btn tb-btn-primary" id="c1-run-btn">Validate + compile</button>
+              </div>
+              <p class="c1-hint">Use relative path from repo root. Example: <code>examples/dsl/style_direct_llm.yaml</code></p>
+            </div>
+          </section>
+
+          <section class="trace-view">
+            <header class="tv-head">
+              <div class="tv-title">
+                <i data-lucide="workflow"></i>
+                <span>Compile report</span>
+                <span class="tv-arch" id="compile-source">no run yet</span>
+              </div>
+            </header>
+            <div class="tv-body">
+              <div class="compile-summary-grid" id="compile-summary-grid"></div>
+              <div class="issues-box" id="issues-box"></div>
+              <pre class="json-view" id="compile-json">Run C1 to see compile payload.</pre>
+            </div>
+          </section>
+        </main>
+
+        <aside class="rail">
+          <section class="rail-section">
+            <div class="rail-label">Bottleneck found</div>
+            <div class="rail-bottleneck" id="bottleneck-box">
+              <div class="rb-top">
+                <div class="rb-icon"><i data-lucide="triangle-alert"></i></div>
+                <div class="rb-id" id="bottleneck-id">waiting_for_run</div>
+              </div>
+              <p class="rb-copy" id="bottleneck-copy">Run C1 to detect compile bottlenecks and validation risks.</p>
+            </div>
+          </section>
+
+          <section class="rail-section">
+            <div class="rail-label">Suggested interventions</div>
+            <div class="suggest" id="suggestions-box"></div>
+          </section>
+
+          <section class="rail-section">
+            <div class="rail-label">Export</div>
+            <button type="button" class="rail-export" id="export-btn">
+              <i data-lucide="file-json-2"></i>
+              Export compile payload
+            </button>
+            <div class="rail-export-meta" id="export-meta">No payload available yet.</div>
+          </section>
+        </aside>
+      </div>
+    </div>
   </div>
 
   <script src="/frontend/app.js"></script>
 </body>
 </html>
-
