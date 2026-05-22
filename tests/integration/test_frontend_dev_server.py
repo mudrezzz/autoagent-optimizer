@@ -44,12 +44,34 @@ def _wait_until_server_ready(base_url: str, *, timeout_sec: float = 15.0) -> Non
     raise AssertionError("Frontend dev server did not become ready in time.")
 
 
-def _json_post(url: str, payload: dict[str, object]) -> tuple[int, dict[str, object]]:
+def _json_post(
+    url: str,
+    payload: dict[str, object],
+    *,
+    headers: dict[str, str] | None = None,
+) -> tuple[int, dict[str, object]]:
     """Выполняет JSON POST и возвращает `(status_code, payload)` даже при HTTP 4xx/5xx."""
 
     raw = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     request = Request(url=url, data=raw, method="POST")
     request.add_header("Content-Type", "application/json; charset=utf-8")
+    for key, value in (headers or {}).items():
+        request.add_header(key, value)
+    try:
+        with urlopen(request, timeout=5.0) as response:
+            body = json.loads(response.read().decode("utf-8"))
+            return int(response.status), body
+    except HTTPError as exc:
+        body = json.loads(exc.read().decode("utf-8"))
+        return int(exc.code), body
+
+
+def _json_get(url: str, *, headers: dict[str, str] | None = None) -> tuple[int, dict[str, object]]:
+    """Выполняет JSON GET и возвращает `(status_code, payload)` даже при HTTP 4xx/5xx."""
+
+    request = Request(url=url, method="GET")
+    for key, value in (headers or {}).items():
+        request.add_header(key, value)
     try:
         with urlopen(request, timeout=5.0) as response:
             body = json.loads(response.read().decode("utf-8"))
@@ -106,11 +128,12 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
             assert payload["capabilities"][0]["name"] == "Workspace & Projects"
             assert payload["capabilities"][0]["status"] == "enabled"
 
-        with urlopen(f"{base_url}/api/workspaces", timeout=5.0) as response:
-            workspaces_payload = json.loads(response.read().decode("utf-8"))
-            assert response.status == 200
-            assert workspaces_payload["status"] == "success"
-            assert workspaces_payload["total"] == 0
+        status_workspaces, workspaces_payload = _json_get(f"{base_url}/api/workspaces")
+        assert status_workspaces == 200
+        assert workspaces_payload["status"] == "success"
+        assert workspaces_payload["total"] == 0
+        assert workspaces_payload["tenant_id"] == "tenant_demo_1"
+        assert workspaces_payload["owner_user_id"] == "user_demo_1"
 
         status_create_workspace, workspace_payload = _json_post(
             f"{base_url}/api/workspaces",
@@ -119,6 +142,8 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert status_create_workspace == 201
         assert workspace_payload["status"] == "success"
         workspace_id = str(workspace_payload["workspace"]["workspace_id"])
+        assert workspace_payload["workspace"]["tenant_id"] == "tenant_demo_1"
+        assert workspace_payload["workspace"]["owner_user_id"] == "user_demo_1"
 
         status_create_project, project_payload = _json_post(
             f"{base_url}/api/workspaces/{workspace_id}/projects",
@@ -127,18 +152,20 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert status_create_project == 201
         assert project_payload["status"] == "success"
         project_id = str(project_payload["project"]["project_id"])
+        assert project_payload["project"]["tenant_id"] == "tenant_demo_1"
+        assert project_payload["project"]["owner_user_id"] == "user_demo_1"
 
-        with urlopen(f"{base_url}/api/workspaces/{workspace_id}/projects", timeout=5.0) as response:
-            projects_list_payload = json.loads(response.read().decode("utf-8"))
-            assert response.status == 200
-            assert projects_list_payload["status"] == "success"
-            assert projects_list_payload["total"] == 1
+        status_projects, projects_list_payload = _json_get(f"{base_url}/api/workspaces/{workspace_id}/projects")
+        assert status_projects == 200
+        assert projects_list_payload["status"] == "success"
+        assert projects_list_payload["total"] == 1
+        assert projects_list_payload["tenant_id"] == "tenant_demo_1"
+        assert projects_list_payload["owner_user_id"] == "user_demo_1"
 
-        with urlopen(f"{base_url}/api/projects/{project_id}", timeout=5.0) as response:
-            project_get_payload = json.loads(response.read().decode("utf-8"))
-            assert response.status == 200
-            assert project_get_payload["status"] == "success"
-            assert project_get_payload["project"]["project_id"] == project_id
+        status_project, project_get_payload = _json_get(f"{base_url}/api/projects/{project_id}")
+        assert status_project == 200
+        assert project_get_payload["status"] == "success"
+        assert project_get_payload["project"]["project_id"] == project_id
 
         status_duplicate_workspace, duplicate_workspace_payload = _json_post(
             f"{base_url}/api/workspaces",
@@ -153,6 +180,41 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         )
         assert status_missing_workspace == 404
         assert missing_workspace_payload["status"] == "error"
+
+        # Русский комментарий: второй tenant не видит данные первого tenant и может создать одноименный workspace.
+        second_actor_headers = {
+            "X-Demo-Tenant-Id": "tenant_demo_2",
+            "X-Demo-User-Id": "user_demo_2",
+        }
+        status_workspaces_second, second_workspaces_payload = _json_get(
+            f"{base_url}/api/workspaces",
+            headers=second_actor_headers,
+        )
+        assert status_workspaces_second == 200
+        assert second_workspaces_payload["total"] == 0
+
+        status_create_workspace_second, workspace_payload_second = _json_post(
+            f"{base_url}/api/workspaces",
+            {"name": "support-qa", "description": "Second tenant scope"},
+            headers=second_actor_headers,
+        )
+        assert status_create_workspace_second == 201
+        workspace_id_second = str(workspace_payload_second["workspace"]["workspace_id"])
+
+        status_forbidden_cross_tenant, cross_tenant_project_payload = _json_post(
+            f"{base_url}/api/workspaces/{workspace_id}/projects",
+            {"name": "support-qa.v2", "description": "wrong scope"},
+            headers=second_actor_headers,
+        )
+        assert status_forbidden_cross_tenant == 404
+        assert cross_tenant_project_payload["status"] == "error"
+
+        status_projects_second, projects_second_payload = _json_get(
+            f"{base_url}/api/workspaces/{workspace_id_second}/projects",
+            headers=second_actor_headers,
+        )
+        assert status_projects_second == 200
+        assert projects_second_payload["total"] == 0
 
         # Русский комментарий: legacy C1 endpoint остается доступным как debug-route.
         status_legacy, legacy_payload = _json_post(

@@ -12,7 +12,7 @@ CAPABILITY_CATALOG: tuple[dict[str, str | int], ...] = (
         "name": "Workspace & Projects",
         "description": "Управление workspace и project как входной точкой продукта.",
         "status": "enabled",
-        "route": "/workspaces",
+        "route": "/projects",
         "badge_count": 1,
     },
     {

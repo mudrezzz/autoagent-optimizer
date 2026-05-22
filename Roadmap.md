@@ -130,7 +130,7 @@ Note: после `V2.3.S1` добавлен corrective slice `V2.3.S1a`, что�
 | Slice | Description | Status | Output |
 |---|---|---|---|
 | V2.3.S1 | C1 Workspace & Project Registry vertical slice | Done | workspace list/create/open + project list/create/open + FE/BE/e2e |
-| V2.3.S1a | SaaS IA split: Projects Hub vs Project Workspace | Planned | separate screens, sticky app-shell behavior, no right rail on Projects Hub, capability menu only inside Project Workspace |
+| V2.3.S1a | SaaS IA split: Projects Hub vs Project Workspace | Done | separate screens, sticky app-shell behavior, no right rail on Projects Hub, capability menu only inside Project Workspace |
 | V2.3.S2 | C2 Project Chat brief-to-candidates v0 | Planned | task brief chat + AI proposal + candidate-set draft |
 | V2.3.S3 | C3 Pattern Library + RAG controls v0 | Planned | pattern browse/search + include/exclude + retrieval trace |
 | V2.3.S4 | Candidate assembly + internal compile readiness | Planned | candidate graph build + compile/validate gate + ready status |

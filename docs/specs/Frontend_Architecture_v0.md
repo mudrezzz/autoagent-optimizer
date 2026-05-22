@@ -307,18 +307,15 @@ Frontend развивается вертикально, синхронно с ba
 
 Ключевые пробелы относительно целевого продукта:
 
-1. `FE` отсутствует корректное разделение `Projects Hub` и `Project Workspace`.
-2. `FE` отсутствует основной `Project Chat` как точка постановки задачи.
-3. `FE` отсутствует библиотека паттернов с include/exclude UX.
-4. `FE` отсутствуют `Dataset Studio` и `Metrics Studio`.
-5. `FE` отсутствует продуктовый run-monitor с версиями сущностей и эпохами.
-6. `FE` отсутствует путь native `import` (есть export/read-only артефакты).
-7. `FE` не зафиксированы sticky правила app-shell для SaaS-навигации.
-8. `BE` отсутствует tenant/user-bound access enforcement для project API.
-9. `BE` отсутствует chat-orchestrator для candidate generation.
-10. `BE` отсутствует pattern library service + RAG index/query API.
-11. `BE` отсутствует unified version-manifest service для runs.
-12. `BE` отсутствует native import pipeline с compatibility/preflight по коду.
+1. `FE` отсутствует основной `Project Chat` как точка постановки задачи.
+2. `FE` отсутствует библиотека паттернов с include/exclude UX.
+3. `FE` отсутствуют `Dataset Studio` и `Metrics Studio`.
+4. `FE` отсутствует продуктовый run-monitor с версиями сущностей и эпохами.
+5. `FE` отсутствует путь native `import` (есть export/read-only артефакты).
+6. `BE` отсутствует chat-orchestrator для candidate generation.
+7. `BE` отсутствует pattern library service + RAG index/query API.
+8. `BE` отсутствует unified version-manifest service для runs.
+9. `BE` отсутствует native import pipeline с compatibility/preflight по коду.
 
 Приоритет закрытия gap:
 

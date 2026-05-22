@@ -21,6 +21,8 @@ export type WorkspaceRecord = {
   name: string;
   description: string;
   created_at: string;
+  tenant_id: string;
+  owner_user_id: string;
 };
 
 // Русский комментарий: тип записи project в C1 API.
@@ -32,6 +34,8 @@ export type ProjectRecord = {
   status: string;
   created_at: string;
   updated_at: string;
+  tenant_id: string;
+  owner_user_id: string;
 };
 
 // Русский комментарий: ответ списка workspace.

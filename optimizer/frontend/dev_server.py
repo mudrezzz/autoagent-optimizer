@@ -64,6 +64,14 @@ def _resolve_workspace_store_file(*, project_root: Path) -> Path:
     return (project_root / "tmp" / "workspace_registry.json").resolve()
 
 
+def _resolve_default_actor() -> tuple[str, str]:
+    """Возвращает default tenant/user для dev-режима без полноценной auth."""
+
+    tenant_id = os.environ.get("AUTOAGENT_DEMO_TENANT_ID", "tenant_demo_1").strip() or "tenant_demo_1"
+    user_id = os.environ.get("AUTOAGENT_DEMO_USER_ID", "user_demo_1").strip() or "user_demo_1"
+    return tenant_id, user_id
+
+
 def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStore) -> type[SimpleHTTPRequestHandler]:
     """Создает handler-класс с замыканием на project_root и workspace_store."""
 
@@ -79,6 +87,7 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
             """Обрабатывает GET-запросы API и static-файлов."""
 
             path = urlparse(self.path).path
+            tenant_id, user_id = self._resolve_request_actor()
             if path == "/api/health":
                 self._send_json({"status": "ok", "service": "frontend_dev_server"})
                 return
@@ -93,29 +102,57 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
                 return
 
             if path == "/api/workspaces":
-                workspaces = [record.__dict__ for record in workspace_store.list_workspaces()]
-                self._send_json({"status": "success", "workspaces": workspaces, "total": len(workspaces)})
+                workspaces = [record.__dict__ for record in workspace_store.list_workspaces(tenant_id=tenant_id, owner_user_id=user_id)]
+                self._send_json(
+                    {
+                        "status": "success",
+                        "tenant_id": tenant_id,
+                        "owner_user_id": user_id,
+                        "workspaces": workspaces,
+                        "total": len(workspaces),
+                    }
+                )
                 return
 
             workspace_projects_match = re.fullmatch(r"/api/workspaces/([^/]+)/projects", path)
             if workspace_projects_match is not None:
                 workspace_id = workspace_projects_match.group(1)
                 try:
-                    projects = [record.__dict__ for record in workspace_store.list_projects(workspace_id=workspace_id)]
+                    projects = [
+                        record.__dict__
+                        for record in workspace_store.list_projects(
+                            tenant_id=tenant_id,
+                            owner_user_id=user_id,
+                            workspace_id=workspace_id,
+                        )
+                    ]
                 except KeyError as exc:
                     self._send_json(
                         {"status": "error", "code": "workspace_not_found", "message": str(exc)},
                         status=HTTPStatus.NOT_FOUND,
                     )
                     return
-                self._send_json({"status": "success", "workspace_id": workspace_id, "projects": projects, "total": len(projects)})
+                self._send_json(
+                    {
+                        "status": "success",
+                        "tenant_id": tenant_id,
+                        "owner_user_id": user_id,
+                        "workspace_id": workspace_id,
+                        "projects": projects,
+                        "total": len(projects),
+                    }
+                )
                 return
 
             project_match = re.fullmatch(r"/api/projects/([^/]+)", path)
             if project_match is not None:
                 project_id = project_match.group(1)
                 try:
-                    project = workspace_store.get_project(project_id=project_id)
+                    project = workspace_store.get_project(
+                        tenant_id=tenant_id,
+                        owner_user_id=user_id,
+                        project_id=project_id,
+                    )
                 except KeyError as exc:
                     self._send_json(
                         {"status": "error", "code": "project_not_found", "message": str(exc)},
@@ -161,6 +198,7 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
 
         def _handle_create_workspace(self) -> None:
             """Создает workspace из JSON-пейлоада и возвращает созданную сущность."""
+            tenant_id, user_id = self._resolve_request_actor()
 
             try:
                 payload = self._read_json_body()
@@ -184,7 +222,12 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
                 return
 
             try:
-                workspace = workspace_store.create_workspace(name=name, description=description)
+                workspace = workspace_store.create_workspace(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    name=name,
+                    description=description,
+                )
             except ValueError as exc:
                 self._send_json(
                     {"status": "error", "code": "workspace_conflict", "message": str(exc)},
@@ -196,6 +239,7 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
 
         def _handle_create_project(self, *, workspace_id: str) -> None:
             """Создает project в указанном workspace и возвращает созданную сущность."""
+            tenant_id, user_id = self._resolve_request_actor()
 
             try:
                 payload = self._read_json_body()
@@ -219,7 +263,13 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
                 return
 
             try:
-                project = workspace_store.create_project(workspace_id=workspace_id, name=name, description=description)
+                project = workspace_store.create_project(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    workspace_id=workspace_id,
+                    name=name,
+                    description=description,
+                )
             except KeyError as exc:
                 self._send_json(
                     {"status": "error", "code": "workspace_not_found", "message": str(exc)},
@@ -234,6 +284,14 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
                 return
 
             self._send_json({"status": "success", "project": project.__dict__}, status=HTTPStatus.CREATED)
+
+        def _resolve_request_actor(self) -> tuple[str, str]:
+            """Разрешает tenant/user контекст запроса из заголовков либо default окружения."""
+
+            default_tenant_id, default_user_id = _resolve_default_actor()
+            tenant_id = (self.headers.get("X-Demo-Tenant-Id") or default_tenant_id).strip() or default_tenant_id
+            user_id = (self.headers.get("X-Demo-User-Id") or default_user_id).strip() or default_user_id
+            return tenant_id, user_id
 
         def _handle_legacy_validate_compile(self) -> None:
             """Оставляет legacy C1 validate+compile как debug-route для обратной совместимости."""

@@ -120,18 +120,16 @@ Input (Tenant + User + Project + Task Brief + Constraints + Data + Budget)
 
 Фронтенд-пустоты:
 
-1. отсутствует корректное разделение `Projects Hub` и `Project Workspace`;
-2. отсутствует `Project Chat` как основной вход постановки задачи;
-3. отсутствует pattern library browser с include/exclude controls;
-4. отсутствует dataset/metrics/evaluator studio;
-5. отсутствует run-monitor по эпохам и version-manifest;
-6. отсутствует native import UX path.
+1. отсутствует `Project Chat` как основной вход постановки задачи;
+2. отсутствует pattern library browser с include/exclude controls;
+3. отсутствует dataset/metrics/evaluator studio;
+4. отсутствует run-monitor по эпохам и version-manifest;
+5. отсутствует native import UX path.
 
 Бэкенд-пустоты:
 
-1. отсутствует tenant/user access enforcement для project API;
-2. отсутствует copilot orchestrator (task brief -> candidate set);
-3. отсутствует pattern library RAG service;
+1. отсутствует copilot orchestrator (task brief -> candidate set);
+2. отсутствует pattern library RAG service;
 4. отсутствует unified version-manifest service;
 5. отсутствует dataset synthesis/cleaning assistant pipeline;
 6. отсутствует native import parser + compatibility pipeline.
@@ -184,10 +182,10 @@ Input (Tenant + User + Project + Task Brief + Constraints + Data + Budget)
    - `optimizer.evidence` (Evidence Pack v0 JSON/Markdown artifacts with winner/challenger explainable diff),
    - `optimizer.champion` (Champion Export Bundle v0: arena/evidence/diagnostic/codegen bundle + manifest).
    - `optimizer.champion.native_export` (standalone `langgraph-dai` native runtime export v0).
-   - `optimizer.workspace` (JSON-backed workspace/project registry store for product C1 flow),
-   - `optimizer.frontend.dev_server` + `frontend/` (V2.3.S1 C1 vertical slice: workspace/project API + app-v3-aligned UI + unit/integration/e2e smoke coverage; C2..C6 planned surfaces).
+   - `optimizer.workspace` (JSON-backed workspace/project registry store with tenant/user-scoped C1 access),
+   - `optimizer.frontend.dev_server` + `frontend/` (V2.3.S1 + V2.3.S1a: C1 API + Projects Hub / Project Workspace split + sticky shell + unit/integration/e2e smoke coverage; C2..C6 planned surfaces).
 2. Next:
-   - Vertical product delivery track (`V2.3.*`) starts with SaaS IA split (`V2.3.S1a`) before C2 chat/candidate flow.
+   - Vertical product delivery track (`V2.3.*`) moves to C2 chat/candidate flow after SaaS IA split completion (`V2.3.S1a`).
    - Evaluation Fabric & MetricOps (`I5.*`) including evaluator adapter layer and post-export native evaluation loop.
 
 ## Decision Records
