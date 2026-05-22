@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Metric strip</title>
+<link rel="stylesheet" href="_card.css" />
+<style>
+  .strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    background: var(--gray-0);
+    border-radius: 12px;
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+  }
+  .m {
+    padding: 16px 18px;
+    border-right: 1px solid var(--border-muted);
+    display: flex; flex-direction: column; gap: 4px;
+    position: relative;
+  }
+  .m:last-child { border-right: none; }
+  .lbl { font-size: 11px; color: var(--gray-500); font-weight: 500; }
+  .row { display: flex; align-items: baseline; gap: 8px; }
+  .val { font-family: var(--font-mono); font-size: 24px; font-weight: 600; color: var(--gray-900); letter-spacing: -0.015em; }
+  .delta { font-family: var(--font-mono); font-size: 11px; font-weight: 500; padding: 2px 7px; border-radius: 5px; }
+  .delta.pos { background: var(--green-50); color: var(--green-700); }
+  .delta.neg { background: var(--red-50); color: var(--red-700); }
+  .cap { font-size: 11px; color: var(--gray-500); }
+  .spark { position: absolute; right: 14px; bottom: 12px; opacity: 0.5; }
+  .bar-wrap {
+    margin-top: 6px;
+    width: 100%; height: 6px;
+    background: var(--gray-100); border-radius: 999px; overflow: hidden;
+  }
+  .bar-fill { height: 100%; background: var(--accent); border-radius: 999px; }
+</style>
+</head>
+<body>
+<div class="card tight">
+  <div class="label-small" style="margin-bottom:12px">Metric strip</div>
+  <div class="strip">
+    <div class="m">
+      <span class="lbl">f1@k</span>
+      <div class="row"><span class="val">0.842</span><span class="delta pos">+0.038</span></div>
+      <span class="cap">vs baseline · 480 cases</span>
+      <svg class="spark" width="60" height="18" viewBox="0 0 60 18"><polyline points="0,14 8,12 16,13 24,9 32,10 40,6 48,7 60,3" fill="none" stroke="#635BFF" stroke-width="1.5" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="m">
+      <span class="lbl">Cost / case</span>
+      <div class="row"><span class="val">$0.31</span><span class="delta pos">−38 %</span></div>
+      <span class="cap">deterministic work moved out</span>
+      <svg class="spark" width="60" height="18" viewBox="0 0 60 18"><polyline points="0,4 8,5 16,7 24,8 32,10 40,11 48,13 60,14" fill="none" stroke="#635BFF" stroke-width="1.5" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="m">
+      <span class="lbl">p95 latency</span>
+      <div class="row"><span class="val">1.24s</span><span class="delta neg">+0.32s</span></div>
+      <span class="cap">reranker · 62 % share</span>
+      <svg class="spark" width="60" height="18" viewBox="0 0 60 18"><polyline points="0,12 8,11 16,9 24,7 32,8 40,5 48,4 60,2" fill="none" stroke="#635BFF" stroke-width="1.5" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="m">
+      <span class="lbl">Budget used</span>
+      <div class="row"><span class="val">62%</span><span class="delta pos" style="background:var(--gray-100);color:var(--gray-700)">$24.80</span></div>
+      <span class="cap">of $40.00 cap</span>
+      <div class="bar-wrap"><div class="bar-fill" style="width:62%"></div></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

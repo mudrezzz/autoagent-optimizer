@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Trace viewer</title>
+<link rel="stylesheet" href="_card.css" />
+<style>
+  .frame {
+    background: var(--gray-0);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    padding: 16px 18px;
+    border: 1px solid var(--border-muted);
+  }
+  .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .title { font-size: 13px; font-weight: 600; color: var(--gray-900); }
+  .meta { font-family: var(--font-mono); font-size: 11px; color: var(--gray-500); }
+  .rows { display: flex; flex-direction: column; gap: 7px; }
+  .r { display: grid; grid-template-columns: 130px 1fr 64px; gap: 12px; align-items: center; font-family: var(--font-mono); font-size: 11px; }
+  .label-r { color: var(--gray-700); }
+  .label-r.fail { color: var(--red-600); }
+  .track { position: relative; height: 16px; background: var(--gray-100); border-radius: 4px; }
+  .seg { position: absolute; top: 0; bottom: 0; border-radius: 3px; }
+  .seg.retrieval { background: var(--blue-500); }
+  .seg.llm { background: var(--accent); }
+  .seg.tool { background: var(--amber-500); }
+  .seg.hitl { background: var(--gray-400); }
+  .seg.fail { background: var(--red-500); }
+  .ms { text-align: right; color: var(--gray-500); }
+  .legend { display: flex; gap: 16px; padding-top: 12px; margin-top: 12px; border-top: 1px solid var(--border-muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--gray-600); }
+  .lg-sw { width: 10px; height: 10px; border-radius: 3px; }
+  .lg-sw.retrieval { background: var(--blue-500); }
+  .lg-sw.llm { background: var(--accent); }
+  .lg-sw.tool { background: var(--amber-500); }
+  .lg-sw.hitl { background: var(--gray-400); }
+  .lg-sw.fail { background: var(--red-500); }
+</style>
+</head>
+<body>
+<div class="card tight">
+  <div class="frame">
+    <div class="top">
+      <div class="title">White-box trace · arch_b4f</div>
+      <div class="meta">case 14 / 24 · p95 1.24 s</div>
+    </div>
+    <div class="rows">
+      <div class="r"><span class="label-r">retriever.bm25</span><div class="track"><div class="seg retrieval" style="left:0%;width:14%"></div></div><span class="ms">178 ms</span></div>
+      <div class="r"><span class="label-r">retriever.dense</span><div class="track"><div class="seg retrieval" style="left:14%;width:18%"></div></div><span class="ms">221 ms</span></div>
+      <div class="r"><span class="label-r">reranker.cross</span><div class="track"><div class="seg llm" style="left:32%;width:24%"></div></div><span class="ms">298 ms</span></div>
+      <div class="r"><span class="label-r">tool.calc</span><div class="track"><div class="seg tool" style="left:56%;width:5%"></div></div><span class="ms">62 ms</span></div>
+      <div class="r"><span class="label-r">llm.answer</span><div class="track"><div class="seg llm" style="left:61%;width:30%"></div></div><span class="ms">372 ms</span></div>
+      <div class="r"><span class="label-r">hitl.review</span><div class="track"><div class="seg hitl" style="left:91%;width:6%"></div></div><span class="ms">72 ms</span></div>
+      <div class="r"><span class="label-r fail">judge.f1</span><div class="track"><div class="seg fail" style="left:97%;width:3%"></div></div><span class="ms">41 ms</span></div>
+    </div>
+    <div class="legend">
+      <span><span class="lg-sw retrieval"></span>retrieval</span>
+      <span><span class="lg-sw llm"></span>llm</span>
+      <span><span class="lg-sw tool"></span>tool</span>
+      <span><span class="lg-sw hitl"></span>hitl</span>
+      <span><span class="lg-sw fail"></span>regression</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>

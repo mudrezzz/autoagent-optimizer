@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Empty state</title>
+<link rel="stylesheet" href="_card.css" />
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  .empty {
+    background: var(--gray-50);
+    border: 1px solid var(--border-muted);
+    border-radius: 16px;
+    padding: 32px;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    text-align: center;
+  }
+  .ico {
+    width: 56px; height: 56px;
+    background: var(--gray-0);
+    border-radius: 14px;
+    display: grid; place-items: center;
+    box-shadow: var(--shadow-sm);
+    color: var(--accent);
+  }
+  .ico svg { width: 26px; height: 26px; stroke-width: 1.6; }
+  .h { font-size: 17px; font-weight: 600; color: var(--gray-900); margin: 0; letter-spacing: -0.01em; }
+  .sub { font-size: 14px; color: var(--gray-500); margin: 0; max-width: 380px; line-height: 1.5; }
+  .btn-row { display: flex; gap: 10px; margin-top: 6px; }
+  .btn {
+    font-size: 13px; font-weight: 500;
+    padding: 8px 14px; border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+  }
+  .btn.primary { background: var(--accent); color: white; box-shadow: 0 1px 2px rgba(99,91,255,0.3); }
+  .btn.ghost { background: var(--gray-0); color: var(--gray-800); border-color: var(--border); }
+</style>
+</head>
+<body>
+<div class="card tight">
+  <div class="label-small" style="margin-bottom:12px">Empty state · friendly + actionable</div>
+  <div class="empty">
+    <div class="ico"><i data-lucide="flask-conical"></i></div>
+    <h3 class="h">No runs yet</h3>
+    <p class="sub">Start your first run to bracket the design space across cost, latency, and accuracy.</p>
+    <div class="btn-row">
+      <button class="btn primary">Start a run</button>
+      <button class="btn ghost">Browse examples</button>
+    </div>
+  </div>
+</div>
+<script>lucide.createIcons();</script>
+</body>
+</html>

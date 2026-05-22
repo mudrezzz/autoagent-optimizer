@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AutoAgent Optimizer — Design System Handoff</title>
+<link rel="icon" href="assets/favicon.svg" />
+<link rel="stylesheet" href="colors_and_type.css" />
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  /* ============================================================
+     Handoff document styles
+     ============================================================ */
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--gray-0);
+    color: var(--gray-900);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code { font-family: var(--font-mono); font-size: 0.92em; background: var(--gray-100); padding: 1px 6px; border-radius: 4px; }
+
+  .doc {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 64px 48px 96px;
+  }
+
+  /* Hero / cover */
+  .cover {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border-muted);
+    margin-bottom: 64px;
+  }
+  .cover-eyebrow {
+    font-size: 12px; font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .cover-title {
+    font-size: 56px; line-height: 1.04;
+    letter-spacing: -0.035em;
+    font-weight: 600; color: var(--gray-900);
+    margin: 0 0 12px;
+  }
+  .cover-sub {
+    font-size: 18px; line-height: 1.5;
+    color: var(--gray-600); margin: 0 0 4px;
+    max-width: 620px;
+  }
+  .cover-meta {
+    text-align: right;
+    font-family: var(--font-mono); font-size: 12px; color: var(--gray-500);
+    line-height: 1.7;
+  }
+  .cover-meta b { color: var(--gray-900); font-weight: 600; }
+  .cover-mark img { height: 56px; display: block; margin-bottom: 12px; }
+
+  /* TOC */
+  .toc {
+    background: var(--gray-50);
+    border: 1px solid var(--border-muted);
+    border-radius: 14px;
+    padding: 24px 28px;
+    margin-bottom: 80px;
+  }
+  .toc-title {
+    font-size: 12px; font-weight: 600;
+    color: var(--gray-500);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .toc-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 32px;
+    list-style: none; margin: 0; padding: 0;
+  }
+  .toc-list li {
+    display: grid; grid-template-columns: 40px 1fr;
+    align-items: baseline; gap: 12px;
+    padding: 4px 0;
+  }
+  .toc-num {
+    font-family: var(--font-mono);
+    font-size: 12px; color: var(--gray-500); font-weight: 500;
+  }
+  .toc-link {
+    font-size: 14px; color: var(--gray-900); font-weight: 500;
+  }
+
+  /* Section */
+  section.s {
+    margin-bottom: 80px;
+    scroll-margin-top: 24px;
+  }
+  .s-head {
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-muted);
+  }
+  .s-num {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 12px; color: var(--accent); font-weight: 600;
+    letter-spacing: 0.04em;
+    margin-bottom: 10px;
+  }
+  .s-title {
+    font-size: 36px; line-height: 1.08; letter-spacing: -0.03em;
+    color: var(--gray-900); margin: 0 0 12px; font-weight: 600;
+  }
+  .s-intro {
+    font-size: 16px; line-height: 1.55;
+    color: var(--gray-600); margin: 0;
+    max-width: 720px;
+  }
+
+  /* Subsection */
+  .ss { margin-bottom: 40px; }
+  .ss-title {
+    font-size: 18px; font-weight: 600;
+    color: var(--gray-900);
+    letter-spacing: -0.01em;
+    margin: 0 0 10px;
+  }
+  .ss-intro {
+    font-size: 14px; line-height: 1.55;
+    color: var(--gray-600);
+    margin: 0 0 18px;
+    max-width: 680px;
+  }
+
+  /* Grid */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .grid-6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+
+  /* Generic spec card */
+  .speccard {
+    background: var(--gray-0);
+    border: 1px solid var(--border-muted);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  /* Color swatch */
+  .swatch {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border-muted);
+    background: var(--gray-0);
+  }
+  .sw-color { height: 70px; }
+  .sw-meta { padding: 10px 12px; }
+  .sw-name { font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: var(--gray-900); }
+  .sw-hex { font-family: var(--font-mono); font-size: 10px; color: var(--gray-500); margin-top: 1px; }
+
+  /* Logo grid */
+  .logo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .logo-tile {
+    border-radius: 14px;
+    padding: 32px;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    min-height: 200px; justify-content: center;
+  }
+  .logo-tile.light { background: var(--gray-50); border: 1px solid var(--border-muted); }
+  .logo-tile.dark  { background: var(--gray-900); }
+  .logo-tile img { height: 56px; width: auto; }
+  .logo-tile.lockup img { height: 36px; }
+  .logo-cap {
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--gray-500);
+    text-align: center;
+  }
+  .logo-tile.dark .logo-cap { color: var(--gray-400); }
+
+  /* Do / Don't */
+  .dodont { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .dd-card {
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid var(--border-muted);
+    background: var(--gray-0);
+  }
+  .dd-card.do { border-left: 3px solid var(--green-500); }
+  .dd-card.dont { border-left: 3px solid var(--red-500); }
+  .dd-label {
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-bottom: 10px;
+  }
+  .dd-card.do   .dd-label { color: var(--green-700); }
+  .dd-card.dont .dd-label { color: var(--red-700); }
+  .dd-label svg { width: 14px; height: 14px; }
+  .dd-list { padding: 0; margin: 0; list-style: none; }
+  .dd-list li {
+    font-size: 14px; line-height: 1.55;
+    color: var(--gray-700);
+    padding: 4px 0 4px 16px;
+    position: relative;
+  }
+  .dd-list li::before {
+    content: ""; position: absolute; left: 0; top: 10px;
+    width: 6px; height: 6px; border-radius: 999px;
+  }
+  .dd-card.do   .dd-list li::before { background: var(--green-500); }
+  .dd-card.dont .dd-list li::before { background: var(--red-500); }
+  .dd-list code { font-size: 12.5px; }
+
+  /* Token table */
+  .toktable {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--gray-0);
+    border: 1px solid var(--border-muted);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .toktable th, .toktable td {
+    text-align: left;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border-muted);
+    font-size: 13px;
+    vertical-align: middle;
+  }
+  .toktable thead th {
+    background: var(--gray-50);
+    font-size: 11px; font-weight: 600;
+    color: var(--gray-500);
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .toktable tbody tr:last-child td { border-bottom: none; }
+  .toktable td.mono { font-family: var(--font-mono); font-size: 12.5px; color: var(--gray-800); }
+  .toktable td.muted { color: var(--gray-500); font-size: 12px; }
+  .tok-sw { width: 22px; height: 22px; border-radius: 5px; box-shadow: 0 0 0 1px var(--border-muted) inset; display: inline-block; vertical-align: middle; }
+
+  /* Type ladder */
+  .type-row {
+    display: grid;
+    grid-template-columns: 110px 1fr 130px;
+    align-items: baseline;
+    gap: 24px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border-muted);
+  }
+  .type-row:last-child { border-bottom: none; }
+  .type-meta { font-family: var(--font-mono); font-size: 11px; color: var(--gray-500); }
+  .type-tok { font-family: var(--font-mono); font-size: 11px; color: var(--gray-400); text-align: right; }
+
+  /* Component example */
+  .compblock {
+    background: var(--gray-50);
+    border: 1px solid var(--border-muted);
+    border-radius: 12px;
+    padding: 28px;
+    display: flex; flex-wrap: wrap; gap: 16px;
+    align-items: center;
+    justify-content: center;
+  }
+  .compblock.left { justify-content: flex-start; }
+  .compblock.dark { background: var(--gray-900); }
+
+  /* Buttons (matching system) */
+  .btn {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 14px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: var(--gray-900); color: white;
+    cursor: pointer; text-align: center;
+    transition: all 140ms ease;
+    line-height: 1.2;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn svg { width: 14px; height: 14px; }
+  .btn.primary {
+    background: var(--accent); color: white;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset, 0 1px 2px rgba(99,91,255,0.32);
+  }
+  .btn.secondary { background: var(--gray-0); color: var(--gray-900); border-color: var(--border); box-shadow: var(--shadow-xs); }
+  .btn.ghost { background: transparent; color: var(--gray-700); }
+  .btn.destructive { background: var(--gray-0); color: var(--error); border-color: var(--border); }
+  .btn.lg { font-size: 15px; padding: 12px 22px; border-radius: 10px; }
+
+  /* Status pills (matching system) */
+  .pill {
+    font-size: 12px; font-weight: 500;
+    padding: 4px 10px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .pill .pd { width: 6px; height: 6px; border-radius: 999px; }
+  .p-champ { background: var(--accent-bg); color: var(--indigo-700); }
+  .p-champ .pd { background: var(--accent); }
+  .p-pass  { background: var(--green-50); color: var(--green-700); }
+  .p-pass  .pd { background: var(--green-500); }
+  .p-warn  { background: var(--amber-50); color: var(--amber-700); }
+  .p-warn  .pd { background: var(--amber-500); }
+  .p-fail  { background: var(--red-50); color: var(--red-700); }
+  .p-fail  .pd { background: var(--red-500); }
+  .p-info  { background: var(--blue-50); color: #1D4ED8; }
+  .p-info  .pd { background: var(--blue-500); }
+  .p-idle  { background: var(--gray-100); color: var(--gray-600); }
+  .p-idle  .pd { background: var(--gray-400); }
+
+  /* Spacing scale */
+  .spc-row { display: grid; grid-template-columns: 90px 1fr 60px; gap: 16px; align-items: center; padding: 6px 0; }
+  .spc-bar { background: var(--accent); height: 12px; border-radius: 2px; }
+  .spc-meta { font-family: var(--font-mono); font-size: 11px; color: var(--gray-500); }
+  .spc-px { font-family: var(--font-mono); font-size: 11px; color: var(--gray-400); text-align: right; }
+
+  /* Radii grid */
+  .radii-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 14px; }
+  .radii-cell { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .radii-sq { width: 64px; height: 64px; background: var(--gray-0); border: 1px solid var(--border); }
+  .radii-name { font-family: var(--font-mono); font-size: 11px; color: var(--gray-900); font-weight: 500; }
+  .radii-hint { font-family: var(--font-mono); font-size: 10px; color: var(--gray-400); }
+
+  /* Shadow grid */
+  .shadow-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; background: var(--gray-50); padding: 24px; border-radius: 12px; border: 1px solid var(--border-muted); }
+  .sh-cell { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .sh-sq { width: 100px; height: 64px; background: var(--gray-0); border-radius: 10px; }
+
+  /* Icon grid */
+  .icon-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 14px; }
+  .icon-cell { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--gray-700); }
+  .icon-cell svg { width: 22px; height: 22px; stroke-width: 1.6; }
+  .icon-name { font-family: var(--font-mono); font-size: 10px; color: var(--gray-400); }
+
+  /* Page example */
+  .page-example {
+    background: var(--gray-50);
+    border: 1px solid var(--border-muted);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-top: 24px;
+  }
+  .page-example img { display: block; width: 100%; height: auto; }
+  .page-bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 18px;
+    background: var(--gray-100);
+    border-bottom: 1px solid var(--border-muted);
+    font-family: var(--font-mono); font-size: 11px; color: var(--gray-500);
+  }
+  .page-bar .dot { width: 10px; height: 10px; background: var(--gray-300); border-radius: 999px; }
+
+  .annotations {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+    margin-top: 24px;
+  }
+  .annot {
+    border-radius: 10px; padding: 14px 18px;
+    background: var(--gray-50);
+    border: 1px solid var(--border-muted);
+  }
+  .annot-num {
+    display: inline-grid; place-items: center;
+    width: 22px; height: 22px;
+    border-radius: 999px;
+    background: var(--accent); color: white;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .annot-title { font-size: 13px; font-weight: 600; color: var(--gray-900); margin: 0 0 4px; }
+  .annot-copy { font-size: 13px; line-height: 1.55; color: var(--gray-600); margin: 0; }
+
+  /* Footer */
+  .doc-foot {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border-muted);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px; align-items: end;
+  }
+  .doc-foot-tag { font-size: 13px; color: var(--gray-500); }
+  .doc-foot-meta { text-align: right; font-family: var(--font-mono); font-size: 11px; color: var(--gray-400); line-height: 1.6; }
+
+  /* PRINT */
+  @media print {
+    body { background: white; }
+    .doc { padding: 0 16mm; max-width: 100%; }
+    section.s { page-break-inside: avoid; }
+    .page-example { page-break-inside: avoid; }
+    .toc { display: none; }
+  }
+  @page { size: A4; margin: 16mm 12mm; }
+</style>
+</head>
+<body>
+
+<div class="doc">
+
+  <!-- ============== COVER ============== -->
+  <header class="cover">
+    <div>
+      <div class="cover-eyebrow">Design system · Handoff package</div>
+      <h1 class="cover-title">AutoAgent Optimizer</h1>
+      <p class="cover-sub">A complete design specification covering brand, color, typography, components, voice, and two reference UI surfaces — workbench app and marketing landing.</p>
+    </div>
+    <div class="cover-meta">
+      <div class="cover-mark"><img src="assets/logo-mark.svg" alt="AutoAgent Optimizer" /></div>
+      <div><b>Version</b> 1.0</div>
+      <div><b>Direction</b> Stripe-soft · Vercel-clean</div>
+      <div><b>Last updated</b> May 2026</div>
+    </div>
+  </header>
+
+  <!-- ============== TOC ============== -->
+  <nav class="toc">
+    <div class="toc-title">Contents</div>
+    <ul class="toc-list">
+      <li><span class="toc-num">01</span> <a class="toc-link" href="#brand">Brand identity</a></li>
+      <li><span class="toc-num">07</span> <a class="toc-link" href="#voice">Voice &amp; content</a></li>
+      <li><span class="toc-num">02</span> <a class="toc-link" href="#color">Color system</a></li>
+      <li><span class="toc-num">08</span> <a class="toc-link" href="#landing">Landing page example</a></li>
+      <li><span class="toc-num">03</span> <a class="toc-link" href="#type">Typography</a></li>
+      <li><span class="toc-num">09</span> <a class="toc-link" href="#app">App interface example</a></li>
+      <li><span class="toc-num">04</span> <a class="toc-link" href="#spacing">Spacing, radii, shadows</a></li>
+      <li><span class="toc-num">10</span> <a class="toc-link" href="#files">File index &amp; how to use</a></li>
+      <li><span class="toc-num">05</span> <a class="toc-link" href="#icons">Iconography</a></li>
+      <li></li>
+      <li><span class="toc-num">06</span> <a class="toc-link" href="#components">Components</a></li>
+    </ul>
+  </nav>
+
+  <!-- ============== 01 BRAND ============== -->
+  <section class="s" id="brand">
+    <div class="s-head">
+      <span class="s-num">01 · Brand identity</span>
+      <h2 class="s-title">A friendly mark for a measurable product.</h2>
+      <p class="s-intro">The mark is a solid indigo tile containing three connected nodes — a stylized compound architecture, with the champion node enlarged at the top. It reads as "network", "structure", "best of many" — without ever shouting "AI".</p>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Logo lockup &amp; mark</h3>
+      <div class="logo-grid">
+        <div class="logo-tile lockup light">
+          <img src="assets/logo-lockup.svg" alt="AutoAgent Optimizer lockup" />
+          <span class="logo-cap">Primary lockup · on light backgrounds</span>
+        </div>
+        <div class="logo-tile lockup dark">
+          <img src="assets/logo-lockup-inverse.svg" alt="AutoAgent Optimizer lockup dark" />
+          <span class="logo-cap">Lockup on dark surfaces</span>
+        </div>
+        <div class="logo-tile light">
+          <img src="assets/logo-mark.svg" alt="Mark" />
+          <span class="logo-cap">Mark only — favicon, avatar, app icon</span>
+        </div>
+        <div class="logo-tile dark">
+          <img src="assets/logo-mark-inverse.svg" alt="Mark dark" />
+          <span class="logo-cap">Mark on dark — sidebar / hero</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Construction</h3>
+      <table class="toktable">
+        <thead><tr><th>Property</th><th>Value</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td>Tile shape</td><td class="mono">rounded square · rx = 14 px</td><td class="muted">Friendly, modern. Never sharp-cornered.</td></tr>
+          <tr><td>Tile color</td><td class="mono">#635BFF · indigo-500</td><td class="muted">Brand indigo. Solid — never gradient.</td></tr>
+          <tr><td>Glyph</td><td class="mono">3 nodes + triangle outline</td><td class="muted">Top node = champion, larger, indigo dot.</td></tr>
+          <tr><td>Glyph color</td><td class="mono">white at 0.55 opacity</td><td class="muted">Lines; nodes are full opacity white.</td></tr>
+          <tr><td>Wordmark</td><td class="mono">Geist 600 + Geist 400</td><td class="muted">"AutoAgent" bold, "Optimizer" subtle.</td></tr>
+          <tr><td>Clear space</td><td class="mono">≥ 12 px around mark · ≥ 24 px around lockup</td><td class="muted">Never crowd it.</td></tr>
+          <tr><td>Minimum size</td><td class="mono">mark ≥ 24 px · lockup ≥ 120 px wide</td><td class="muted">Below that, switch to mark only.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Do &amp; don't</h3>
+      <div class="dodont">
+        <div class="dd-card do">
+          <div class="dd-label"><i data-lucide="check"></i>Do</div>
+          <ul class="dd-list">
+            <li>Use on a clean white, gray-50, or solid dark background.</li>
+            <li>Maintain 12 px+ clear space on all sides.</li>
+            <li>Use the inverse mark on dark surfaces (gray-900 only).</li>
+            <li>Keep the indigo tile pure <code>#635BFF</code> — no tints, no gradient.</li>
+          </ul>
+        </div>
+        <div class="dd-card dont">
+          <div class="dd-label"><i data-lucide="x"></i>Don't</div>
+          <ul class="dd-list">
+            <li>Place on photography, AI-generated imagery, or busy backgrounds.</li>
+            <li>Stretch, skew, rotate, or recolor the tile or glyph.</li>
+            <li>Add drop-shadows, glow effects, or "AI-style" gradients.</li>
+            <li>Use the lockup below 120 px wide — switch to the mark.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== 02 COLOR ============== -->
+  <section class="s" id="color">
+    <div class="s-head">
+      <span class="s-num">02 · Color system</span>
+      <h2 class="s-title">One indigo, eleven neutrals, four status colors.</h2>
+      <p class="s-intro">Hierarchy lives in the neutrals. The single indigo accent marks the one thing in a view that matters — primary action, champion, focus. Status colors are reserved for state, never decoration.</p>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Brand · indigo</h3>
+      <div class="grid-4" style="grid-template-columns: repeat(8, 1fr);">
+        <div class="swatch"><div class="sw-color" style="background:#EEF0FF"></div><div class="sw-meta"><div class="sw-name">indigo-50</div><div class="sw-hex">#EEF0FF</div></div></div>
+        <div class="swatch"><div class="sw-color" style="background:#DDE0FF"></div><div class="sw-meta"><div class="sw-name">indigo-100</div><div class="sw-hex">#DDE0FF</div></div></div>
+        <div class="swatch"><div class="sw-color" style="background:#C2C7FF"></div><div class="sw-meta"><div class="sw-name">indigo-200</div><div class="sw-hex">#C2C7FF</div></div></div>
+        <div class="swatch"><div class="sw-color" style="background:#9BA1FA"></div><div class="sw-meta"><div class="sw-name">indigo-300</div><div class="sw-hex">#9BA1FA</div></div></div>
+        <div class="swatch"><div class="sw-color" style="background:#7C7AF0"></div><div class="sw-meta"><div class="sw-name">indigo-400</div><div class="sw-hex">#7C7AF0</div></div></div>
+        <div class="swatch"><div class="sw-color" style="background:#635BFF"></div><div class="sw-meta"><div class="sw-name">indigo-500 ★</div><div class="sw-hex">#635BFF</div></div></div>
+        <div class="swatch"><div class="sw-color" style="background:#5048E5"></div><div class="sw-meta"><div class="sw-name">indigo-600</div><div class="sw-hex">#5048E5</div></div></div>
+        <div class="swatch"><div class="sw-color" style="background:#3F38B8"></div><div class="sw-meta"><div class="sw-name">indigo-700</div><div class="sw-hex">#3F38B8</div></div></div>
+      </div>
+      <p class="ss-intro" style="margin-top:14px"><b>indigo-500 ★</b> is the primary brand color — buttons, links, champion, focus rings. 600 for hover, 700 for pressed. 50/100 for tinted backgrounds (e.g. champion row, eyebrow pill, accent bg).</p>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Neutrals · cool slate</h3>
+      <div class="grid-4" style="grid-template-columns: repeat(11, 1fr); gap: 8px;">
+        <div class="swatch"><div class="sw-color" style="background:#FFFFFF;box-shadow:inset 0 0 0 1px #E1E1E6"></div><div class="sw-meta"><div class="sw-name">0</div></div></div>
+        <div class="swatch"><div class="sw-color" style="background:#FAFAFA"></div><div class="sw-meta"><div class="sw-name">50</div></div></div>
+        <div class="swatch"><div class="sw-color" style="background:#F2F2F4"></div><div class="sw-meta"><div class="sw-name">100</div></div></div>
+        <div class="swatch"><div class="sw-color" style="background:#E1E1E6"></div><div class="sw-meta"><div class="sw-name">200</div></div></div>
+        <div class="swatch"><div class="sw-color" style="background:#C9C9D0"></div><div class="sw-meta"><div class="sw-name">300</div></div></div>
+        <div class="swatch"><div class="sw-color" style="background:#9B9BA4"></div><div class="sw-meta"><div class="sw-name">400</div></div></div>
+        <div class="swatch"><div class="sw-color" style="background:#6E6E78"></div><div class="sw-meta"><div class="sw-name">500</div></div></div>
+        <div class="swatch"><div class="sw-color" style="background:#4B4B55"></div><div class="sw-meta"><div class="sw-name">600</div></div></div>
+        <div class="swatch"><div class="sw-color" style="background:#2E2E36"></div><div class="sw-meta"><div class="sw-name" style="color:#fff;background:#2E2E36;padding:1px 4px;border-radius:3px">700</div></div></div>
+        <div class="swatch"><div class="sw-color" style="background:#1A1A20"></div><div class="sw-meta"><div class="sw-name" style="color:#fff;background:#1A1A20;padding:1px 4px;border-radius:3px">800</div></div></div>
+        <div class="swatch"><div class="sw-color" style="background:#0A0A0F"></div><div class="sw-meta"><div class="sw-name" style="color:#fff;background:#0A0A0F;padding:1px 4px;border-radius:3px">900</div></div></div>
+      </div>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Status · feedback colors</h3>
+      <div class="grid-4">
+        <div class="speccard">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <div style="width:24px;height:24px;background:#10B981;border-radius:6px"></div>
+            <div><div style="font-weight:600">Success</div><div style="font-size:12px;color:var(--gray-500)">champion · pass</div></div>
+          </div>
+          <span class="pill p-pass"><span class="pd"></span>Passed</span>
+          <div class="mono" style="margin-top:10px;font-size:11px;color:var(--gray-500)">#10B981 · green-500</div>
+        </div>
+        <div class="speccard">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <div style="width:24px;height:24px;background:#F59E0B;border-radius:6px"></div>
+            <div><div style="font-weight:600">Warning</div><div style="font-size:12px;color:var(--gray-500)">pending · budget</div></div>
+          </div>
+          <span class="pill p-warn"><span class="pd"></span>Pending</span>
+          <div class="mono" style="margin-top:10px;font-size:11px;color:var(--gray-500)">#F59E0B · amber-500</div>
+        </div>
+        <div class="speccard">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <div style="width:24px;height:24px;background:#EF4444;border-radius:6px"></div>
+            <div><div style="font-weight:600">Error</div><div style="font-size:12px;color:var(--gray-500)">regression · fail</div></div>
+          </div>
+          <span class="pill p-fail"><span class="pd"></span>Failed</span>
+          <div class="mono" style="margin-top:10px;font-size:11px;color:var(--gray-500)">#EF4444 · red-500</div>
+        </div>
+        <div class="speccard">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <div style="width:24px;height:24px;background:#3B82F6;border-radius:6px"></div>
+            <div><div style="font-weight:600">Info</div><div style="font-size:12px;color:var(--gray-500)">running · info</div></div>
+          </div>
+          <span class="pill p-info"><span class="pd"></span>Running</span>
+          <div class="mono" style="margin-top:10px;font-size:11px;color:var(--gray-500)">#3B82F6 · blue-500</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Semantic mapping</h3>
+      <table class="toktable">
+        <thead><tr><th>Token</th><th>Value</th><th>Where to use</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">--bg</td><td><span class="tok-sw" style="background:#FFFFFF"></span> gray-0</td><td class="muted">Default page background</td></tr>
+          <tr><td class="mono">--bg-subtle</td><td><span class="tok-sw" style="background:#FAFAFA"></span> gray-50</td><td class="muted">Section bg, app shell bg, table headers</td></tr>
+          <tr><td class="mono">--bg-muted</td><td><span class="tok-sw" style="background:#F2F2F4"></span> gray-100</td><td class="muted">Input bg, hover surfaces, chips</td></tr>
+          <tr><td class="mono">--fg</td><td><span class="tok-sw" style="background:#0A0A0F"></span> gray-900</td><td class="muted">Primary text, headlines</td></tr>
+          <tr><td class="mono">--fg-muted</td><td><span class="tok-sw" style="background:#6E6E78"></span> gray-500</td><td class="muted">Secondary text, captions, metadata</td></tr>
+          <tr><td class="mono">--fg-subtle</td><td><span class="tok-sw" style="background:#9B9BA4"></span> gray-400</td><td class="muted">Placeholder, tertiary, icons</td></tr>
+          <tr><td class="mono">--border</td><td><span class="tok-sw" style="background:#E1E1E6"></span> gray-200</td><td class="muted">Default border (buttons, inputs)</td></tr>
+          <tr><td class="mono">--border-muted</td><td><span class="tok-sw" style="background:#E9E9ED"></span> gray-150</td><td class="muted">Card hairlines, dividers</td></tr>
+          <tr><td class="mono">--accent</td><td><span class="tok-sw" style="background:#635BFF"></span> indigo-500</td><td class="muted">Primary CTA, champion, link, focus</td></tr>
+          <tr><td class="mono">--accent-bg</td><td><span class="tok-sw" style="background:#EEF0FF"></span> indigo-50</td><td class="muted">Tinted bg for selected/champion rows</td></tr>
+          <tr><td class="mono">--link</td><td><span class="tok-sw" style="background:#5048E5"></span> indigo-600</td><td class="muted">Hyperlink color</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Color rules</h3>
+      <div class="dodont">
+        <div class="dd-card do">
+          <div class="dd-label"><i data-lucide="check"></i>Do</div>
+          <ul class="dd-list">
+            <li>Reserve indigo for the <b>one</b> thing in a view that matters most.</li>
+            <li>Build hierarchy from four ink tiers (900 / 700 / 500 / 400).</li>
+            <li>Use status colors only on status indicators (pills, dots, deltas).</li>
+            <li>Solid colors only — pure flat fills.</li>
+          </ul>
+        </div>
+        <div class="dd-card dont">
+          <div class="dd-label"><i data-lucide="x"></i>Don't</div>
+          <ul class="dd-list">
+            <li>Use bluish-purple gradients or any AI-glow gradients.</li>
+            <li>Decorate with status colors (e.g. red icons for non-error items).</li>
+            <li>Tint indigo onto large backgrounds (max ~12 % opacity for accent bg).</li>
+            <li>Mix multiple accent colors in one view.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== 03 TYPOGRAPHY ============== -->
+  <section class="s" id="type">
+    <div class="s-head">
+      <span class="s-num">03 · Typography</span>
+      <h2 class="s-title">One family does the whole system.</h2>
+      <p class="s-intro"><b>Geist</b> (sans) plus <b>Geist Mono</b>. No serifs, no display fonts, no editorial drama. Headlines are tight (−0.025 to −0.035em tracking), body is generous (line-height 1.55–1.65), code is mono throughout.</p>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Scale</h3>
+      <div style="background:var(--gray-50);border:1px solid var(--border-muted);border-radius:12px;padding:24px 28px;">
+        <div class="type-row"><div class="type-meta">7xl · display</div><div style="font-size:60px;line-height:1;letter-spacing:-0.035em;font-weight:600">AutoAgent</div><div class="type-tok">84 / 1.02 / 600</div></div>
+        <div class="type-row"><div class="type-meta">5xl · h1</div><div style="font-size:48px;line-height:1.05;letter-spacing:-0.03em;font-weight:600">AutoAgent</div><div class="type-tok">48 / 1.1 / 600</div></div>
+        <div class="type-row"><div class="type-meta">4xl · h2</div><div style="font-size:36px;line-height:1.1;letter-spacing:-0.025em;font-weight:600">AutoAgent</div><div class="type-tok">36 / 1.1 / 600</div></div>
+        <div class="type-row"><div class="type-meta">3xl · h3</div><div style="font-size:30px;line-height:1.18;letter-spacing:-0.025em;font-weight:600">AutoAgent</div><div class="type-tok">30 / 1.2 / 600</div></div>
+        <div class="type-row"><div class="type-meta">2xl · h3</div><div style="font-size:24px;line-height:1.25;letter-spacing:-0.02em;font-weight:600">AutoAgent</div><div class="type-tok">24 / 1.25 / 600</div></div>
+        <div class="type-row"><div class="type-meta">xl · h4</div><div style="font-size:20px;line-height:1.3;font-weight:600">AutoAgent</div><div class="type-tok">20 / 1.3 / 600</div></div>
+        <div class="type-row"><div class="type-meta">lg · h5</div><div style="font-size:17px;line-height:1.4;font-weight:600">AutoAgent</div><div class="type-tok">17 / 1.4 / 600</div></div>
+        <div class="type-row"><div class="type-meta">base · body</div><div style="font-size:15px;color:var(--gray-700)">Compare architectures with evidence behind every score.</div><div class="type-tok">15 / 1.55 / 400</div></div>
+        <div class="type-row"><div class="type-meta">md · body</div><div style="font-size:14px;color:var(--gray-700)">Default UI text for inputs, buttons, and table cells.</div><div class="type-tok">14 / 1.55 / 400</div></div>
+        <div class="type-row"><div class="type-meta">sm · caption</div><div style="font-size:13px;color:var(--gray-500)">Helper text, secondary metadata, captions.</div><div class="type-tok">13 / 1.55 / 400</div></div>
+        <div class="type-row"><div class="type-meta">xs · label</div><div style="font-size:12px;color:var(--gray-500)">Tiny labels, table column headers, hints.</div><div class="type-tok">12 / 1.5 / 500</div></div>
+      </div>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Monospace · Geist Mono</h3>
+      <div class="speccard">
+        <div style="font-family:var(--font-mono);font-size:14px;line-height:1.7;color:var(--gray-800)">
+          <div>p95 = 1.247 s &nbsp;·&nbsp; f1@k = 0.842 &nbsp;·&nbsp; cost = $0.31</div>
+          <div style="color:var(--gray-500);margin-top:4px">arch_b4f.compound · 24 / 24 cases · judge: gpt-4o-mini</div>
+          <div style="margin-top:14px;padding:12px 14px;background:var(--gray-50);border:1px solid var(--border-muted);border-radius:8px;font-size:13px">
+            <span style="color:var(--accent)">$</span> aao run --spec ./spec.yaml \<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;--budget "cost &lt;= $0.40" \<br/>
+            &nbsp;&nbsp;&nbsp;&nbsp;--judge gpt-4o-mini
+          </div>
+        </div>
+      </div>
+      <p class="ss-intro" style="margin-top:14px">Used for: all code, metric values (<code>0.842</code>, <code>$0.31</code>), identifiers (<code>arch_b4f</code>), CLI commands, table cells with numeric data, keyboard shortcuts.</p>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Loading the fonts</h3>
+      <div class="speccard">
+        <code style="display:block;background:var(--gray-50);padding:12px;border-radius:6px;font-size:12px;line-height:1.6;color:var(--gray-800);white-space:pre">@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
+
+--font-sans: 'Geist', ui-sans-serif, system-ui, ...;
+--font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, ...;</code>
+      </div>
+      <p class="ss-intro" style="margin-top:14px">Both Geist and Geist Mono are open-licensed and load freely from Google Fonts. No substitutions needed.</p>
+    </div>
+  </section>
+
+  <!-- ============== 04 SPACING / RADII / SHADOWS ============== -->
+  <section class="s" id="spacing">
+    <div class="s-head">
+      <span class="s-num">04 · Spacing, radii, shadows</span>
+      <h2 class="s-title">4 px base, soft corners, warm shadows.</h2>
+      <p class="s-intro">All spacing on a 4-px scale (most multiples of 8). Radii are medium-soft — never sharp, never bubble-round. Shadows are warm gray, never colored.</p>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Spacing scale</h3>
+      <div class="speccard">
+        <div class="spc-row"><span class="spc-meta">space-1</span><div><div class="spc-bar" style="width:4px"></div></div><span class="spc-px">4 px</span></div>
+        <div class="spc-row"><span class="spc-meta">space-2</span><div><div class="spc-bar" style="width:8px"></div></div><span class="spc-px">8 px</span></div>
+        <div class="spc-row"><span class="spc-meta">space-3</span><div><div class="spc-bar" style="width:12px"></div></div><span class="spc-px">12 px</span></div>
+        <div class="spc-row"><span class="spc-meta">space-4</span><div><div class="spc-bar" style="width:16px"></div></div><span class="spc-px">16 px</span></div>
+        <div class="spc-row"><span class="spc-meta">space-5</span><div><div class="spc-bar" style="width:20px"></div></div><span class="spc-px">20 px</span></div>
+        <div class="spc-row"><span class="spc-meta">space-6</span><div><div class="spc-bar" style="width:24px"></div></div><span class="spc-px">24 px</span></div>
+        <div class="spc-row"><span class="spc-meta">space-8</span><div><div class="spc-bar" style="width:32px"></div></div><span class="spc-px">32 px</span></div>
+        <div class="spc-row"><span class="spc-meta">space-12</span><div><div class="spc-bar" style="width:48px"></div></div><span class="spc-px">48 px</span></div>
+        <div class="spc-row"><span class="spc-meta">space-16</span><div><div class="spc-bar" style="width:64px"></div></div><span class="spc-px">64 px</span></div>
+        <div class="spc-row"><span class="spc-meta">space-20</span><div><div class="spc-bar" style="width:80px"></div></div><span class="spc-px">80 px</span></div>
+        <div class="spc-row"><span class="spc-meta">space-24</span><div><div class="spc-bar" style="width:96px"></div></div><span class="spc-px">96 px</span></div>
+      </div>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Border radii</h3>
+      <div class="compblock">
+        <div class="radii-grid" style="flex:1">
+          <div class="radii-cell"><div class="radii-sq" style="border-radius:4px"></div><div class="radii-name">xs</div><div class="radii-hint">4 · chips</div></div>
+          <div class="radii-cell"><div class="radii-sq" style="border-radius:6px"></div><div class="radii-name">sm</div><div class="radii-hint">6 · inputs</div></div>
+          <div class="radii-cell"><div class="radii-sq" style="border-radius:8px"></div><div class="radii-name">md</div><div class="radii-hint">8 · buttons</div></div>
+          <div class="radii-cell"><div class="radii-sq" style="border-radius:10px"></div><div class="radii-name">lg</div><div class="radii-hint">10 · cards</div></div>
+          <div class="radii-cell"><div class="radii-sq" style="border-radius:12px"></div><div class="radii-name">xl</div><div class="radii-hint">12 · panels</div></div>
+          <div class="radii-cell"><div class="radii-sq" style="border-radius:16px"></div><div class="radii-name">2xl</div><div class="radii-hint">16 · hero</div></div>
+          <div class="radii-cell" style="grid-column:span 1"><div class="radii-sq" style="border-radius:999px;width:80px;height:32px;margin-top:16px"></div><div class="radii-name">full</div><div class="radii-hint">999 · pills only</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Shadow elevation</h3>
+      <div class="shadow-grid">
+        <div class="sh-cell"><div class="sh-sq" style="box-shadow:var(--shadow-xs)"></div><div class="radii-name">xs</div><div class="radii-hint">subtle lift</div></div>
+        <div class="sh-cell"><div class="sh-sq" style="box-shadow:var(--shadow-sm)"></div><div class="radii-name">sm</div><div class="radii-hint">default card</div></div>
+        <div class="sh-cell"><div class="sh-sq" style="box-shadow:var(--shadow-md)"></div><div class="radii-name">md</div><div class="radii-hint">hover · dropdown</div></div>
+        <div class="sh-cell"><div class="sh-sq" style="box-shadow:var(--shadow-lg)"></div><div class="radii-name">lg</div><div class="radii-hint">popover</div></div>
+        <div class="sh-cell"><div class="sh-sq" style="box-shadow:var(--shadow-xl)"></div><div class="radii-name">xl</div><div class="radii-hint">modal · palette</div></div>
+      </div>
+      <p class="ss-intro" style="margin-top:14px">Shadows always cool-gray, never colored. Combine <code>--shadow-xs</code> with a hairline border on cards (boxshadow + 1 px border) for the cleanest result.</p>
+    </div>
+  </section>
+
+  <!-- ============== 05 ICONS ============== -->
+  <section class="s" id="icons">
+    <div class="s-head">
+      <span class="s-num">05 · Iconography</span>
+      <h2 class="s-title">Lucide — stroke only, currentColor.</h2>
+      <p class="s-intro">All icons from <a href="https://lucide.dev" target="_blank">Lucide</a>. 1.6 px stroke, square line-caps, friendly geometry. Icons inherit <code>currentColor</code> — color them via parent CSS, never hardcode fills.</p>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Commonly used icons</h3>
+      <div class="speccard">
+        <div class="icon-grid">
+          <div class="icon-cell"><i data-lucide="git-branch"></i><span class="icon-name">git-branch</span></div>
+          <div class="icon-cell"><i data-lucide="target"></i><span class="icon-name">target</span></div>
+          <div class="icon-cell"><i data-lucide="gauge"></i><span class="icon-name">gauge</span></div>
+          <div class="icon-cell"><i data-lucide="activity"></i><span class="icon-name">activity</span></div>
+          <div class="icon-cell"><i data-lucide="boxes"></i><span class="icon-name">boxes</span></div>
+          <div class="icon-cell"><i data-lucide="cpu"></i><span class="icon-name">cpu</span></div>
+          <div class="icon-cell"><i data-lucide="flask-conical"></i><span class="icon-name">flask-conical</span></div>
+          <div class="icon-cell"><i data-lucide="route"></i><span class="icon-name">route</span></div>
+          <div class="icon-cell"><i data-lucide="sparkles"></i><span class="icon-name">sparkles</span></div>
+          <div class="icon-cell"><i data-lucide="git-compare"></i><span class="icon-name">git-compare</span></div>
+          <div class="icon-cell"><i data-lucide="coins"></i><span class="icon-name">coins</span></div>
+          <div class="icon-cell"><i data-lucide="user-check"></i><span class="icon-name">user-check</span></div>
+          <div class="icon-cell"><i data-lucide="search"></i><span class="icon-name">search</span></div>
+          <div class="icon-cell"><i data-lucide="settings-2"></i><span class="icon-name">settings-2</span></div>
+          <div class="icon-cell"><i data-lucide="file-check-2"></i><span class="icon-name">file-check-2</span></div>
+          <div class="icon-cell"><i data-lucide="alert-triangle"></i><span class="icon-name">alert-triangle</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Sizes</h3>
+      <table class="toktable">
+        <thead><tr><th>Size</th><th>Use</th><th>Stroke</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">14 px</td><td class="muted">Inline with body text — inside a sentence or button</td><td class="muted">1.6 px</td></tr>
+          <tr><td class="mono">16 px</td><td class="muted">Dense rows, table cells, sidebar nav items</td><td class="muted">1.6 px</td></tr>
+          <tr><td class="mono">20 px</td><td class="muted">Top bar, secondary nav, prominent rows</td><td class="muted">1.6 px</td></tr>
+          <tr><td class="mono">24 px</td><td class="muted">Section headers, feature cards</td><td class="muted">1.6 px</td></tr>
+          <tr><td class="mono">40 px</td><td class="muted">Empty states, illustration-scale</td><td class="muted">1.4 px</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============== 06 COMPONENTS ============== -->
+  <section class="s" id="components">
+    <div class="s-head">
+      <span class="s-num">06 · Components</span>
+      <h2 class="s-title">Building blocks of the system.</h2>
+      <p class="s-intro">Live examples below — full implementation in <code>preview/</code> cards and <code>ui_kits/</code>. Every component uses the tokens above. Don't recreate; copy.</p>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Buttons · 8 px radius · 4 variants</h3>
+      <div class="compblock left">
+        <button class="btn primary">Start a run</button>
+        <button class="btn secondary">Cancel</button>
+        <button class="btn ghost">View trace</button>
+        <button class="btn destructive">Delete</button>
+        <button class="btn primary lg">Promote champion <i data-lucide="check"></i></button>
+      </div>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Status pills</h3>
+      <div class="compblock left">
+        <span class="pill p-champ"><span class="pd"></span>Champion</span>
+        <span class="pill p-pass"><span class="pd"></span>Passed</span>
+        <span class="pill p-warn"><span class="pd"></span>Pending</span>
+        <span class="pill p-fail"><span class="pd"></span>Failed</span>
+        <span class="pill p-info"><span class="pd"></span>Running</span>
+        <span class="pill p-idle"><span class="pd"></span>Idle</span>
+      </div>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Form inputs · 8 px radius · 38 px height</h3>
+      <div class="compblock left" style="flex-direction:column;align-items:stretch;gap:14px;max-width:520px">
+        <div>
+          <div style="font-size:12px;font-weight:500;color:var(--gray-700);margin-bottom:6px">Run name</div>
+          <input style="width:100%;height:38px;padding:0 12px;background:white;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;color:var(--gray-900);outline:none" value="support-qa · v3" />
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:500;color:var(--gray-700);margin-bottom:6px">Budget</div>
+          <input style="width:100%;height:38px;padding:0 12px;background:white;border:1px solid var(--accent);border-radius:8px;font-family:var(--font-mono);font-size:13px;color:var(--gray-900);outline:none;box-shadow:var(--focus-ring)" value="cost <= $0.40" />
+          <div style="font-size:12px;color:var(--gray-500);margin-top:6px">Per case · use DSL syntax</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Cards · soft shadow + 1 px border</h3>
+      <div class="compblock">
+        <div style="flex:1;background:white;border-radius:12px;padding:18px 20px;box-shadow:0 0 0 2px var(--accent), var(--shadow-md);max-width:280px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+            <div>
+              <div style="font-size:15px;font-weight:600;color:var(--gray-900)">RAG · rerank · HyDE</div>
+              <div style="font-family:var(--font-mono);font-size:11px;color:var(--gray-400);margin-top:2px">arch_b4f.compound</div>
+            </div>
+            <span class="pill p-champ"><span class="pd"></span>Champion</span>
+          </div>
+          <div style="display:flex;gap:18px;margin-top:4px">
+            <div><div style="font-family:var(--font-mono);font-size:18px;color:var(--gray-900);font-weight:600">0.842</div><div style="font-size:10px;color:var(--gray-500)">f1@k</div></div>
+            <div><div style="font-family:var(--font-mono);font-size:18px;color:var(--gray-900);font-weight:600">$0.31</div><div style="font-size:10px;color:var(--gray-500)">cost</div></div>
+            <div><div style="font-family:var(--font-mono);font-size:18px;color:var(--gray-900);font-weight:600">1.24s</div><div style="font-size:10px;color:var(--gray-500)">p95</div></div>
+          </div>
+        </div>
+        <div style="flex:1;background:white;border-radius:12px;padding:18px 20px;box-shadow:var(--shadow-card);max-width:280px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+            <div>
+              <div style="font-size:15px;font-weight:600;color:var(--gray-900)">RAG · single-shot</div>
+              <div style="font-family:var(--font-mono);font-size:11px;color:var(--gray-400);margin-top:2px">arch_001.compound</div>
+            </div>
+            <span class="pill p-idle"><span class="pd"></span>Baseline</span>
+          </div>
+          <div style="display:flex;gap:18px;margin-top:4px">
+            <div><div style="font-family:var(--font-mono);font-size:18px;color:var(--gray-900);font-weight:600">0.804</div><div style="font-size:10px;color:var(--gray-500)">f1@k</div></div>
+            <div><div style="font-family:var(--font-mono);font-size:18px;color:var(--gray-900);font-weight:600">$0.49</div><div style="font-size:10px;color:var(--gray-500)">cost</div></div>
+            <div><div style="font-family:var(--font-mono);font-size:18px;color:var(--gray-900);font-weight:600">0.92s</div><div style="font-size:10px;color:var(--gray-500)">p95</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Full component catalog</h3>
+      <p class="ss-intro">25 preview cards live in <code>preview/</code> — open them directly to see every state, every variant.</p>
+      <table class="toktable">
+        <thead><tr><th>Category</th><th>Components</th><th>Where</th></tr></thead>
+        <tbody>
+          <tr><td>Brand</td><td class="muted">Mark, lockup (light + dark), tagline, favicon</td><td class="mono muted">preview/brand-*.html · assets/</td></tr>
+          <tr><td>Color</td><td class="muted">Indigo scale · neutrals · status colors · semantic surfaces</td><td class="mono muted">preview/colors-*.html</td></tr>
+          <tr><td>Type</td><td class="muted">Display, UI, mono, scale ladder, editorial pairing</td><td class="mono muted">preview/type-*.html</td></tr>
+          <tr><td>Spacing</td><td class="muted">Scale, radii, shadows, borders + focus</td><td class="mono muted">preview/spacing-*.html</td></tr>
+          <tr><td>Components</td><td class="muted">Buttons · status · inputs · cards · tabs · icons · trace · empty · metric strip</td><td class="mono muted">preview/comp-*.html</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============== 07 VOICE ============== -->
+  <section class="s" id="voice">
+    <div class="s-head">
+      <span class="s-num">07 · Voice &amp; content</span>
+      <h2 class="s-title">Friendly + technological. Numbers carry the message.</h2>
+      <p class="s-intro">The way Stripe and Vercel talk in their product UI — direct, clear, low-jargon, no marketing slop. No emoji, anywhere. No AI mysticism.</p>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Tone characteristics</h3>
+      <table class="toktable">
+        <thead><tr><th>Lean toward</th><th>Avoid</th></tr></thead>
+        <tbody>
+          <tr><td>Direct, plain-English engineering terms</td><td class="muted">"Empower", "unleash", "supercharge"</td></tr>
+          <tr><td>Sentence case, friendly imperative verbs</td><td class="muted">TITLE CASE MARKETING SHOUTS</td></tr>
+          <tr><td>Concrete measurements (numbers, deltas, units)</td><td class="muted">Vague magic ("intelligent", "AI-powered")</td></tr>
+          <tr><td>Honest tradeoffs (e.g. +0.04 f1 vs +12 m human time)</td><td class="muted">Overclaiming, hyperbolic language</td></tr>
+          <tr><td>Code, identifiers, metrics in monospace</td><td class="muted">Paraphrasing technical terms in prose</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Example copy</h3>
+      <div class="dodont">
+        <div class="dd-card do">
+          <div class="dd-label"><i data-lucide="check"></i>Do</div>
+          <ul class="dd-list">
+            <li>"Design many architectures. Ship the one that proves itself."</li>
+            <li>"No runs yet. Start your first run to bracket the design space."</li>
+            <li>"Champion → <code>arch_b4f</code> · +4.2 f1, −38 % cost · Evidence exported."</li>
+            <li>"Trace shows 14 LLM calls. Retriever drives 62 % of p95."</li>
+          </ul>
+        </div>
+        <div class="dd-card dont">
+          <div class="dd-label"><i data-lucide="x"></i>Don't</div>
+          <ul class="dd-list">
+            <li>"Unleash the power of AI to supercharge your workflow!"</li>
+            <li>"✨ Welcome! Let's get started on your AI journey 🚀"</li>
+            <li>"Our intelligent system delivers next-generation performance."</li>
+            <li>"AI-powered. Game-changing. Revolutionary."</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Numbers, units, deltas</h3>
+      <table class="toktable">
+        <thead><tr><th>Rule</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr><td>Percentages with en-dash, space before %</td><td class="mono">−38 % · +24 %</td></tr>
+          <tr><td>Metric deltas always carry sign</td><td class="mono">+4.2 · −1.7 · +0.038</td></tr>
+          <tr><td>Time: lowercase units, space between number and unit</td><td class="mono">p95 1.2 s · 14 m human time</td></tr>
+          <tr><td>Counts: lowercase k for thousands</td><td class="mono">24 candidates · 1.2 k traces</td></tr>
+          <tr><td>Money in code blocks, no space around $</td><td class="mono">cost &lt;= $0.40 · $24.80</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============== 08 LANDING ============== -->
+  <section class="s" id="landing">
+    <div class="s-head">
+      <span class="s-num">08 · Landing page example</span>
+      <h2 class="s-title">Marketing landing.</h2>
+      <p class="s-intro">Soft, airy, generous whitespace. Sticky nav with blurred backdrop. Hero with a live-feeling product card on the right. Three feature tiles with tinted icons. Quote-led philosophy section. Proof matrix table. Dark CTA card with indigo glow. Standard footer.</p>
+    </div>
+
+    <div class="page-example">
+      <div class="page-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span style="margin-left:16px">autoagent.optimizer / landing</span>
+      </div>
+      <img src="screenshots/01-handoff-landing.png" alt="Landing hero" />
+    </div>
+
+    <div class="annotations">
+      <div class="annot"><span class="annot-num">1</span><div class="annot-title">Sticky nav, blurred backdrop</div><p class="annot-copy">White at 85 % opacity, <code>backdrop-filter: blur(10px)</code>. Star count bubble has the amber star icon as the only color hint.</p></div>
+      <div class="annot"><span class="annot-num">2</span><div class="annot-title">Eyebrow pill</div><p class="annot-copy">Indigo-50 background, indigo-700 text, indigo-500 dot. Used at the top of every section to anchor the eye.</p></div>
+      <div class="annot"><span class="annot-num">3</span><div class="annot-title">Display headline</div><p class="annot-copy">Geist 600 at 64 px, tracking −0.035em. One indigo accent phrase pulls the eye to the value proposition.</p></div>
+      <div class="annot"><span class="annot-num">4</span><div class="annot-title">Product demo card</div><p class="annot-copy">Live-feeling preview of what the workbench actually shows. Soft shadow, 16 px radius. Sells the product by showing it.</p></div>
+    </div>
+
+    <div class="page-example" style="margin-top:32px">
+      <div class="page-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span style="margin-left:16px">autoagent.optimizer / landing — features &amp; philosophy</span>
+      </div>
+      <img src="screenshots/02-handoff-landing.png" alt="Landing features" />
+    </div>
+
+    <div class="page-example" style="margin-top:32px">
+      <div class="page-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span style="margin-left:16px">autoagent.optimizer / landing — proof matrix</span>
+      </div>
+      <img src="screenshots/03-handoff-landing.png" alt="Landing proof matrix" />
+    </div>
+
+    <div class="page-example" style="margin-top:32px">
+      <div class="page-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span style="margin-left:16px">autoagent.optimizer / landing — CTA &amp; footer</span>
+      </div>
+      <img src="screenshots/05-handoff-landing.png" alt="Landing CTA + footer" />
+    </div>
+
+    <p class="ss-intro" style="margin-top:24px">Source: <code>ui_kits/landing/index.html</code> — open it in a browser or import the React components from the same folder.</p>
+  </section>
+
+  <!-- ============== 09 APP ============== -->
+  <section class="s" id="app">
+    <div class="s-head">
+      <span class="s-num">09 · App interface example</span>
+      <h2 class="s-title">The workbench.</h2>
+      <p class="s-intro">Three-column layout: sidebar (264 px) · main · intervention rail (340 px). Top bar has crumb, budget meter, search + actions. Champion is highlighted with an indigo gradient row + pill. The trace viewer below uses the same span-type colors as the rest of the system.</p>
+    </div>
+
+    <div class="page-example">
+      <div class="page-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span style="margin-left:16px">autoagent.optimizer / workbench</span>
+      </div>
+      <img src="screenshots/handoff-app.png" alt="Workbench app" />
+    </div>
+
+    <div class="annotations">
+      <div class="annot"><span class="annot-num">1</span><div class="annot-title">Sidebar — 264 px fixed</div><p class="annot-copy">Workspace picker · primary nav · recent runs list. Active route uses <code>indigo-50</code> bg + <code>indigo-700</code> text + <code>indigo-500</code> icon.</p></div>
+      <div class="annot"><span class="annot-num">2</span><div class="annot-title">Budget meter</div><p class="annot-copy">In the top bar — indigo fill on gray track. Always shows current spend / cap and per-case constraint.</p></div>
+      <div class="annot"><span class="annot-num">3</span><div class="annot-title">Architecture list</div><p class="annot-copy">Champion row gets a soft indigo gradient (left-heavy). Other rows are flat white with a hover. Status pill on the right.</p></div>
+      <div class="annot"><span class="annot-num">4</span><div class="annot-title">Trace viewer</div><p class="annot-copy">White surface, span-type colored bars. Same color language across legend + bars. The one fail span turns red.</p></div>
+      <div class="annot"><span class="annot-num">5</span><div class="annot-title">Intervention rail</div><p class="annot-copy">Red-tinted bottleneck card, three suggested interventions with tinted tags, indigo export button at the bottom.</p></div>
+      <div class="annot"><span class="annot-num">6</span><div class="annot-title">Command palette</div><p class="annot-copy">Toggle via <code>⌘ K</code>. Glass-blur overlay, white card, indigo selected row. Standard pattern.</p></div>
+    </div>
+
+    <p class="ss-intro" style="margin-top:24px">Source: <code>ui_kits/app/index.html</code>. Each panel is a separate JSX file in the same folder — copy the ones you need.</p>
+  </section>
+
+  <!-- ============== 10 FILES ============== -->
+  <section class="s" id="files">
+    <div class="s-head">
+      <span class="s-num">10 · File index &amp; how to use</span>
+      <h2 class="s-title">What's in this package.</h2>
+      <p class="s-intro">Every file is human-readable HTML, CSS, JSX, or SVG. No build step required.</p>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Top-level files</h3>
+      <table class="toktable">
+        <thead><tr><th>Path</th><th>What it is</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">README.md</td><td class="muted">Full written spec — voice, visuals, iconography.</td></tr>
+          <tr><td class="mono">SKILL.md</td><td class="muted">Cross-compatible loader so this system can be used in Claude Code.</td></tr>
+          <tr><td class="mono">colors_and_type.css</td><td class="muted">All design tokens as CSS custom properties. Link this and use the vars.</td></tr>
+          <tr><td class="mono">Handoff.html</td><td class="muted">This document.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Assets</h3>
+      <table class="toktable">
+        <thead><tr><th>Path</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">assets/logo-mark.svg</td><td class="muted">Primary mark — light surfaces</td></tr>
+          <tr><td class="mono">assets/logo-mark-inverse.svg</td><td class="muted">Mark — dark surfaces</td></tr>
+          <tr><td class="mono">assets/logo-lockup.svg</td><td class="muted">Mark + wordmark — light</td></tr>
+          <tr><td class="mono">assets/logo-lockup-inverse.svg</td><td class="muted">Mark + wordmark — dark</td></tr>
+          <tr><td class="mono">assets/favicon.svg</td><td class="muted">32 px favicon</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">UI kits — production-quality recreations</h3>
+      <table class="toktable">
+        <thead><tr><th>Path</th><th>Contents</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">ui_kits/landing/index.html</td><td class="muted">Full landing page assembled</td></tr>
+          <tr><td class="mono">ui_kits/landing/*.jsx</td><td class="muted">Nav · Hero · Features · Philosophy · ProofMatrix · CTA · Footer</td></tr>
+          <tr><td class="mono">ui_kits/app/index.html</td><td class="muted">Full workbench assembled</td></tr>
+          <tr><td class="mono">ui_kits/app/*.jsx</td><td class="muted">Sidebar · TopBar · MetricStrip · ArchList · TraceView · InterventionRail · CommandPalette</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">Preview cards — every component, every state</h3>
+      <table class="toktable">
+        <thead><tr><th>Path</th><th>Cards</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">preview/brand-*.html</td><td class="muted">3 brand cards</td></tr>
+          <tr><td class="mono">preview/colors-*.html</td><td class="muted">4 color cards</td></tr>
+          <tr><td class="mono">preview/type-*.html</td><td class="muted">5 type cards</td></tr>
+          <tr><td class="mono">preview/spacing-*.html</td><td class="muted">4 spacing cards</td></tr>
+          <tr><td class="mono">preview/comp-*.html</td><td class="muted">9 component cards</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ss">
+      <h3 class="ss-title">How to use in a new project</h3>
+      <div class="speccard">
+        <ol style="margin:0;padding-left:20px;line-height:1.8;color:var(--gray-700);font-size:14px">
+          <li>Copy <code>colors_and_type.css</code> and the <code>assets/</code> folder to your project.</li>
+          <li>Link the stylesheet: <code>&lt;link rel="stylesheet" href="colors_and_type.css"&gt;</code></li>
+          <li>Load Lucide for icons: <code>&lt;script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"&gt;&lt;/script&gt;</code></li>
+          <li>Use the CSS variables: <code>color: var(--accent)</code>, <code>background: var(--gray-50)</code>, etc.</li>
+          <li>For components, copy markup from <code>preview/comp-*.html</code> or React components from <code>ui_kits/</code>.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== FOOTER ============== -->
+  <footer class="doc-foot">
+    <div class="doc-foot-tag">
+      <img src="assets/logo-mark.svg" alt="AutoAgent Optimizer" style="height:24px;vertical-align:middle;margin-right:8px" />
+      Design system handoff · prepared for design and engineering teams.
+    </div>
+    <div class="doc-foot-meta">
+      v1.0 · May 2026<br/>
+      Direction: Stripe-soft + Vercel-clean
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  if (window.lucide) window.lucide.createIcons();
+</script>
+</body>
+</html>

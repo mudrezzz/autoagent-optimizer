@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Body + lede</title>
+<link rel="stylesheet" href="_card.css" />
+<style>
+  .stage { display: flex; flex-direction: column; gap: 16px; max-width: 560px; }
+  .eye { font-size: 12px; font-weight: 500; color: var(--accent); letter-spacing: 0.04em; text-transform: uppercase; }
+  .lede { font-size: 22px; line-height: 1.4; color: var(--gray-700); margin: 0; letter-spacing: -0.01em; }
+  .body { font-size: 14px; line-height: 1.65; color: var(--gray-600); margin: 0; }
+  .body code { font-family: var(--font-mono); font-size: 13px; background: var(--gray-100); padding: 1px 6px; border-radius: 4px; color: var(--gray-800); }
+  .body a { color: var(--link); }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="stage">
+    <span class="eye">Compound systems</span>
+    <p class="lede">A good AI system is a balance between LLM, deterministic software, tools, tests, human judgement and runtime constraints.</p>
+    <p class="body">AutoAgent generates architecturally distinct baselines for the same task, runs them under your budget, and shows you exactly where each one wins or loses. Wrap any custom component as a <code>contract</code> and drop it in — <a>full DSL reference →</a></p>
+  </div>
+</div>
+</body>
+</html>

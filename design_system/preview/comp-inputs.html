@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Inputs</title>
+<link rel="stylesheet" href="_card.css" />
+<style>
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 22px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .l { font-size: 12px; font-weight: 500; color: var(--gray-700); }
+  .input {
+    height: 38px;
+    padding: 0 12px;
+    background: var(--gray-0);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--gray-900);
+    outline: none;
+    width: 100%;
+    transition: all 140ms ease;
+  }
+  .input:focus { border-color: var(--accent); box-shadow: var(--focus-ring); }
+  .input.error { border-color: var(--error); }
+  .input.error:focus { box-shadow: 0 0 0 3px rgba(239,68,68,0.18); }
+  .helper { font-size: 12px; color: var(--gray-500); }
+  .err { font-size: 12px; color: var(--error); }
+  .stack { display: flex; align-items: center; gap: 20px; margin-top: 18px; flex-wrap: wrap; }
+  /* checkbox */
+  .check { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--gray-800); }
+  .check .box { width: 18px; height: 18px; border: 1.5px solid var(--border-strong); border-radius: 5px; display: inline-grid; place-items: center; background: var(--gray-0); }
+  .check .box.on { background: var(--accent); border-color: var(--accent); }
+  .check .box.on::after { content: ""; width: 9px; height: 5px; border-left: 2px solid white; border-bottom: 2px solid white; transform: rotate(-45deg) translate(1px,-1px); }
+  /* switch */
+  .switch-row { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--gray-800); }
+  .switch { width: 34px; height: 20px; border-radius: 999px; background: var(--gray-300); position: relative; transition: background 160ms ease; }
+  .switch.on { background: var(--accent); }
+  .switch::after { content:""; width: 16px; height: 16px; background: white; border-radius: 999px; position: absolute; top: 2px; left: 2px; box-shadow: 0 1px 2px rgba(10,10,15,0.18); transition: left 160ms ease; }
+  .switch.on::after { left: 16px; }
+</style>
+</head>
+<body>
+<div class="card tight">
+  <div class="label-small" style="margin-bottom:14px">Inputs · 8 px radius</div>
+  <div class="grid">
+    <div class="field"><span class="l">Run name</span><input class="input" value="support-qa · v3" /><span class="helper">Visible in the runs list</span></div>
+    <div class="field"><span class="l">Budget</span><input class="input mono" style="font-family:var(--font-mono);font-size:13px" value="cost <= $0.40" /><span class="helper">Per case · use DSL syntax</span></div>
+    <div class="field"><span class="l">Judge model</span><input class="input" value="gpt-4o-mini" /></div>
+    <div class="field"><span class="l">Evaluation set</span><input class="input error" value="" placeholder="Required" /><span class="err">Provide a path or use --use-suite</span></div>
+  </div>
+  <div class="stack">
+    <label class="check"><span class="box on"></span>HITL gates enabled</label>
+    <label class="check"><span class="box"></span>Auto-promote champion</label>
+    <span class="switch-row"><span class="switch on"></span>Stream traces</span>
+    <span class="switch-row"><span class="switch"></span>Verbose</span>
+  </div>
+</div>
+</body>
+</html>

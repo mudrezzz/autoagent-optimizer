@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Status pills</title>
+<link rel="stylesheet" href="_card.css" />
+<style>
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .row + .row { margin-top: 14px; }
+  .pill {
+    font-size: 12px; font-weight: 500;
+    padding: 4px 10px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .pill .d { width: 6px; height: 6px; border-radius: 999px; }
+  .p-champion { background: var(--accent-bg); color: var(--indigo-700); }
+  .p-champion .d { background: var(--accent); }
+  .p-pass { background: var(--green-50); color: var(--green-700); }
+  .p-pass .d { background: var(--green-500); }
+  .p-warn { background: var(--amber-50); color: var(--amber-700); }
+  .p-warn .d { background: var(--amber-500); }
+  .p-fail { background: var(--red-50); color: var(--red-700); }
+  .p-fail .d { background: var(--red-500); }
+  .p-info { background: var(--blue-50); color: #1D4ED8; }
+  .p-info .d { background: var(--blue-500); }
+  .p-idle { background: var(--gray-100); color: var(--gray-600); }
+  .p-idle .d { background: var(--gray-400); }
+  .p-running { background: var(--blue-50); color: #1D4ED8; }
+  .p-running .d { background: var(--blue-500); animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .delta { font-family: var(--font-mono); font-size: 12px; font-weight: 500; padding: 2px 8px; border-radius: 6px; }
+  .delta.pos { background: var(--green-50); color: var(--green-700); }
+  .delta.neg { background: var(--red-50); color: var(--red-700); }
+</style>
+</head>
+<body>
+<div class="card tight">
+  <div class="label-small" style="margin-bottom:12px">Status pills + deltas</div>
+  <div class="row">
+    <span class="pill p-champion"><span class="d"></span>Champion</span>
+    <span class="pill p-pass"><span class="d"></span>Passed</span>
+    <span class="pill p-warn"><span class="d"></span>Pending</span>
+    <span class="pill p-fail"><span class="d"></span>Failed</span>
+    <span class="pill p-running"><span class="d"></span>Running</span>
+    <span class="pill p-info"><span class="d"></span>Info</span>
+    <span class="pill p-idle"><span class="d"></span>Idle</span>
+  </div>
+  <div class="row">
+    <span class="delta pos">+4.2 f1</span>
+    <span class="delta pos">+0.08 recall@k</span>
+    <span class="delta neg">−38 % cost</span>
+    <span class="delta neg">−1.7 pts</span>
+    <span class="delta pos">+24 % accuracy</span>
+  </div>
+</div>
+</body>
+</html>

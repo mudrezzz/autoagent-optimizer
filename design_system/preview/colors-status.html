@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Status colors</title>
+<link rel="stylesheet" href="_card.css" />
+<style>
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .swatch {
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex; flex-direction: column; gap: 10px;
+    background: var(--gray-0);
+    box-shadow: 0 0 0 1px var(--border-muted);
+  }
+  .top { display: flex; align-items: center; gap: 10px; }
+  .dot-large { width: 28px; height: 28px; border-radius: 8px; }
+  .name { font-size: 13px; font-weight: 600; color: var(--gray-900); }
+  .role { font-size: 11px; color: var(--gray-500); }
+  .hex { font-family: var(--font-mono); font-size: 11px; color: var(--gray-500); }
+  .pill {
+    align-self: flex-start;
+    font-size: 11px; font-weight: 500;
+    padding: 2px 9px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .pill .d { width: 5px; height: 5px; border-radius: 999px; }
+</style>
+</head>
+<body>
+<div class="card tight">
+  <div class="label-small" style="margin-bottom:12px">Status · feedback colors</div>
+  <div class="grid">
+    <div class="swatch">
+      <div class="top"><div class="dot-large" style="background:#10B981"></div><div><div class="name">Success</div><div class="role">champion · pass</div></div></div>
+      <span class="pill" style="background:#ECFDF3;color:#047857"><span class="d" style="background:#10B981"></span>Champion</span>
+      <div class="hex">#10B981 · green-500</div>
+    </div>
+    <div class="swatch">
+      <div class="top"><div class="dot-large" style="background:#F59E0B"></div><div><div class="name">Warning</div><div class="role">pending · budget</div></div></div>
+      <span class="pill" style="background:#FFF7E6;color:#B45309"><span class="d" style="background:#F59E0B"></span>Pending</span>
+      <div class="hex">#F59E0B · amber-500</div>
+    </div>
+    <div class="swatch">
+      <div class="top"><div class="dot-large" style="background:#EF4444"></div><div><div class="name">Error</div><div class="role">regression · fail</div></div></div>
+      <span class="pill" style="background:#FEF2F2;color:#B91C1C"><span class="d" style="background:#EF4444"></span>Failed</span>
+      <div class="hex">#EF4444 · red-500</div>
+    </div>
+    <div class="swatch">
+      <div class="top"><div class="dot-large" style="background:#3B82F6"></div><div><div class="name">Info</div><div class="role">running · info</div></div></div>
+      <span class="pill" style="background:#EFF6FF;color:#1D4ED8"><span class="d" style="background:#3B82F6"></span>Running</span>
+      <div class="hex">#3B82F6 · blue-500</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Neutrals</title>
+<link rel="stylesheet" href="_card.css" />
+<style>
+  .ramp { display: grid; grid-template-columns: repeat(11, 1fr); gap: 6px; }
+  .chip {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px var(--border-muted);
+    background: var(--gray-0);
+  }
+  .chip .sw { height: 56px; }
+  .meta { padding: 6px 6px 8px; }
+  .name { font-family: var(--font-mono); font-size: 10px; font-weight: 500; color: var(--gray-800); }
+  .hex { font-family: var(--font-mono); font-size: 9px; color: var(--gray-400); margin-top: 1px; }
+</style>
+</head>
+<body>
+<div class="card tight">
+  <div class="label-small" style="margin-bottom:12px">Neutrals · cool slate</div>
+  <div class="ramp">
+    <div class="chip"><div class="sw" style="background:#FFFFFF;box-shadow:inset 0 0 0 1px #E1E1E6"></div><div class="meta"><div class="name">0</div><div class="hex">#FFFFFF</div></div></div>
+    <div class="chip"><div class="sw" style="background:#FAFAFA"></div><div class="meta"><div class="name">50</div><div class="hex">#FAFAFA</div></div></div>
+    <div class="chip"><div class="sw" style="background:#F2F2F4"></div><div class="meta"><div class="name">100</div><div class="hex">#F2F2F4</div></div></div>
+    <div class="chip"><div class="sw" style="background:#E1E1E6"></div><div class="meta"><div class="name">200</div><div class="hex">#E1E1E6</div></div></div>
+    <div class="chip"><div class="sw" style="background:#C9C9D0"></div><div class="meta"><div class="name">300</div><div class="hex">#C9C9D0</div></div></div>
+    <div class="chip"><div class="sw" style="background:#9B9BA4"></div><div class="meta"><div class="name">400</div><div class="hex">#9B9BA4</div></div></div>
+    <div class="chip"><div class="sw" style="background:#6E6E78"></div><div class="meta"><div class="name">500</div><div class="hex">#6E6E78</div></div></div>
+    <div class="chip"><div class="sw" style="background:#4B4B55"></div><div class="meta"><div class="name">600</div><div class="hex">#4B4B55</div></div></div>
+    <div class="chip"><div class="sw" style="background:#2E2E36"></div><div class="meta"><div class="name" style="color:#fff">700</div><div class="hex">#2E2E36</div></div></div>
+    <div class="chip"><div class="sw" style="background:#1A1A20"></div><div class="meta"><div class="name" style="color:#fff">800</div><div class="hex">#1A1A20</div></div></div>
+    <div class="chip"><div class="sw" style="background:#0A0A0F"></div><div class="meta"><div class="name" style="color:#fff">900</div><div class="hex">#0A0A0F</div></div></div>
+  </div>
+</div>
+</body>
+</html>

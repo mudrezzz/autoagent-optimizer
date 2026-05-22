@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Elevation</title>
+<link rel="stylesheet" href="_card.css" />
+<style>
+  body { background: var(--gray-100); }
+  .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+  .box { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .surf {
+    width: 110px; height: 78px;
+    background: var(--gray-0);
+    border-radius: 10px;
+  }
+  .s-xs { box-shadow: var(--shadow-xs); }
+  .s-sm { box-shadow: var(--shadow-sm); }
+  .s-md { box-shadow: var(--shadow-md); }
+  .s-lg { box-shadow: var(--shadow-lg); }
+  .s-xl { box-shadow: var(--shadow-xl); }
+  .name { font-family: var(--font-mono); font-size: 11px; color: var(--gray-800); font-weight: 500; }
+  .hint { font-family: var(--font-mono); font-size: 10px; color: var(--gray-400); text-align: center; }
+</style>
+</head>
+<body>
+<div class="card tight">
+  <div class="label-small" style="margin-bottom:14px">Elevation · soft shadows</div>
+  <div class="grid">
+    <div class="box"><div class="surf s-xs"></div><div class="name">xs</div><div class="hint">subtle lift</div></div>
+    <div class="box"><div class="surf s-sm"></div><div class="name">sm</div><div class="hint">default card</div></div>
+    <div class="box"><div class="surf s-md"></div><div class="name">md</div><div class="hint">hover · dropdown</div></div>
+    <div class="box"><div class="surf s-lg"></div><div class="name">lg</div><div class="hint">popover · menu</div></div>
+    <div class="box"><div class="surf s-xl"></div><div class="name">xl</div><div class="hint">modal · palette</div></div>
+  </div>
+</div>
+</body>
+</html>

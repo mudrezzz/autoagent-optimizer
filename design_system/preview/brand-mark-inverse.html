@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Brand mark — dark</title>
+<link rel="stylesheet" href="_card.css" />
+<style>
+  body { background: var(--gray-900); color: var(--gray-0); }
+  .stage {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    align-items: center;
+    gap: 32px;
+  }
+  .mark-tile {
+    width: 160px; height: 160px;
+    background: var(--gray-800);
+    border-radius: 16px;
+    display: grid; place-items: center;
+  }
+  .mark-tile img { width: 100px; height: 100px; }
+  .right { display: flex; flex-direction: column; gap: 18px; }
+  .right img { display: block; height: 36px; width: auto; }
+  .meta { color: var(--gray-400); font-size: 12px; line-height: 1.55; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="stage">
+    <div class="mark-tile"><img src="../assets/logo-mark-inverse.svg" alt="AutoAgent Optimizer mark dark" /></div>
+    <div class="right">
+      <img src="../assets/logo-lockup-inverse.svg" alt="AutoAgent Optimizer" />
+      <div class="meta">
+        Dark variant — for dark hero sections, marketing footers, or dark UI.<br/>
+        Never on tinted backgrounds.
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

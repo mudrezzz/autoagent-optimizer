@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Type scale</title>
+<link rel="stylesheet" href="_card.css" />
+<style>
+  .row {
+    display: grid;
+    grid-template-columns: 100px 1fr 90px;
+    align-items: baseline;
+    gap: 18px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-muted);
+  }
+  .row:last-child { border-bottom: none; }
+  .meta { font-family: var(--font-mono); font-size: 11px; color: var(--gray-400); }
+  .px { font-family: var(--font-mono); font-size: 10px; color: var(--gray-400); text-align: right; }
+  .sample { color: var(--fg); letter-spacing: -0.02em; }
+</style>
+</head>
+<body>
+<div class="card tight">
+  <div class="label-small" style="margin-bottom:6px">Type scale</div>
+  <div class="row"><div class="meta">display</div><div class="sample" style="font-size:48px;line-height:1.05;font-weight:600;letter-spacing:-0.035em">AutoAgent</div><div class="px">--fs-5xl</div></div>
+  <div class="row"><div class="meta">h1</div><div class="sample" style="font-size:36px;line-height:1.1;font-weight:600;letter-spacing:-0.025em">AutoAgent</div><div class="px">--fs-4xl</div></div>
+  <div class="row"><div class="meta">h2</div><div class="sample" style="font-size:30px;line-height:1.15;font-weight:600;letter-spacing:-0.025em">AutoAgent</div><div class="px">--fs-3xl</div></div>
+  <div class="row"><div class="meta">h3</div><div class="sample" style="font-size:24px;line-height:1.2;font-weight:600;letter-spacing:-0.02em">AutoAgent</div><div class="px">--fs-2xl</div></div>
+  <div class="row"><div class="meta">h4</div><div class="sample" style="font-size:17px;line-height:1.3;font-weight:600;letter-spacing:-0.01em">AutoAgent</div><div class="px">--fs-lg</div></div>
+  <div class="row"><div class="meta">body</div><div class="sample" style="font-size:14px;line-height:1.55;color:var(--gray-700)">Compare candidate architectures with evidence</div><div class="px">--fs-md</div></div>
+  <div class="row"><div class="meta">caption</div><div class="sample" style="font-size:12px;line-height:1.55;color:var(--gray-500)">Helper text, metadata, table cells</div><div class="px">--fs-xs</div></div>
+</div>
+</body>
+</html>

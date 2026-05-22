@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Mono — Geist Mono</title>
+<link rel="stylesheet" href="_card.css" />
+<style>
+  .row {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    align-items: center;
+    gap: 20px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-muted);
+  }
+  .row:last-child { border-bottom: none; }
+  .meta { font-family: var(--font-mono); font-size: 11px; color: var(--gray-400); }
+  .m { font-family: var(--font-mono); color: var(--gray-800); }
+  .codeblock {
+    background: var(--gray-50);
+    border: 1px solid var(--border-muted);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--gray-800);
+  }
+  .codeblock .p { color: var(--accent); margin-right: 6px; }
+  .codeblock .c { color: var(--gray-400); }
+</style>
+</head>
+<body>
+<div class="card tight">
+  <div class="label-small" style="margin-bottom:8px">Monospace · Geist Mono</div>
+  <div class="row"><div class="meta">metrics</div><div class="m" style="font-size:14px">p95 = 1.247 s · f1@k = 0.842 · cost = $0.31</div></div>
+  <div class="row"><div class="meta">identifier</div><div class="m" style="font-size:13px">arch_b4f.compound</div></div>
+  <div class="row"><div class="meta">code</div><div class="codeblock"><span class="p">$</span>aao run --spec ./spec.yaml<br/>&nbsp;&nbsp;<span class="c">// budget cost ≤ $0.40 / case</span><br/>&nbsp;&nbsp;--budget "cost &lt;= 0.40"</div></div>
+</div>
+</body>
+</html>

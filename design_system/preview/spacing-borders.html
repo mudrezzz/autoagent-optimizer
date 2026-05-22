@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Borders</title>
+<link rel="stylesheet" href="_card.css" />
+<style>
+  .stack { display: flex; flex-direction: column; gap: 16px; }
+  .row { display: grid; grid-template-columns: 160px 1fr; align-items: center; gap: 18px; }
+  .meta { font-family: var(--font-mono); font-size: 11px; color: var(--gray-500); }
+  .h-muted   { height: 1px; background: var(--border-muted); }
+  .h-default { height: 1px; background: var(--border); }
+  .h-strong  { height: 1px; background: var(--border-strong); }
+  .h-accent  { height: 2px; background: var(--accent); border-radius: 1px; }
+  .focus {
+    display: inline-flex; padding: 6px 14px;
+    background: var(--gray-0);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    box-shadow: var(--focus-ring);
+  }
+</style>
+</head>
+<body>
+<div class="card tight">
+  <div class="label-small" style="margin-bottom:14px">Borders + focus ring</div>
+  <div class="stack">
+    <div class="row"><div class="meta">border-muted · #E9E9ED</div><div class="h-muted"></div></div>
+    <div class="row"><div class="meta">border · #E1E1E6</div><div class="h-default"></div></div>
+    <div class="row"><div class="meta">border-strong · #C9C9D0</div><div class="h-strong"></div></div>
+    <div class="row"><div class="meta">accent rule</div><div class="h-accent"></div></div>
+    <div class="row"><div class="meta">focus ring</div><div><span class="focus">Focused element</span></div></div>
+  </div>
+</div>
+</body>
+</html>

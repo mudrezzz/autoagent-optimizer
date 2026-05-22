@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Tabs + segmented + chips</title>
+<link rel="stylesheet" href="_card.css" />
+<style>
+  .row { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-top: 16px; }
+
+  /* underline tabs */
+  .tabs {
+    display: flex; gap: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--gray-500);
+    padding: 10px 14px;
+    position: relative;
+    cursor: pointer;
+    border-radius: 8px 8px 0 0;
+  }
+  .tab:hover { color: var(--gray-800); background: var(--gray-50); }
+  .tab.active { color: var(--gray-900); }
+  .tab.active::after {
+    content: "";
+    position: absolute; left: 12px; right: 12px; bottom: -1px; height: 2px;
+    background: var(--accent);
+    border-radius: 2px 2px 0 0;
+  }
+  .tab .count {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--gray-100);
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+    color: var(--gray-600);
+  }
+  .tab.active .count { background: var(--accent-bg); color: var(--indigo-700); }
+
+  /* segmented */
+  .seg {
+    display: inline-flex;
+    background: var(--gray-100);
+    padding: 3px;
+    border-radius: 8px;
+  }
+  .seg-opt {
+    font-size: 12px; font-weight: 500;
+    padding: 5px 12px;
+    border-radius: 6px;
+    color: var(--gray-500);
+    cursor: pointer;
+  }
+  .seg-opt.on { background: var(--gray-0); color: var(--gray-900); box-shadow: var(--shadow-xs); }
+
+  /* chips */
+  .chip-row { display: flex; gap: 6px; }
+  .chip {
+    font-size: 12px; font-weight: 500;
+    padding: 4px 10px;
+    background: var(--gray-100);
+    border-radius: 999px;
+    color: var(--gray-700);
+    cursor: pointer;
+  }
+  .chip.on { background: var(--gray-900); color: white; }
+  .chip:hover:not(.on) { background: var(--gray-200); }
+</style>
+</head>
+<body>
+<div class="card tight">
+  <div class="label-small" style="margin-bottom:14px">Tabs · segmented · chips</div>
+  <div class="tabs">
+    <div class="tab active">Runs<span class="count">12</span></div>
+    <div class="tab">Architectures<span class="count">24</span></div>
+    <div class="tab">Traces</div>
+    <div class="tab">Evidence</div>
+    <div class="tab">Components</div>
+  </div>
+  <div class="row">
+    <div class="seg">
+      <div class="seg-opt">f1@k</div>
+      <div class="seg-opt on">cost</div>
+      <div class="seg-opt">latency</div>
+      <div class="seg-opt">all</div>
+    </div>
+    <div class="chip-row">
+      <span class="chip on">compound</span>
+      <span class="chip">retrieval</span>
+      <span class="chip">judge</span>
+      <span class="chip">hitl</span>
+      <span class="chip">+3</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>

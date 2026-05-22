@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Iconography (Lucide)</title>
+<link rel="stylesheet" href="_card.css" />
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  .grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px 18px; }
+  .ico {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    color: var(--gray-700);
+  }
+  .ico svg { width: 22px; height: 22px; stroke-width: 1.6; }
+  .name { font-family: var(--font-mono); font-size: 10px; color: var(--gray-400); }
+  .sizes {
+    display: flex; gap: 18px; align-items: center; margin-top: 18px;
+    padding-top: 16px; border-top: 1px solid var(--border-muted);
+    color: var(--gray-700);
+  }
+  .sizes .lbl { font-size: 11px; font-weight: 500; color: var(--gray-500); letter-spacing: 0.04em; text-transform: uppercase; }
+  .sz svg { stroke-width: 1.6; }
+  .sz-14 svg { width: 14px; height: 14px; }
+  .sz-16 svg { width: 16px; height: 16px; }
+  .sz-20 svg { width: 20px; height: 20px; }
+  .sz-24 svg { width: 24px; height: 24px; }
+  .sz-40 svg { width: 40px; height: 40px; color: var(--gray-300); }
+</style>
+</head>
+<body>
+<div class="card tight">
+  <div class="label-small" style="margin-bottom:14px">Lucide icons · 1.6 px stroke · currentColor</div>
+  <div class="grid">
+    <div class="ico"><i data-lucide="git-branch"></i><span class="name">git-branch</span></div>
+    <div class="ico"><i data-lucide="target"></i><span class="name">target</span></div>
+    <div class="ico"><i data-lucide="gauge"></i><span class="name">gauge</span></div>
+    <div class="ico"><i data-lucide="activity"></i><span class="name">activity</span></div>
+    <div class="ico"><i data-lucide="boxes"></i><span class="name">boxes</span></div>
+    <div class="ico"><i data-lucide="cpu"></i><span class="name">cpu</span></div>
+    <div class="ico"><i data-lucide="flask-conical"></i><span class="name">flask-conical</span></div>
+    <div class="ico"><i data-lucide="route"></i><span class="name">route</span></div>
+    <div class="ico"><i data-lucide="sparkles"></i><span class="name">sparkles</span></div>
+    <div class="ico"><i data-lucide="git-compare"></i><span class="name">git-compare</span></div>
+    <div class="ico"><i data-lucide="coins"></i><span class="name">coins</span></div>
+    <div class="ico"><i data-lucide="user-check"></i><span class="name">user-check</span></div>
+  </div>
+  <div class="sizes">
+    <span class="lbl">Sizes</span>
+    <span class="sz sz-14"><i data-lucide="target"></i></span>
+    <span class="sz sz-16"><i data-lucide="target"></i></span>
+    <span class="sz sz-20"><i data-lucide="target"></i></span>
+    <span class="sz sz-24"><i data-lucide="target"></i></span>
+    <span class="sz sz-40"><i data-lucide="target"></i></span>
+    <span class="lbl" style="margin-left:auto">14 / 16 / 20 / 24 / 40 px</span>
+  </div>
+</div>
+<script>lucide.createIcons();</script>
+</body>
+</html>

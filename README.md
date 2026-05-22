@@ -13,6 +13,7 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 
 - [Roadmap.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/Roadmap.md)
 - [System_Architecture_Overview.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/System_Architecture_Overview.md)
+- [Frontend_Architecture_v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/specs/Frontend_Architecture_v0.md)
 - [ADR Index](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/README.md)
 - [Project Operating Model](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/process/Project_Operating_Model.md)
 - [Executable Slice Backlog](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/backlog/Executable_Slice_Backlog.md)
@@ -29,6 +30,7 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 7. Р”РµРјРѕ СЂР°Р·РІРёРІР°РµС‚СЃСЏ СЃРёРЅС…СЂРѕРЅРЅРѕ СЃ С„СѓРЅРєС†РёРѕРЅР°Р»РѕРј Рё РѕР±РЅРѕРІР»СЏРµС‚СЃСЏ РЅР° РєР°Р¶РґРѕРј СЃР»Р°Р№СЃРµ.
 8. Каждый новый backend-инкремент должен стать проверяемым через frontend в том же слайсе.
 9. Весь frontend строго следует `design_system` (tokens, типографика, компоненты, voice) без локальных визуальных отклонений.
+10. UX-композиция frontend строится по North Star референсу [app-v3.png](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/design_system/screenshots/app-v3.png) и правилам из [Frontend_Architecture_v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/specs/Frontend_Architecture_v0.md).
 
 ## Design System Compliance
 
@@ -43,6 +45,7 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 5. Запрещены визуальные отклонения: bluish-purple gradients, glassmorphism, heavy shadow styles, произвольные status-pills.
 6. Для иконок использовать Lucide stroke-only (`currentColor`) по правилам дизайн-системы.
 7. Любой фронтовый PR/слайс должен явно подтвердить соответствие `design_system` в описании изменений.
+8. Для layout и user flow ориентируемся на North Star экран [app-v3.png](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/design_system/screenshots/app-v3.png) (левый workspace-nav, центральный run-workbench, правый intervention rail).
 
 ## Capability Board (Roadmap v2)
 
@@ -62,6 +65,7 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 - `System_Architecture_Overview.md` - С‚РµРєСѓС‰Р°СЏ С†РµР»РµРІР°СЏ Р°СЂС…РёС‚РµРєС‚СѓСЂР°.
 - `docs/adr` - Р¶СѓСЂРЅР°Р» Р°СЂС…РёС‚РµРєС‚СѓСЂРЅС‹С… СЂРµС€РµРЅРёР№.
 - `design_system` - обязательная дизайн-система (бренд, токены, UI kits, handoff); frontend реализуется строго по ней.
+- `docs/specs/Frontend_Architecture_v0.md` - целевая фронтенд-архитектура (`React/TypeScript`, capability unlock, UX North Star).
 - `langgraph-document-ai-platform` - РІРЅРµС€РЅРёР№ framework-РёСЃС‚РѕС‡РЅРёРє РґР»СЏ РёР·СѓС‡РµРЅРёСЏ Рё РїРµСЂРµРёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ (read-only РІ СЂР°РјРєР°С… СЌС‚РѕРіРѕ РїСЂРѕРµРєС‚Р°).
 - `optimizer/dsl` - DSL v0 schema, loader Рё CLI-РІР°Р»РёРґР°С†РёСЏ.
 - `optimizer/graph_ir` - runtime-neutral Graph IR v0, РІР°Р»РёРґР°С‚РѕСЂС‹ Рё CLI.

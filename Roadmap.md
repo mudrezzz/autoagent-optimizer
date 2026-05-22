@@ -25,6 +25,7 @@
 2. Функциональность развивается вширь по capability, а не последовательно по слоям системы.
 3. Любая backend-возможность считается незавершенной, пока не проверяется через UI и e2e путь.
 4. Любой frontend-слайс обязан соблюдать `design_system` как обязательный стандарт интерфейса.
+5. UX-каркас frontend собирается по North Star референсу [app-v3.png](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/design_system/screenshots/app-v3.png) и правилам [Frontend_Architecture_v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/specs/Frontend_Architecture_v0.md).
 
 ### Capability Matrix (single source of truth)
 
@@ -188,6 +189,7 @@
 6. Перед commit обязателен полный прогон `python -m pytest` (unit + integration + e2e).
 7. При фронтовых изменениях в описании слайса фиксируем, какие артефакты `design_system` использованы
    (`colors_and_type.css`, `ui_kits/*`, `assets/*`, copy rules).
+8. При фронтовых изменениях также фиксируем соответствие UX North Star (`app-v3`: трехколоночный layout, run-centric header, KPI->architectures->trace, intervention rail).
 
 ## Backlog Source
 

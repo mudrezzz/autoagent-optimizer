@@ -15,6 +15,7 @@
 5. Human-in-the-loop at decision checkpoints.
 6. Budget-aware optimization.
 7. Runtime artifact independence from control plane.
+8. Frontend architecture is `React + TypeScript`, capability-driven, with UX North Star based on `design_system/screenshots/app-v3.png`.
 
 ## High-Level Layers
 
@@ -69,6 +70,7 @@ Input (Task + Constraints + Data + Tools + Budget)
    - unified scenario runner for demo/validation.
    - explicit mapping `backend capability -> user-visible control -> e2e assertion`.
    - strict `design_system` compliance (tokens, typography, iconography, UI kits, voice).
+   - UX composition aligned with North Star screen (`app-v3`): workspace nav, run workbench center, intervention rail.
 
 ## External Dependency Strategy
 
@@ -79,6 +81,7 @@ Input (Task + Constraints + Data + Tools + Budget)
 - Coupling rule: РёР·Р±РµРіР°РµРј РїСЂСЏРјРѕР№ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РЅР° РЅРµСЃС‚Р°Р±РёР»СЊРЅС‹Рµ internal API С‡РµСЂРµР· adapter boundary РІ РЅР°С€РµРј РєРѕРґРµ.
 - Export rule: winner runtime artifact РЅРµ РґРѕР»Р¶РµРЅ Р·Р°РІРёСЃРµС‚СЊ РѕС‚ `optimizer.*` РІ production Р·Р°РїСѓСЃРєРµ.
 - Frontend rule: UI implementation must follow local `design_system` package as single source of truth.
+- Frontend architecture rule: follow [Frontend_Architecture_v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/specs/Frontend_Architecture_v0.md) for structure/state/contracts and North Star UX.
 
 ## Core Internal Modules (Planned)
 

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Semantic surfaces</title>
+<link rel="stylesheet" href="_card.css" />
+<style>
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .surf {
+    border-radius: 12px;
+    padding: 18px 20px;
+    display: flex; flex-direction: column; gap: 10px;
+    min-height: 130px;
+  }
+  .light { background: var(--gray-0); box-shadow: 0 0 0 1px var(--border-muted); }
+  .dark { background: var(--gray-900); color: var(--gray-0); }
+  .h { font-size: 17px; font-weight: 600; letter-spacing: -0.015em; }
+  .dark .h { color: var(--gray-0); }
+  .p { font-size: 13px; line-height: 1.5; color: var(--gray-500); margin: 0; }
+  .dark .p { color: var(--gray-400); }
+  .row { display: flex; gap: 10px; align-items: center; margin-top: auto; }
+  .btn {
+    font-size: 12px; font-weight: 500;
+    padding: 6px 12px; border-radius: 8px;
+    background: var(--accent); color: white; border: 0;
+  }
+  .link { font-size: 12px; color: var(--link); }
+  .dark .link { color: var(--indigo-300); }
+</style>
+</head>
+<body>
+<div class="card tight">
+  <div class="label-small" style="margin-bottom:12px">Surfaces · light + dark</div>
+  <div class="grid">
+    <div class="surf light">
+      <div class="h">Compare your candidate architectures</div>
+      <p class="p">Six baselines, side-by-side, with the trace and the budget behind every score.</p>
+      <div class="row"><button class="btn">Start a run</button><a class="link">View docs →</a></div>
+    </div>
+    <div class="surf dark">
+      <div class="h">Compare your candidate architectures</div>
+      <p class="p">Six baselines, side-by-side, with the trace and the budget behind every score.</p>
+      <div class="row"><button class="btn">Start a run</button><a class="link">View docs →</a></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

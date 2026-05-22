@@ -1,0 +1,275 @@
+/* ==========================================================================
+   AutoAgent Optimizer — Design tokens
+   Direction: Stripe-soft + Vercel-clean. Light, airy, friendly + technological.
+   White surfaces. Indigo accent. Soft shadows. 8–10 px radii.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* ----- Neutrals (cool slate) ---------------------------------------- */
+  --gray-0:   #FFFFFF;
+  --gray-25:  #FCFCFD;     /* page bg alt */
+  --gray-50:  #FAFAFA;     /* section bg */
+  --gray-75:  #F7F7F8;
+  --gray-100: #F2F2F4;     /* input bg, soft hover */
+  --gray-150: #E9E9ED;
+  --gray-200: #E1E1E6;     /* default border */
+  --gray-300: #C9C9D0;     /* strong border */
+  --gray-400: #9B9BA4;     /* placeholder */
+  --gray-500: #6E6E78;     /* secondary text */
+  --gray-600: #4B4B55;
+  --gray-700: #2E2E36;
+  --gray-800: #1A1A20;
+  --gray-900: #0A0A0F;     /* primary text */
+
+  /* ----- Brand: friendly indigo (solid only, never gradient) ---------- */
+  --indigo-50:  #EEF0FF;
+  --indigo-100: #DDE0FF;
+  --indigo-200: #C2C7FF;
+  --indigo-300: #9BA1FA;
+  --indigo-400: #7C7AF0;
+  --indigo-500: #635BFF;   /* PRIMARY ACCENT */
+  --indigo-600: #5048E5;   /* hover */
+  --indigo-700: #3F38B8;   /* pressed */
+  --indigo-800: #2B2580;
+
+  /* ----- Status (full SaaS-quality scale, not "instrument") ---------- */
+  --green-50:  #ECFDF3;
+  --green-500: #10B981;
+  --green-600: #059669;
+  --green-700: #047857;
+
+  --amber-50:  #FFF7E6;
+  --amber-500: #F59E0B;
+  --amber-600: #D97706;
+  --amber-700: #B45309;
+
+  --red-50:    #FEF2F2;
+  --red-500:   #EF4444;
+  --red-600:   #DC2626;
+  --red-700:   #B91C1C;
+
+  --blue-50:   #EFF6FF;
+  --blue-500:  #3B82F6;
+  --blue-600:  #2563EB;
+
+  /* ----- Semantic ----------------------------------------------------- */
+  --bg:           var(--gray-0);     /* default page background */
+  --bg-subtle:    var(--gray-50);    /* section bg */
+  --bg-muted:     var(--gray-100);   /* input bg / hover */
+  --bg-elevated:  var(--gray-0);     /* cards */
+  --bg-inverted:  var(--gray-900);   /* dark surfaces */
+
+  --fg:           var(--gray-900);
+  --fg-muted:     var(--gray-500);
+  --fg-subtle:    var(--gray-400);
+  --fg-on-brand:  var(--gray-0);
+  --fg-on-dark:   var(--gray-0);
+
+  --border:           var(--gray-200);
+  --border-strong:    var(--gray-300);
+  --border-muted:     var(--gray-150);
+
+  --accent:        var(--indigo-500);
+  --accent-hover:  var(--indigo-600);
+  --accent-press:  var(--indigo-700);
+  --accent-bg:     var(--indigo-50);
+  --accent-fg:     var(--gray-0);
+
+  --success:       var(--green-600);
+  --success-bg:    var(--green-50);
+  --warn:          var(--amber-600);
+  --warn-bg:       var(--amber-50);
+  --error:         var(--red-600);
+  --error-bg:      var(--red-50);
+  --info:          var(--blue-600);
+  --info-bg:       var(--blue-50);
+
+  --link:          var(--indigo-600);
+
+  /* ----- Typography --------------------------------------------------- */
+  --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  /* aliases kept for backwards compat in remaining files */
+  --font-ui:      var(--font-sans);
+  --font-display: var(--font-sans);
+
+  /* Type scale — soft modern SaaS */
+  --fs-xs:   12px;
+  --fs-sm:   13px;
+  --fs-md:   14px;       /* base body */
+  --fs-base: 15px;
+  --fs-lg:   17px;
+  --fs-xl:   20px;
+  --fs-2xl:  24px;
+  --fs-3xl:  30px;
+  --fs-4xl:  36px;
+  --fs-5xl:  48px;
+  --fs-6xl:  64px;
+  --fs-7xl:  84px;
+
+  --lh-tight:  1.1;
+  --lh-snug:   1.25;
+  --lh-normal: 1.5;
+  --lh-loose:  1.7;
+
+  --tracking-tighter: -0.03em;
+  --tracking-tight:   -0.02em;
+  --tracking-normal:  -0.005em;
+  --tracking-wide:    0.02em;
+
+  /* Weights */
+  --fw-regular: 400;
+  --fw-medium:  500;
+  --fw-semi:    600;
+  --fw-bold:    700;
+
+  /* ----- Spacing (4px base) ------------------------------------------ */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+  --space-32: 128px;
+
+  /* ----- Radii: medium SaaS ------------------------------------------ */
+  --r-xs:   4px;        /* small chips */
+  --r-sm:   6px;        /* inputs */
+  --r-md:   8px;        /* buttons, small cards */
+  --r-lg:   10px;       /* cards */
+  --r-xl:   12px;       /* containers */
+  --r-2xl:  16px;       /* hero surfaces */
+  --r-3xl:  24px;       /* feature blocks */
+  --r-full: 999px;
+
+  /* ----- Shadows: soft Stripe-style ---------------------------------- */
+  --shadow-xs: 0 1px 2px 0 rgba(10, 10, 15, 0.04);
+  --shadow-sm: 0 1px 3px 0 rgba(10, 10, 15, 0.06), 0 1px 2px -1px rgba(10, 10, 15, 0.04);
+  --shadow-md: 0 4px 8px -2px rgba(10, 10, 15, 0.06), 0 2px 4px -2px rgba(10, 10, 15, 0.04);
+  --shadow-lg: 0 12px 24px -6px rgba(10, 10, 15, 0.08), 0 4px 8px -4px rgba(10, 10, 15, 0.04);
+  --shadow-xl: 0 24px 48px -12px rgba(10, 10, 15, 0.12), 0 8px 16px -8px rgba(10, 10, 15, 0.06);
+  --shadow-card: 0 1px 2px 0 rgba(10, 10, 15, 0.04), 0 0 0 1px var(--gray-150);
+  --shadow-card-hover: 0 4px 12px -2px rgba(10, 10, 15, 0.08), 0 0 0 1px var(--gray-200);
+
+  /* Focus ring — indigo, accessible */
+  --focus-ring: 0 0 0 3px rgba(99, 91, 255, 0.32);
+
+  /* ----- Motion ------------------------------------------------------ */
+  --ease-out:    cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast:    140ms;
+  --dur-base:    220ms;
+  --dur-slow:    360ms;
+}
+
+/* ==========================================================================
+   Semantic type classes
+   ========================================================================== */
+
+html {
+  font-family: var(--font-sans);
+  color: var(--fg);
+  background: var(--bg);
+}
+
+.h-display {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-semi);
+  font-size: var(--fs-7xl);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  color: var(--fg);
+}
+.h1 {
+  font-weight: var(--fw-semi);
+  font-size: var(--fs-5xl);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tighter);
+}
+.h2 {
+  font-weight: var(--fw-semi);
+  font-size: var(--fs-4xl);
+  line-height: var(--lh-tight);
+  letter-spacing: -0.025em;
+}
+.h3 {
+  font-weight: var(--fw-semi);
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tracking-tight);
+}
+.h4 {
+  font-weight: var(--fw-semi);
+  font-size: var(--fs-lg);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tracking-normal);
+}
+
+.eyebrow {
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.label {
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-xs);
+  color: var(--fg-muted);
+  letter-spacing: 0;
+}
+
+.body {
+  font-weight: var(--fw-regular);
+  font-size: var(--fs-md);
+  line-height: var(--lh-normal);
+  color: var(--gray-700);
+}
+
+.body-lg {
+  font-weight: var(--fw-regular);
+  font-size: var(--fs-lg);
+  line-height: var(--lh-normal);
+  color: var(--gray-700);
+}
+
+.lede {
+  font-weight: var(--fw-regular);
+  font-size: var(--fs-xl);
+  line-height: var(--lh-normal);
+  color: var(--gray-600);
+  letter-spacing: var(--tracking-normal);
+}
+
+.caption {
+  font-size: var(--fs-xs);
+  color: var(--fg-muted);
+  line-height: var(--lh-normal);
+}
+
+.mono, code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+.kbd {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  background: var(--gray-0);
+  border: 1px solid var(--gray-200);
+  border-bottom-width: 1.5px;
+  border-radius: var(--r-xs);
+  padding: 1px 5px;
+  color: var(--gray-600);
+  box-shadow: 0 1px 0 rgba(10,10,15,0.04);
+}

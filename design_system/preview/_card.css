@@ -1,0 +1,37 @@
+/* Shared base for all preview cards. ~700px wide, varied height.
+   Cards are titleless — the Design System tab renders the name outside. */
+
+@import url('../colors_and_type.css');
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: var(--fs-md);
+  line-height: var(--lh-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+.card { padding: 32px; }
+.card.tight { padding: 24px 28px; }
+.card.bleed { padding: 0; }
+
+.label-small {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--fg-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mono   { font-family: var(--font-mono); }
+.muted  { color: var(--fg-muted); }
+.subtle { color: var(--fg-subtle); }
+
+.row { display: flex; align-items: center; gap: 12px; }
+.col { display: flex; flex-direction: column; gap: 12px; }
+.wrap { flex-wrap: wrap; }
