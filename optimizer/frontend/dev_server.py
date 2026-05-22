@@ -1,4 +1,4 @@
-"""Dev server frontend shell: статический UI + минимальный API для capability-проверок."""
+﻿"""Dev server frontend shell: СЃС‚Р°С‚РёС‡РµСЃРєРёР№ UI + РјРёРЅРёРјР°Р»СЊРЅС‹Р№ API РґР»СЏ capability-РїСЂРѕРІРµСЂРѕРє."""
 
 from __future__ import annotations
 
@@ -16,20 +16,20 @@ from optimizer.frontend.contracts import build_capability_catalog_payload, build
 
 
 class FrontendDevServerCli:
-    """CLI-компонент запуска frontend shell dev server."""
+    """CLI-РєРѕРјРїРѕРЅРµРЅС‚ Р·Р°РїСѓСЃРєР° frontend shell dev server."""
 
     @staticmethod
     def build_parser() -> argparse.ArgumentParser:
-        """Создает CLI-парсер для dev server."""
+        """РЎРѕР·РґР°РµС‚ CLI-РїР°СЂСЃРµСЂ РґР»СЏ dev server."""
 
         parser = argparse.ArgumentParser(description="AutoAgent Optimizer frontend shell dev server")
-        parser.add_argument("--host", default="127.0.0.1", help="Хост bind для HTTP-сервера.")
-        parser.add_argument("--port", type=int, default=4173, help="Порт bind для HTTP-сервера.")
+        parser.add_argument("--host", default="127.0.0.1", help="РҐРѕСЃС‚ bind РґР»СЏ HTTP-СЃРµСЂРІРµСЂР°.")
+        parser.add_argument("--port", type=int, default=4173, help="РџРѕСЂС‚ bind РґР»СЏ HTTP-СЃРµСЂРІРµСЂР°.")
         return parser
 
     @staticmethod
     def run(argv: list[str] | None = None) -> int:
-        """Запускает HTTP-сервер и возвращает код завершения процесса."""
+        """Р—Р°РїСѓСЃРєР°РµС‚ HTTP-СЃРµСЂРІРµСЂ Рё РІРѕР·РІСЂР°С‰Р°РµС‚ РєРѕРґ Р·Р°РІРµСЂС€РµРЅРёСЏ РїСЂРѕС†РµСЃСЃР°."""
 
         parser = FrontendDevServerCli.build_parser()
         args = parser.parse_args(argv)
@@ -49,17 +49,17 @@ class FrontendDevServerCli:
 
 
 def _build_handler(*, project_root: Path) -> type[SimpleHTTPRequestHandler]:
-    """Создает handler-класс с замыканием на project_root, чтобы API и static жили в одном сервере."""
+    """РЎРѕР·РґР°РµС‚ handler-РєР»Р°СЃСЃ СЃ Р·Р°РјС‹РєР°РЅРёРµРј РЅР° project_root, С‡С‚РѕР±С‹ API Рё static Р¶РёР»Рё РІ РѕРґРЅРѕРј СЃРµСЂРІРµСЂРµ."""
 
     class FrontendRequestHandler(SimpleHTTPRequestHandler):
-        """HTTP handler для frontend shell: static + C1..C6 API endpoints."""
+        """HTTP handler РґР»СЏ frontend shell: static + C1..C6 API endpoints."""
 
-        # Русский комментарий: отдаём статику из корня проекта, чтобы были доступны `frontend/` и `design_system/`.
+        # Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: РѕС‚РґР°С‘Рј СЃС‚Р°С‚РёРєСѓ РёР· РєРѕСЂРЅСЏ РїСЂРѕРµРєС‚Р°, С‡С‚РѕР±С‹ Р±С‹Р»Рё РґРѕСЃС‚СѓРїРЅС‹ `frontend/` Рё `design_system/`.
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             super().__init__(*args, directory=str(project_root), **kwargs)
 
         def do_GET(self) -> None:  # noqa: N802
-            """Обрабатывает GET: health, capability-каталог, stub-endpoints и статику."""
+            """РћР±СЂР°Р±Р°С‚С‹РІР°РµС‚ GET: health, capability-РєР°С‚Р°Р»РѕРі, stub-endpoints Рё СЃС‚Р°С‚РёРєСѓ."""
 
             if self.path == "/api/health":
                 self._send_json({"status": "ok", "service": "frontend_dev_server"})
@@ -71,12 +71,23 @@ def _build_handler(*, project_root: Path) -> type[SimpleHTTPRequestHandler]:
                 capability_id = self.path.split("/")[2]
                 self._send_json(build_stub_capability_payload(capability_id))
                 return
+            if self.path.startswith("/assets/"):
+                # Русский комментарий: built index.html использует `/assets/*`, поэтому пробрасываем на `frontend/dist/assets/*`.
+                dist_assets_path = project_root / "frontend" / "dist" / "assets"
+                if dist_assets_path.exists():
+                    self.path = f"/frontend/dist{self.path}"
             if self.path == "/" or self.path == "/index.html":
-                self.path = "/frontend/index.html"
+                # Русский комментарий: в режиме React/TS по умолчанию отдаем собранный dist entrypoint.
+                dist_index_path = project_root / "frontend" / "dist" / "index.html"
+                if dist_index_path.exists():
+                    self.path = "/frontend/dist/index.html"
+                else:
+                    # Русский комментарий: fallback на исходный index для случаев, когда build еще не выполнен.
+                    self.path = "/frontend/index.html"
             super().do_GET()
 
         def do_POST(self) -> None:  # noqa: N802
-            """Обрабатывает POST: реальный C1 endpoint validate+compile."""
+            """РћР±СЂР°Р±Р°С‚С‹РІР°РµС‚ POST: СЂРµР°Р»СЊРЅС‹Р№ C1 endpoint validate+compile."""
 
             if self.path != "/api/c1/validate-compile":
                 self._send_json({"status": "error", "message": "Not found"}, status=HTTPStatus.NOT_FOUND)
@@ -97,7 +108,7 @@ def _build_handler(*, project_root: Path) -> type[SimpleHTTPRequestHandler]:
                 return
 
             dsl_file = (project_root / dsl_file_raw).resolve()
-            # Русский комментарий: защищаем endpoint от выхода за пределы рабочей директории проекта.
+            # Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: Р·Р°С‰РёС‰Р°РµРј endpoint РѕС‚ РІС‹С…РѕРґР° Р·Р° РїСЂРµРґРµР»С‹ СЂР°Р±РѕС‡РµР№ РґРёСЂРµРєС‚РѕСЂРёРё РїСЂРѕРµРєС‚Р°.
             if not str(dsl_file).startswith(str(project_root.resolve())):
                 self._send_json(
                     {"status": "error", "message": "DSL file path must stay inside project workspace."},
@@ -146,12 +157,12 @@ def _build_handler(*, project_root: Path) -> type[SimpleHTTPRequestHandler]:
             )
 
         def log_message(self, format: str, *args: Any) -> None:
-            """Переопределяет стандартный лог в stderr, чтобы сообщения оставались компактными и читаемыми."""
+            """РџРµСЂРµРѕРїСЂРµРґРµР»СЏРµС‚ СЃС‚Р°РЅРґР°СЂС‚РЅС‹Р№ Р»РѕРі РІ stderr, С‡С‚РѕР±С‹ СЃРѕРѕР±С‰РµРЅРёСЏ РѕСЃС‚Р°РІР°Р»РёСЃСЊ РєРѕРјРїР°РєС‚РЅС‹РјРё Рё С‡РёС‚Р°РµРјС‹РјРё."""
 
             sys.stderr.write("[FRONTEND] " + format % args + "\n")
 
         def _read_json_body(self) -> dict[str, Any]:
-            """Читает JSON body входящего запроса и возвращает словарь."""
+            """Р§РёС‚Р°РµС‚ JSON body РІС…РѕРґСЏС‰РµРіРѕ Р·Р°РїСЂРѕСЃР° Рё РІРѕР·РІСЂР°С‰Р°РµС‚ СЃР»РѕРІР°СЂСЊ."""
 
             content_length = int(self.headers.get("Content-Length", "0"))
             raw_body = self.rfile.read(content_length)
@@ -166,7 +177,7 @@ def _build_handler(*, project_root: Path) -> type[SimpleHTTPRequestHandler]:
             return payload
 
         def _send_json(self, payload: dict[str, Any], *, status: HTTPStatus = HTTPStatus.OK) -> None:
-            """Отправляет JSON ответ с корректными заголовками content-type и длины."""
+            """РћС‚РїСЂР°РІР»СЏРµС‚ JSON РѕС‚РІРµС‚ СЃ РєРѕСЂСЂРµРєС‚РЅС‹РјРё Р·Р°РіРѕР»РѕРІРєР°РјРё content-type Рё РґР»РёРЅС‹."""
 
             raw = json.dumps(payload, ensure_ascii=False).encode("utf-8")
             self.send_response(int(status))
@@ -179,10 +190,11 @@ def _build_handler(*, project_root: Path) -> type[SimpleHTTPRequestHandler]:
 
 
 def main() -> None:
-    """Точка входа для `python -m optimizer.frontend.dev_server`."""
+    """РўРѕС‡РєР° РІС…РѕРґР° РґР»СЏ `python -m optimizer.frontend.dev_server`."""
 
     raise SystemExit(FrontendDevServerCli.run())
 
 
 if __name__ == "__main__":
     main()
+

@@ -6,7 +6,7 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 
 - `Phase`: MVP-2 transition (evaluation fabric bootstrap)
 - `Iteration`: Roadmap v2 - vertical product slices
-- `Overall`: In Progress (I1.S1-I5.S2a + I4.S8 + V2.1.S2 done)
+- `Overall`: In Progress (I1.S1-I5.S2a + I4.S8 + V2.1.S3a done)
 - `Next Slice`: V2.1.S3 C2 vertical slice
 
 РџРѕРґСЂРѕР±РЅС‹Р№ СЃС‚Р°С‚СѓСЃ:
@@ -82,8 +82,8 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 - `optimizer/evidence` - РіРµРЅРµСЂР°С†РёСЏ Evidence Pack (`comparison` + `diagnostics` + explainable diff).
 - `optimizer/champion` - export Champion Bundle (`diagnostic_map`, `winner_graph_ir`, `generated_agent`, `manifest`).
 - `frontend` (planned in Roadmap v2) - capability-oriented UI surfaces C1..C6 for runtime/evaluation/arena/evidence/champion flows.
-- `frontend` - app-v3-aligned capability workbench (V2.1.S2): C1 real flow + C2..C6 planned surfaces.
-- `optimizer/frontend/dev_server.py` - lightweight frontend dev server (workbench shell + capability API + real C1 validate/compile endpoint).
+- `frontend` - app-v3-aligned capability workbench on React/TypeScript (V2.1.S3a): C1 real flow + C2..C6 planned surfaces.
+- `optimizer/frontend/dev_server.py` - lightweight frontend dev server (serves `frontend/dist` build + capability API + real C1 validate/compile endpoint).
 - `components` - deterministic demo-РєРѕРјРїРѕРЅРµРЅС‚С‹ РґР»СЏ РїР°Р№РїР»Р°Р№РЅРѕРІ (РІРєР»СЋС‡Р°СЏ AI-pattern РёРЅСЃС‚СЂСѓРјРµРЅС‚С‹).
 - `validators` - python-РІР°Р»РёРґР°С‚РѕСЂС‹ demo-СЃС†РµРЅР°СЂРёРµРІ (РІРєР»СЋС‡Р°СЏ style output guard).
 - `docs/specs/Evaluation_Profile_v0.md` - РєРѕРЅС†РµРїС‚ profile-driven РѕС†РµРЅРєРё (task-specific metrics + pluggable evaluators).
@@ -353,7 +353,7 @@ python -m optimizer.evaluation.run_profile --profile-file .\examples\profiles\st
 
 1. canonical `stylizer_profile_ci_v0` успешно запускается на `native_runtime` (DSL->Native parity для demo-critical пути достигнут в `I4.S6a`).
 2. preflight сохраняется как fail-fast guard для реально неразрешимых source/binding проблем (например broken graph source или unresolved callable).
-3. workaround policy `skip_unsupported` отклонен; `I4.S8` закрыт, `V2.1.S2` выполнен, следующий delivery-слайс — `V2.1.S3`.
+3. workaround policy `skip_unsupported` отклонен; `I4.S8` закрыт, `V2.1.S3a` выполнен, следующий delivery-слайс — `V2.1.S3`.
 
 Smoke-прогон profile-driven path:
 
@@ -412,6 +412,15 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_export_champion_bundle.
 ```
 
 ## Frontend Shell Quickstart (PowerShell)
+
+Собрать React/TS фронтенд (выполнять после изменений в `frontend/src`):
+
+```powershell
+cd .\frontend
+npm install
+npm run build
+cd ..
+```
 
 Запуск capability shell (`C1..C6`):
 

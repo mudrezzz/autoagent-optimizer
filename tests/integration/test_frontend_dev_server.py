@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import socket
 import subprocess
 import sys
@@ -77,8 +78,14 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
             html = response.read().decode("utf-8")
             assert response.status == 200
             assert "C1 Workbench" in html
-            assert "id=\"capability-nav\"" in html
+            assert "id=\"root\"" in html
             assert "/design_system/colors_and_type.css" in html
+            match = re.search(r'"/assets/[^"]+\.js"', html)
+            assert match is not None
+            asset_path = match.group(0).strip("\"")
+
+        with urlopen(f"{base_url}{asset_path}", timeout=5.0) as response:
+            assert response.status == 200
 
         with urlopen(f"{base_url}/api/capabilities", timeout=5.0) as response:
             payload = json.loads(response.read().decode("utf-8"))
