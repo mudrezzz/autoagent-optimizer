@@ -3,11 +3,14 @@ import { useEffect, useMemo, useState } from "react";
 import {
   createProject,
   createWorkspace,
+  deleteWorkspace,
+  duplicateWorkspace,
   fetchCapabilityCatalog,
   fetchStubCapability,
   getProject,
   listProjects,
   listWorkspaces,
+  renameWorkspace,
 } from "./api";
 import type { Capability, ProjectRecord, StubPayload, WorkspaceRecord } from "./types";
 import { exportJsonToFile, makeTimestampedFileName, prettyJson } from "./utils";
@@ -84,6 +87,9 @@ type ScreenRoute =
       workspaceId: string;
     };
 
+// Русский комментарий: режим модалки workspace для создания/переименования.
+type WorkspaceDialogMode = "create" | "rename" | null;
+
 // Русский комментарий: структура состояния UI для C1 и planned-preview capability.
 type UiState = {
   capabilities: Capability[];
@@ -92,8 +98,6 @@ type UiState = {
   activeWorkspaceId: string;
   projects: ProjectRecord[];
   activeProjectId: string;
-  workspaceNameInput: string;
-  workspaceDescriptionInput: string;
   projectNameInput: string;
   projectDescriptionInput: string;
   budgetPercent: number;
@@ -117,8 +121,6 @@ export function App(): JSX.Element {
     activeWorkspaceId: "",
     projects: [],
     activeProjectId: "",
-    workspaceNameInput: "",
-    workspaceDescriptionInput: "",
     projectNameInput: "",
     projectDescriptionInput: "",
     budgetPercent: 0,
@@ -131,6 +133,12 @@ export function App(): JSX.Element {
     exportMeta: "No payload available yet.",
     lastPayload: null,
   });
+
+  const [workspaceDialogMode, setWorkspaceDialogMode] = useState<WorkspaceDialogMode>(null);
+  const [workspaceDialogWorkspaceId, setWorkspaceDialogWorkspaceId] = useState<string>("");
+  const [workspaceDialogName, setWorkspaceDialogName] = useState<string>("");
+  const [workspaceDialogDescription, setWorkspaceDialogDescription] = useState<string>("");
+  const [workspaceMenuOpenId, setWorkspaceMenuOpenId] = useState<string | null>(null);
 
   // Русский комментарий: активная capability, отображаемая в меню рабочего экрана проекта.
   const activeCapability = useMemo(
@@ -184,6 +192,37 @@ export function App(): JSX.Element {
     void loadWorkspaceProjects(route.workspaceId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route]);
+
+  // Русский комментарий: закрывает меню workspace-карточки при клике за пределами меню.
+  useEffect(() => {
+    const onDocumentClick = (event: MouseEvent): void => {
+      const target = event.target as Element | null;
+      if (!target) {
+        return;
+      }
+      if (target.closest(".workspace-menu-wrap")) {
+        return;
+      }
+      setWorkspaceMenuOpenId(null);
+    };
+    document.addEventListener("click", onDocumentClick);
+    return () => {
+      document.removeEventListener("click", onDocumentClick);
+    };
+  }, []);
+
+  // Русский комментарий: закрывает модалку по Escape для удобства UX.
+  useEffect(() => {
+    const onEsc = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        closeWorkspaceDialog();
+      }
+    };
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("keydown", onEsc);
+    };
+  });
 
   // Русский комментарий: после каждого рендера переинициализирует Lucide-иконки.
   useEffect(() => {
@@ -328,10 +367,35 @@ export function App(): JSX.Element {
     }
   }
 
-  // Русский комментарий: создает workspace на Projects Hub и перезагружает список workspace.
-  async function handleCreateWorkspace(): Promise<void> {
-    const name = state.workspaceNameInput.trim();
-    const description = state.workspaceDescriptionInput.trim();
+  // Русский комментарий: открывает модалку создания workspace.
+  function openCreateWorkspaceDialog(): void {
+    setWorkspaceDialogMode("create");
+    setWorkspaceDialogWorkspaceId("");
+    setWorkspaceDialogName("");
+    setWorkspaceDialogDescription("");
+    setWorkspaceMenuOpenId(null);
+  }
+
+  // Русский комментарий: открывает модалку переименования выбранного workspace.
+  function openRenameWorkspaceDialog(workspace: WorkspaceRecord): void {
+    setWorkspaceDialogMode("rename");
+    setWorkspaceDialogWorkspaceId(workspace.workspace_id);
+    setWorkspaceDialogName(workspace.name);
+    setWorkspaceDialogDescription(workspace.description);
+    setWorkspaceMenuOpenId(null);
+  }
+
+  // Русский комментарий: закрывает модалку workspace и очищает временный draft.
+  function closeWorkspaceDialog(): void {
+    setWorkspaceDialogMode(null);
+    setWorkspaceDialogWorkspaceId("");
+    setWorkspaceDialogName("");
+    setWorkspaceDialogDescription("");
+  }
+
+  // Русский комментарий: создает или переименовывает workspace из модалки в зависимости от режима.
+  async function handleSubmitWorkspaceDialog(): Promise<void> {
+    const name = workspaceDialogName.trim();
     if (!name) {
       setState((prev) => ({
         ...prev,
@@ -340,22 +404,66 @@ export function App(): JSX.Element {
       return;
     }
 
-    setState((prev) => ({ ...prev, budgetPercent: 35, budgetStage: "creating workspace" }));
-
     try {
-      const created = await createWorkspace(name, description);
-      await refreshWorkspaces(created.workspace.workspace_id);
+      if (workspaceDialogMode === "create") {
+        const created = await createWorkspace(name, workspaceDialogDescription.trim());
+        await refreshWorkspaces(created.workspace.workspace_id);
+        setState((prev) => ({
+          ...prev,
+          jsonText: prettyJson({ status: "success", action: "create_workspace", workspace: created.workspace }),
+        }));
+      } else if (workspaceDialogMode === "rename") {
+        const updated = await renameWorkspace(workspaceDialogWorkspaceId, name);
+        await refreshWorkspaces(updated.workspace.workspace_id);
+        setState((prev) => ({
+          ...prev,
+          jsonText: prettyJson({ status: "success", action: "rename_workspace", workspace: updated.workspace }),
+        }));
+      }
+      closeWorkspaceDialog();
+    } catch (error) {
       setState((prev) => ({
         ...prev,
-        workspaceNameInput: "",
-        workspaceDescriptionInput: "",
-        jsonText: prettyJson({ status: "success", action: "create_workspace", workspace: created.workspace }),
+        jsonText: prettyJson({ status: "error", message: String(error) }),
+      }));
+    }
+  }
+
+  // Русский комментарий: дублирует workspace из меню карточки.
+  async function handleDuplicateWorkspace(workspaceId: string): Promise<void> {
+    setWorkspaceMenuOpenId(null);
+    try {
+      const duplicated = await duplicateWorkspace(workspaceId);
+      await refreshWorkspaces(duplicated.workspace.workspace_id);
+      setState((prev) => ({
+        ...prev,
+        jsonText: prettyJson({ status: "success", action: "duplicate_workspace", workspace: duplicated.workspace }),
       }));
     } catch (error) {
       setState((prev) => ({
         ...prev,
-        budgetPercent: 100,
-        budgetStage: "failed",
+        jsonText: prettyJson({ status: "error", message: String(error) }),
+      }));
+    }
+  }
+
+  // Русский комментарий: удаляет workspace из меню карточки после подтверждения пользователя.
+  async function handleDeleteWorkspace(workspaceId: string): Promise<void> {
+    setWorkspaceMenuOpenId(null);
+    const confirmed = window.confirm("Delete this workspace? This action cannot be undone.");
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await deleteWorkspace(workspaceId);
+      await refreshWorkspaces();
+      setState((prev) => ({
+        ...prev,
+        jsonText: prettyJson({ status: "success", action: "delete_workspace", workspace_id: workspaceId }),
+      }));
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
         jsonText: prettyJson({ status: "error", message: String(error) }),
       }));
     }
@@ -466,16 +574,6 @@ export function App(): JSX.Element {
     setState((prev) => ({ ...prev, exportMeta: `Saved: ${fileName}` }));
   }
 
-  // Русский комментарий: синхронизирует input названия workspace.
-  function handleWorkspaceNameChange(nextValue: string): void {
-    setState((prev) => ({ ...prev, workspaceNameInput: nextValue }));
-  }
-
-  // Русский комментарий: синхронизирует input описания workspace.
-  function handleWorkspaceDescriptionChange(nextValue: string): void {
-    setState((prev) => ({ ...prev, workspaceDescriptionInput: nextValue }));
-  }
-
   // Русский комментарий: синхронизирует input названия project.
   function handleProjectNameChange(nextValue: string): void {
     setState((prev) => ({ ...prev, projectNameInput: nextValue }));
@@ -486,22 +584,19 @@ export function App(): JSX.Element {
     setState((prev) => ({ ...prev, projectDescriptionInput: nextValue }));
   }
 
-  // Русский комментарий: подставляет demo-значения в форму workspace.
-  function handleFillWorkspaceExample(): void {
-    setState((prev) => ({
-      ...prev,
-      workspaceNameInput: "support-qa",
-      workspaceDescriptionInput: "Workspace for support quality optimization experiments.",
-    }));
-  }
-
-  // Русский комментарий: подставляет demo-значения в форму project.
-  function handleFillProjectExample(): void {
-    setState((prev) => ({
-      ...prev,
-      projectNameInput: "support-qa.v1",
-      projectDescriptionInput: "First project version for stylizer and support benchmark loops.",
-    }));
+  // Русский комментарий: возвращает демонстрационные агрегаты карточки workspace для живого визуального заполнения.
+  function buildWorkspaceCardMetrics(workspace: WorkspaceRecord, index: number): {
+    agents: number;
+    tests: number;
+    dataRows: number;
+    statusLabel: string;
+  } {
+    const seed = hashString(workspace.workspace_id) + index * 17;
+    const agents = 2 + (seed % 8);
+    const tests = 24 + (seed % 7) * 12;
+    const dataRows = 120 + (seed % 9) * 80;
+    const statusLabel = index === 0 ? "Champion" : "Baseline";
+    return { agents, tests, dataRows, statusLabel };
   }
 
   const isWorkspaceRoute = route.name === "workspace";
@@ -624,115 +719,138 @@ export function App(): JSX.Element {
                       Projects Hub <span>- SaaS workspace list</span>
                     </h1>
                     <p className="ch-sub">
-                      Create and browse workspaces. Each workspace is an isolated customer project context.
+                      Manage customer workspaces and open a project context for optimization lifecycle.
                     </p>
+                  </div>
+                  <div className="hub-actions">
+                    <button type="button" className="btn btn-primary" onClick={openCreateWorkspaceDialog}>
+                      <i data-lucide="plus" />
+                      Add workspace
+                    </button>
                   </div>
                 </section>
 
-                <section className="metric-strip" id="metric-strip">
-                  <article className="ms-cell">
-                    <div className="ms-lbl">Workspaces</div>
-                    <div className="ms-row">
-                      <div className="ms-val">{state.metricWorkspaces}</div>
-                    </div>
-                    <div className="ms-cap">Visible in current tenant scope</div>
-                  </article>
-
-                  <article className="ms-cell">
-                    <div className="ms-lbl">Selected workspace</div>
-                    <div className="ms-row">
-                      <div className="ms-val">{state.metricWorkspaceStatus}</div>
-                    </div>
-                    <div className="ms-cap">Project workspace entrypoint</div>
-                  </article>
-
-                  <article className="ms-cell">
-                    <div className="ms-lbl">Last export</div>
-                    <div className="ms-row">
-                      <div className="ms-val">JSON</div>
-                    </div>
-                    <div className="ms-cap">{state.exportMeta}</div>
-                  </article>
-
-                  <article className="ms-cell">
-                    <div className="ms-lbl">Backend status</div>
-                    <div className="ms-row">
-                      <div className="ms-val">online</div>
-                    </div>
-                    <div className="ms-cap">C1 API connected</div>
-                  </article>
-                </section>
-
-                <section className="arch-list">
-                  <header className="arch-list-head">
-                    <div className="al-label">Create workspace</div>
-                    <div className="al-tools">
-                      <button type="button" className="al-tool" onClick={handleFillWorkspaceExample}>
-                        <i data-lucide="wand-sparkles" />
-                        Example
-                      </button>
-                    </div>
+                <section className="workspace-board">
+                  <header className="workspace-board-head">
+                    <div className="workspace-board-label">Workspaces</div>
+                    <div className="workspace-board-count">{state.workspaces.length} total</div>
                   </header>
-                  <div className="c1-form-row">
-                    <label className="c1-field-label" htmlFor="workspace-name-input">
-                      Workspace name
-                    </label>
-                    <div className="c1-form-controls c1-form-stack">
-                      <input
-                        id="workspace-name-input"
-                        type="text"
-                        value={state.workspaceNameInput}
-                        onChange={(event) => {
-                          handleWorkspaceNameChange(event.target.value);
-                        }}
-                        placeholder="support-qa"
-                      />
-                      <textarea
-                        id="workspace-description-input"
-                        value={state.workspaceDescriptionInput}
-                        onChange={(event) => {
-                          handleWorkspaceDescriptionChange(event.target.value);
-                        }}
-                        placeholder="Optional workspace description"
-                      />
-                      <button type="button" className="tb-btn tb-btn-primary" onClick={() => void handleCreateWorkspace()}>
-                        Create workspace
-                      </button>
-                    </div>
+
+                  <div className="workspace-grid" id="workspace-grid">
+                    {state.workspaces.length === 0 ? (
+                      <div className="workspace-card workspace-card--empty">
+                        No workspace yet. Click <b>Add workspace</b> to create the first one.
+                      </div>
+                    ) : (
+                      state.workspaces.map((workspace, index) => {
+                        const metrics = buildWorkspaceCardMetrics(workspace, index);
+                        const isChampionCard = index === 0;
+                        const isCardMenuOpen = workspaceMenuOpenId === workspace.workspace_id;
+                        return (
+                          <article
+                            key={workspace.workspace_id}
+                            className={`workspace-arch-card${isChampionCard ? " is-champion" : ""}`}
+                          >
+                            <div className="workspace-arch-head">
+                              <div>
+                                <div className="workspace-card-title">{workspace.name}</div>
+                                <div className="workspace-card-meta">{workspace.workspace_id}</div>
+                              </div>
+                              <div className="workspace-head-actions">
+                                <span className={`workspace-pill${isChampionCard ? " champ" : " base"}`}>
+                                  <span className="dot" />
+                                  {metrics.statusLabel}
+                                </span>
+                                <div className="workspace-menu-wrap">
+                                  <button
+                                    type="button"
+                                    className="workspace-menu-trigger"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      setWorkspaceMenuOpenId((prev) =>
+                                        prev === workspace.workspace_id ? null : workspace.workspace_id,
+                                      );
+                                    }}
+                                  >
+                                    <i data-lucide="ellipsis" />
+                                  </button>
+                                  {isCardMenuOpen ? (
+                                    <div className="workspace-menu">
+                                      <button
+                                        type="button"
+                                        className="workspace-menu-item"
+                                        onClick={() => {
+                                          openRenameWorkspaceDialog(workspace);
+                                        }}
+                                      >
+                                        Rename
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="workspace-menu-item"
+                                        onClick={() => {
+                                          void handleDuplicateWorkspace(workspace.workspace_id);
+                                        }}
+                                      >
+                                        Duplicate
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="workspace-menu-item is-destructive"
+                                        onClick={() => {
+                                          void handleDeleteWorkspace(workspace.workspace_id);
+                                        }}
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                  ) : null}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="workspace-arch-metrics">
+                              <div className="workspace-metric">
+                                <span className="m-val">{metrics.agents}</span>
+                                <span className="m-lbl">agents</span>
+                              </div>
+                              <div className="workspace-metric">
+                                <span className="m-val">{metrics.tests}</span>
+                                <span className="m-lbl">tests</span>
+                              </div>
+                              <div className="workspace-metric">
+                                <span className="m-val">{metrics.dataRows}</span>
+                                <span className="m-lbl">data rows</span>
+                              </div>
+                            </div>
+
+                            <div className="workspace-card-footer">
+                              <div className="workspace-card-sub">{workspace.description || "No description"}</div>
+                              <button
+                                type="button"
+                                className="btn btn-secondary"
+                                onClick={() => {
+                                  void handleOpenWorkspace(workspace.workspace_id);
+                                }}
+                              >
+                                Open workspace
+                              </button>
+                            </div>
+                          </article>
+                        );
+                      })
+                    )}
                   </div>
                 </section>
 
                 <section className="trace-view">
                   <header className="tv-head">
                     <div className="tv-title">
-                      <i data-lucide="folders" />
-                      <span>Workspace tiles</span>
-                      <span className="tv-arch">{state.workspaces.length} total</span>
+                      <i data-lucide="file-json-2" />
+                      <span>Last C1 payload</span>
                     </div>
                   </header>
                   <div className="tv-body">
-                    <div className="workspace-grid" id="workspace-grid">
-                      {state.workspaces.length === 0 ? (
-                        <div className="workspace-card workspace-card--empty">No workspace yet. Create one to continue.</div>
-                      ) : (
-                        state.workspaces.map((workspace) => (
-                          <article key={workspace.workspace_id} className="workspace-card">
-                            <div className="workspace-card-title">{workspace.name}</div>
-                            <div className="workspace-card-sub">{workspace.description || "No description"}</div>
-                            <div className="workspace-card-meta">{workspace.workspace_id}</div>
-                            <button
-                              type="button"
-                              className="sg-apply"
-                              onClick={() => {
-                                void handleOpenWorkspace(workspace.workspace_id);
-                              }}
-                            >
-                              Open workspace
-                            </button>
-                          </article>
-                        ))
-                      )}
-                    </div>
                     <pre className="json-view">{state.jsonText}</pre>
                   </div>
                 </section>
@@ -789,12 +907,6 @@ export function App(): JSX.Element {
                     <section className="arch-list">
                       <header className="arch-list-head">
                         <div className="al-label">Create project in active workspace</div>
-                        <div className="al-tools">
-                          <button type="button" className="al-tool" onClick={handleFillProjectExample} disabled={!state.activeWorkspaceId}>
-                            <i data-lucide="wand-sparkles" />
-                            Example
-                          </button>
-                        </div>
                       </header>
                       <div className="c1-form-row">
                         <label className="c1-field-label" htmlFor="project-name-input">
@@ -891,6 +1003,65 @@ export function App(): JSX.Element {
           </main>
         </div>
       </div>
+
+      {workspaceDialogMode ? (
+        <div className="workspace-modal-overlay" onClick={closeWorkspaceDialog}>
+          <div
+            className="workspace-modal-card"
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
+          >
+            <div className="workspace-modal-title">
+              {workspaceDialogMode === "create" ? "Create workspace" : "Rename workspace"}
+            </div>
+            <div className="workspace-modal-subtitle">
+              {workspaceDialogMode === "create"
+                ? "Add a new workspace for a separate optimization project."
+                : "Update workspace display name."}
+            </div>
+            <div className="workspace-modal-form">
+              <label htmlFor="workspace-dialog-name">Name</label>
+              <input
+                id="workspace-dialog-name"
+                type="text"
+                value={workspaceDialogName}
+                onChange={(event) => {
+                  setWorkspaceDialogName(event.target.value);
+                }}
+                placeholder="support-qa"
+              />
+              {workspaceDialogMode === "create" ? (
+                <>
+                  <label htmlFor="workspace-dialog-description">Description</label>
+                  <textarea
+                    id="workspace-dialog-description"
+                    value={workspaceDialogDescription}
+                    onChange={(event) => {
+                      setWorkspaceDialogDescription(event.target.value);
+                    }}
+                    placeholder="Optional workspace description"
+                  />
+                </>
+              ) : null}
+            </div>
+            <div className="workspace-modal-actions">
+              <button type="button" className="btn btn-secondary" onClick={closeWorkspaceDialog}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  void handleSubmitWorkspaceDialog();
+                }}
+              >
+                {workspaceDialogMode === "create" ? "Create workspace" : "Save name"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -902,4 +1073,13 @@ function parseRoute(pathname: string): ScreenRoute {
     return { name: "workspace", workspaceId: decodeURIComponent(workspaceMatch[1]) };
   }
   return { name: "projects_hub" };
+}
+
+// Русский комментарий: вычисляет простой стабильный hash для псевдо-детерминированных демо-метрик.
+function hashString(value: string): number {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+  return hash;
 }

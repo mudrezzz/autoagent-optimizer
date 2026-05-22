@@ -103,14 +103,108 @@ class WorkspaceRegistryStore:
             workspaces.append(workspace)
             data["workspaces"] = workspaces
             self._write_store(data)
-            return WorkspaceRecord(
-                workspace_id=str(workspace["workspace_id"]),
-                name=str(workspace["name"]),
-                description=str(workspace["description"]),
-                created_at=str(workspace["created_at"]),
-                tenant_id=str(workspace["tenant_id"]),
-                owner_user_id=str(workspace["owner_user_id"]),
+            return self._workspace_to_record(workspace)
+
+    def rename_workspace(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        workspace_id: str,
+        name: str,
+    ) -> WorkspaceRecord:
+        """Переименовывает workspace в рамках tenant/user scope и возвращает обновленную запись."""
+
+        normalized_name = name.strip()
+        if not normalized_name:
+            raise ValueError("Workspace name must be a non-empty string.")
+
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=workspace_id,
             )
+            for item in data.get("workspaces", []):
+                if (
+                    str(item.get("workspace_id")) != workspace_id
+                    and str(item.get("tenant_id", "")) == tenant_id
+                    and str(item.get("owner_user_id", "")) == owner_user_id
+                    and str(item.get("name", "")).strip().lower() == normalized_name.lower()
+                ):
+                    raise ValueError("Workspace with the same name already exists.")
+            workspace["name"] = normalized_name
+            self._write_store(data)
+            return self._workspace_to_record(workspace)
+
+    def duplicate_workspace(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        workspace_id: str,
+        name: str | None = None,
+    ) -> WorkspaceRecord:
+        """Дублирует workspace (без project-данных) с новым именем в том же tenant/user scope."""
+
+        with self._lock:
+            data = self._read_store()
+            source_workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=workspace_id,
+            )
+            existing_names = {
+                str(item.get("name", "")).strip().lower()
+                for item in data.get("workspaces", [])
+                if str(item.get("tenant_id", "")) == tenant_id and str(item.get("owner_user_id", "")) == owner_user_id
+            }
+            if name is not None:
+                normalized_name = name.strip()
+                if not normalized_name:
+                    raise ValueError("Workspace name must be a non-empty string.")
+                if normalized_name.lower() in existing_names:
+                    raise ValueError("Workspace with the same name already exists.")
+            else:
+                normalized_name = _make_unique_workspace_copy_name(
+                    source_name=str(source_workspace.get("name", "")),
+                    existing_names=existing_names,
+                )
+
+            now = _utc_now_iso()
+            workspace_copy = {
+                "workspace_id": f"ws_{uuid4().hex[:10]}",
+                "name": normalized_name,
+                "description": str(source_workspace.get("description", "")),
+                "created_at": now,
+                "tenant_id": tenant_id,
+                "owner_user_id": owner_user_id,
+                "projects": [],
+            }
+            data["workspaces"].append(workspace_copy)
+            self._write_store(data)
+            return self._workspace_to_record(workspace_copy)
+
+    def delete_workspace(self, *, tenant_id: str, owner_user_id: str, workspace_id: str) -> None:
+        """Удаляет workspace вместе со вложенными project из tenant/user scope."""
+
+        with self._lock:
+            data = self._read_store()
+            workspaces = data.get("workspaces", [])
+            for index, item in enumerate(workspaces):
+                if (
+                    str(item.get("workspace_id")) == workspace_id
+                    and str(item.get("tenant_id", "")) == tenant_id
+                    and str(item.get("owner_user_id", "")) == owner_user_id
+                ):
+                    del workspaces[index]
+                    data["workspaces"] = workspaces
+                    self._write_store(data)
+                    return
+        raise KeyError(f"Workspace not found: {workspace_id}")
 
     def list_projects(self, *, tenant_id: str, owner_user_id: str, workspace_id: str) -> list[ProjectRecord]:
         """Возвращает все project выбранного workspace."""
@@ -244,6 +338,18 @@ class WorkspaceRegistryStore:
         temp_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
         temp_file.replace(self._store_file)
 
+    def _workspace_to_record(self, workspace: dict[str, Any]) -> WorkspaceRecord:
+        """Преобразует внутренний dict workspace в API-ориентированный DTO-объект."""
+
+        return WorkspaceRecord(
+            workspace_id=str(workspace["workspace_id"]),
+            name=str(workspace["name"]),
+            description=str(workspace.get("description", "")),
+            created_at=str(workspace["created_at"]),
+            tenant_id=str(workspace.get("tenant_id", "")),
+            owner_user_id=str(workspace.get("owner_user_id", "")),
+        )
+
     def _find_workspace(
         self,
         *,
@@ -268,3 +374,18 @@ def _utc_now_iso() -> str:
     """Возвращает UTC timestamp в ISO-формате для audit-полей сущностей."""
 
     return datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat()
+
+
+def _make_unique_workspace_copy_name(*, source_name: str, existing_names: set[str]) -> str:
+    """Строит уникальное имя копии workspace вида '<name> copy', '<name> copy 2', ..."""
+
+    base_name = source_name.strip() or "workspace"
+    candidate = f"{base_name} copy"
+    if candidate.lower() not in existing_names:
+        return candidate
+    counter = 2
+    while True:
+        candidate = f"{base_name} copy {counter}"
+        if candidate.lower() not in existing_names:
+            return candidate
+        counter += 1

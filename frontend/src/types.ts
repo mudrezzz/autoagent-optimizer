@@ -51,6 +51,18 @@ export type WorkspaceCreateResponse = {
   workspace: WorkspaceRecord;
 };
 
+// Русский комментарий: ответ обновления workspace.
+export type WorkspaceUpdateResponse = {
+  status: "success";
+  workspace: WorkspaceRecord;
+};
+
+// Русский комментарий: ответ удаления workspace.
+export type WorkspaceDeleteResponse = {
+  status: "success";
+  workspace_id: string;
+};
+
 // Русский комментарий: ответ списка project в workspace.
 export type ProjectsListResponse = {
   status: "success";

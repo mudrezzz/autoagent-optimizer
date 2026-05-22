@@ -116,3 +116,69 @@ def test_store_isolates_records_by_tenant_and_user(tmp_path: Path) -> None:
             owner_user_id="user_a",
             workspace_id=workspace_b.workspace_id,
         )
+
+
+def test_store_renames_workspace_and_rejects_duplicate_name(tmp_path: Path) -> None:
+    """Проверяет переименование workspace и защиту от дублирующегося имени."""
+
+    store = WorkspaceRegistryStore(store_file=tmp_path / "registry.json")
+    first = store.create_workspace(tenant_id="tenant_a", owner_user_id="user_a", name="support-qa", description="")
+    store.create_workspace(tenant_id="tenant_a", owner_user_id="user_a", name="billing-qa", description="")
+
+    renamed = store.rename_workspace(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        workspace_id=first.workspace_id,
+        name="support-l2",
+    )
+    assert renamed.name == "support-l2"
+
+    with pytest.raises(ValueError):
+        store.rename_workspace(
+            tenant_id="tenant_a",
+            owner_user_id="user_a",
+            workspace_id=first.workspace_id,
+            name="billing-qa",
+        )
+
+
+def test_store_duplicates_and_deletes_workspace(tmp_path: Path) -> None:
+    """Проверяет дублирование workspace и удаление в пределах tenant/user scope."""
+
+    store = WorkspaceRegistryStore(store_file=tmp_path / "registry.json")
+    workspace = store.create_workspace(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        name="support-qa",
+        description="Support experiments",
+    )
+    store.create_project(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        workspace_id=workspace.workspace_id,
+        name="support-qa.v1",
+        description="",
+    )
+
+    duplicated = store.duplicate_workspace(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        workspace_id=workspace.workspace_id,
+    )
+    assert duplicated.workspace_id != workspace.workspace_id
+    assert duplicated.description == workspace.description
+    projects_in_copy = store.list_projects(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        workspace_id=duplicated.workspace_id,
+    )
+    assert projects_in_copy == []
+
+    store.delete_workspace(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        workspace_id=workspace.workspace_id,
+    )
+    remaining = store.list_workspaces(tenant_id="tenant_a", owner_user_id="user_a")
+    assert len(remaining) == 1
+    assert remaining[0].workspace_id == duplicated.workspace_id

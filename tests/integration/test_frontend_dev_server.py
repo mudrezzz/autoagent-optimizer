@@ -167,12 +167,53 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert project_get_payload["status"] == "success"
         assert project_get_payload["project"]["project_id"] == project_id
 
+        patch_request = Request(
+            url=f"{base_url}/api/workspaces/{workspace_id}",
+            data=json.dumps({"name": "support-qa-renamed"}, ensure_ascii=False).encode("utf-8"),
+            method="PATCH",
+            headers={"Content-Type": "application/json; charset=utf-8"},
+        )
+        with urlopen(patch_request, timeout=5.0) as response:
+            renamed_payload = json.loads(response.read().decode("utf-8"))
+            assert response.status == 200
+            assert renamed_payload["workspace"]["name"] == "support-qa-renamed"
+
+        status_duplicate_workspace, duplicate_workspace_payload = _json_post(
+            f"{base_url}/api/workspaces/{workspace_id}/duplicate",
+            {},
+        )
+        assert status_duplicate_workspace == 201
+        assert duplicate_workspace_payload["status"] == "success"
+        duplicated_workspace_id = str(duplicate_workspace_payload["workspace"]["workspace_id"])
+        assert duplicated_workspace_id != workspace_id
+
+        delete_request = Request(
+            url=f"{base_url}/api/workspaces/{workspace_id}",
+            method="DELETE",
+        )
+        with urlopen(delete_request, timeout=5.0) as response:
+            delete_payload = json.loads(response.read().decode("utf-8"))
+            assert response.status == 200
+            assert delete_payload["workspace_id"] == workspace_id
+
+        status_projects_deleted, deleted_projects_payload = _json_get(
+            f"{base_url}/api/workspaces/{workspace_id}/projects",
+        )
+        assert status_projects_deleted == 404
+        assert deleted_projects_payload["status"] == "error"
+
+        status_projects_duplicated, duplicated_projects_payload = _json_get(
+            f"{base_url}/api/workspaces/{duplicated_workspace_id}/projects",
+        )
+        assert status_projects_duplicated == 200
+        assert duplicated_projects_payload["total"] == 0
+
         status_duplicate_workspace, duplicate_workspace_payload = _json_post(
             f"{base_url}/api/workspaces",
             {"name": "support-qa", "description": "duplicate"},
         )
-        assert status_duplicate_workspace == 409
-        assert duplicate_workspace_payload["status"] == "error"
+        assert status_duplicate_workspace == 201
+        assert duplicate_workspace_payload["status"] == "success"
 
         status_missing_workspace, missing_workspace_payload = _json_post(
             f"{base_url}/api/workspaces/ws_missing/projects",

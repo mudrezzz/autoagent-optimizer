@@ -7,6 +7,8 @@
   ProjectsListResponse,
   StubPayload,
   WorkspaceCreateResponse,
+  WorkspaceDeleteResponse,
+  WorkspaceUpdateResponse,
   WorkspacesListResponse,
 } from "./types";
 
@@ -53,6 +55,46 @@ export async function createWorkspace(name: string, description: string): Promis
   }
 
   return parseJsonOrThrow<WorkspaceCreateResponse>(response);
+}
+
+// Русский комментарий: обновляет имя workspace через C1 backend API.
+export async function renameWorkspace(workspaceId: string, name: string): Promise<WorkspaceUpdateResponse> {
+  const response = await fetch(`/api/workspaces/${encodeURIComponent(workspaceId)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to rename workspace: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<WorkspaceUpdateResponse>(response);
+}
+
+// Русский комментарий: дублирует workspace через C1 backend API.
+export async function duplicateWorkspace(workspaceId: string): Promise<WorkspaceCreateResponse> {
+  const response = await fetch(`/api/workspaces/${encodeURIComponent(workspaceId)}/duplicate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to duplicate workspace: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<WorkspaceCreateResponse>(response);
+}
+
+// Русский комментарий: удаляет workspace через C1 backend API.
+export async function deleteWorkspace(workspaceId: string): Promise<WorkspaceDeleteResponse> {
+  const response = await fetch(`/api/workspaces/${encodeURIComponent(workspaceId)}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to delete workspace: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<WorkspaceDeleteResponse>(response);
 }
 
 // Русский комментарий: загружает проекты выбранного workspace.

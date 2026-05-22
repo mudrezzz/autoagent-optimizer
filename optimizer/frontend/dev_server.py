@@ -184,6 +184,12 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
                 self._handle_create_workspace()
                 return
 
+            workspace_duplicate_match = re.fullmatch(r"/api/workspaces/([^/]+)/duplicate", path)
+            if workspace_duplicate_match is not None:
+                workspace_id = workspace_duplicate_match.group(1)
+                self._handle_duplicate_workspace(workspace_id=workspace_id)
+                return
+
             workspace_projects_match = re.fullmatch(r"/api/workspaces/([^/]+)/projects", path)
             if workspace_projects_match is not None:
                 workspace_id = workspace_projects_match.group(1)
@@ -194,6 +200,28 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
                 self._handle_legacy_validate_compile()
                 return
 
+            self._send_json({"status": "error", "message": "Not found"}, status=HTTPStatus.NOT_FOUND)
+
+        def do_PATCH(self) -> None:  # noqa: N802
+            """Обрабатывает PATCH-запросы API для обновления workspace."""
+
+            path = urlparse(self.path).path
+            workspace_match = re.fullmatch(r"/api/workspaces/([^/]+)", path)
+            if workspace_match is not None:
+                workspace_id = workspace_match.group(1)
+                self._handle_rename_workspace(workspace_id=workspace_id)
+                return
+            self._send_json({"status": "error", "message": "Not found"}, status=HTTPStatus.NOT_FOUND)
+
+        def do_DELETE(self) -> None:  # noqa: N802
+            """Обрабатывает DELETE-запросы API для удаления workspace."""
+
+            path = urlparse(self.path).path
+            workspace_match = re.fullmatch(r"/api/workspaces/([^/]+)", path)
+            if workspace_match is not None:
+                workspace_id = workspace_match.group(1)
+                self._handle_delete_workspace(workspace_id=workspace_id)
+                return
             self._send_json({"status": "error", "message": "Not found"}, status=HTTPStatus.NOT_FOUND)
 
         def _handle_create_workspace(self) -> None:
@@ -284,6 +312,100 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
                 return
 
             self._send_json({"status": "success", "project": project.__dict__}, status=HTTPStatus.CREATED)
+
+        def _handle_rename_workspace(self, *, workspace_id: str) -> None:
+            """Переименовывает workspace и возвращает обновленную запись."""
+
+            tenant_id, user_id = self._resolve_request_actor()
+            try:
+                payload = self._read_json_body()
+            except ValueError as exc:
+                self._send_json({"status": "error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            name = payload.get("name")
+            if not isinstance(name, str) or not name.strip():
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Field `name` must be a non-empty string."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            try:
+                workspace = workspace_store.rename_workspace(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    workspace_id=workspace_id,
+                    name=name,
+                )
+            except KeyError as exc:
+                self._send_json(
+                    {"status": "error", "code": "workspace_not_found", "message": str(exc)},
+                    status=HTTPStatus.NOT_FOUND,
+                )
+                return
+            except ValueError as exc:
+                self._send_json(
+                    {"status": "error", "code": "workspace_conflict", "message": str(exc)},
+                    status=HTTPStatus.CONFLICT,
+                )
+                return
+
+            self._send_json({"status": "success", "workspace": workspace.__dict__})
+
+        def _handle_duplicate_workspace(self, *, workspace_id: str) -> None:
+            """Дублирует workspace и возвращает новую запись."""
+
+            tenant_id, user_id = self._resolve_request_actor()
+            try:
+                payload = self._read_json_body()
+            except ValueError:
+                payload = {}
+            name_raw = payload.get("name")
+            if name_raw is not None and not isinstance(name_raw, str):
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Field `name` must be a string."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            try:
+                workspace = workspace_store.duplicate_workspace(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    workspace_id=workspace_id,
+                    name=name_raw,
+                )
+            except KeyError as exc:
+                self._send_json(
+                    {"status": "error", "code": "workspace_not_found", "message": str(exc)},
+                    status=HTTPStatus.NOT_FOUND,
+                )
+                return
+            except ValueError as exc:
+                self._send_json(
+                    {"status": "error", "code": "workspace_conflict", "message": str(exc)},
+                    status=HTTPStatus.CONFLICT,
+                )
+                return
+            self._send_json({"status": "success", "workspace": workspace.__dict__}, status=HTTPStatus.CREATED)
+
+        def _handle_delete_workspace(self, *, workspace_id: str) -> None:
+            """Удаляет workspace в tenant/user scope."""
+
+            tenant_id, user_id = self._resolve_request_actor()
+            try:
+                workspace_store.delete_workspace(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    workspace_id=workspace_id,
+                )
+            except KeyError as exc:
+                self._send_json(
+                    {"status": "error", "code": "workspace_not_found", "message": str(exc)},
+                    status=HTTPStatus.NOT_FOUND,
+                )
+                return
+
+            self._send_json({"status": "success", "workspace_id": workspace_id})
 
         def _resolve_request_actor(self) -> tuple[str, str]:
             """Разрешает tenant/user контекст запроса из заголовков либо default окружения."""
