@@ -16,7 +16,7 @@
 ## Active Window (Now)
 
 - `Current Focus`: MVP-2 vertical product delivery bootstrap (`Roadmap v2`)
-- `Active Next Slice`: V2.1.S1
+- `Active Next Slice`: V2.1.S2
 
 ## Active Capability Board
 
@@ -35,15 +35,21 @@
 
 ### V2.1 - Product Skeleton Across All Capabilities
 
-- Status: Planned
+- Status: In Progress
 - Goal: дать проверяемые frontend surfaces по C1-C6 и связать их с backend контрактами.
 - Design constraint: каждый UI-инкремент реализуется на токенах и паттернах `design_system`.
 - Slices:
-  1. `V2.1.S1` UI shell + API contract skeleton for C1-C6.
+  1. `V2.1.S1` UI shell + API contract skeleton for C1-C6. (`Done`)
   2. `V2.1.S2` C1 vertical slice (`validate/compile` + UI compile-report).
   3. `V2.1.S3` C2 vertical slice (`run/trace` + UI trace explorer).
   4. `V2.1.S4` C4 vertical slice (smoke arena ranking in UI).
   5. `V2.1.S5` C6 read-only slice (bundle inspector UI).
+
+- Progress (2026-05-22):
+  1. Добавлен `frontend/` capability shell с вкладками C1..C6 и состояниями `idle/loading/success/error`.
+  2. Добавлен lightweight backend endpoint `POST /api/c1/validate-compile` (реальный DSL validate+compile path).
+  3. Добавлены stub-endpoints `GET /api/c2..c6/sample` для сквозной UI-проверки.
+  4. Добавлены unit/integration/e2e проверки frontend shell + smoke-скрипт `scripts/smoke_frontend_shell.ps1`.
 
 ### V2.2 - Functional Expansion Across All Capabilities
 

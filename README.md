@@ -5,9 +5,9 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 ## Current Status
 
 - `Phase`: MVP-2 transition (evaluation fabric bootstrap)
-- `Iteration`: Roadmap v2 bootstrap - vertical product slices
-- `Overall`: In Progress (I1.S1-I5.S2a + I4.S8 done)
-- `Next Slice`: V2.1.S1 UI shell + API contract skeleton for C1-C6
+- `Iteration`: Roadmap v2 - vertical product slices
+- `Overall`: In Progress (I1.S1-I5.S2a + I4.S8 + V2.1.S1 done)
+- `Next Slice`: V2.1.S2 C1 vertical slice
 
 РџРѕРґСЂРѕР±РЅС‹Р№ СЃС‚Р°С‚СѓСЃ:
 
@@ -78,6 +78,8 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 - `optimizer/evidence` - РіРµРЅРµСЂР°С†РёСЏ Evidence Pack (`comparison` + `diagnostics` + explainable diff).
 - `optimizer/champion` - export Champion Bundle (`diagnostic_map`, `winner_graph_ir`, `generated_agent`, `manifest`).
 - `frontend` (planned in Roadmap v2) - capability-oriented UI surfaces C1..C6 for runtime/evaluation/arena/evidence/champion flows.
+- `frontend` - capability shell C1..C6 (V2.1.S1) with design-system-first UI.
+- `optimizer/frontend/dev_server.py` - lightweight frontend dev server (static shell + capability API).
 - `components` - deterministic demo-РєРѕРјРїРѕРЅРµРЅС‚С‹ РґР»СЏ РїР°Р№РїР»Р°Р№РЅРѕРІ (РІРєР»СЋС‡Р°СЏ AI-pattern РёРЅСЃС‚СЂСѓРјРµРЅС‚С‹).
 - `validators` - python-РІР°Р»РёРґР°С‚РѕСЂС‹ demo-СЃС†РµРЅР°СЂРёРµРІ (РІРєР»СЋС‡Р°СЏ style output guard).
 - `docs/specs/Evaluation_Profile_v0.md` - РєРѕРЅС†РµРїС‚ profile-driven РѕС†РµРЅРєРё (task-specific metrics + pluggable evaluators).
@@ -100,6 +102,7 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 - `scripts/smoke_validate_dataset.ps1` - smoke-РІР°Р»РёРґР°С†РёСЏ golden dataset.
 - `scripts/smoke_run_oracle.ps1` - smoke-РїСЂРѕРіРѕРЅ executable oracle runner.
 - `scripts/smoke_export_champion_bundle.ps1` - smoke-РїСЂРѕРіРѕРЅ champion bundle export.
+- `scripts/smoke_frontend_shell.ps1` - smoke-РїСЂРѕРіРѕРЅ capability frontend shell (`C1..C6`).
 
 
 ## I3.S3 Artifacts
@@ -346,7 +349,7 @@ python -m optimizer.evaluation.run_profile --profile-file .\examples\profiles\st
 
 1. canonical `stylizer_profile_ci_v0` успешно запускается на `native_runtime` (DSL->Native parity для demo-critical пути достигнут в `I4.S6a`).
 2. preflight сохраняется как fail-fast guard для реально неразрешимых source/binding проблем (например broken graph source или unresolved callable).
-3. workaround policy `skip_unsupported` отклонен; `I4.S8` закрыт, а ближайший delivery-слайс перенесен в `V2.1.S1` (UI shell + API contract skeleton).
+3. workaround policy `skip_unsupported` отклонен; `I4.S8` закрыт, `V2.1.S1` выполнен, следующий delivery-слайс — `V2.1.S2`.
 
 Smoke-прогон profile-driven path:
 
@@ -402,6 +405,26 @@ Smoke-прогон champion bundle export:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\smoke_export_champion_bundle.ps1
+```
+
+## Frontend Shell Quickstart (PowerShell)
+
+Запуск capability shell (`C1..C6`):
+
+```powershell
+python -m optimizer.frontend.dev_server --host 127.0.0.1 --port 4173
+```
+
+Открыть в браузере:
+
+```text
+http://127.0.0.1:4173/
+```
+
+Smoke-прогон frontend shell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_frontend_shell.ps1
 ```
 
 Resume quickstart:

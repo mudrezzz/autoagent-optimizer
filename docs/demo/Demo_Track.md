@@ -140,7 +140,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_arena_live_full.ps1
 
 РЎР»РµРґСѓСЋС‰РёР№ С€Р°Рі:
 
-1. Vertical capability shell (V2.1.S1).
+1. C1 deepening slice in UI (V2.1.S2).
 
 ### Stage D3 (I4) - Champion Demo
 
@@ -208,6 +208,13 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_evaluation_profile_
 1. `V2.1`: скелет UI + рабочие поверхности C1/C2/C4/C6.
 2. `V2.2`: расширение C3/C5 и action path для C6 + one-click сквозной сценарий C1->C6.
 
+Команды текущего D4.5 bootstrap:
+
+```powershell
+python -m optimizer.frontend.dev_server --host 127.0.0.1 --port 4173
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke_frontend_shell.ps1
+```
+
 ### Stage D3.5 (I4.S4-I4.S8) - Native Export Independence Demo
 
 РџР»Р°РЅ РїРѕРєР°Р·Р°:
@@ -237,6 +244,6 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_evaluation_profile_
 ## Current Demo Status
 
 - Active stage: `D4.5 bootstrap (V2 vertical product demo)`
-- Demo readiness: `Yellow` (UI shell C1-C6 pending in V2.1.S1)
-- Next demo milestone: `D4.5 capability shell live` (`V2.1.S1`)
+- Demo readiness: `Yellow` (capability shell live, next: C1 deep integration)
+- Next demo milestone: `D4.5 C1 validate/compile deep view` (`V2.1.S2`)
 

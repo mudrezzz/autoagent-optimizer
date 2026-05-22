@@ -57,6 +57,7 @@
 28. [ADR-0028-native-first-champion-bundle-default.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0028-native-first-champion-bundle-default.md) - Accepted
 29. [ADR-0029-vertical-product-slices-backend-frontend-demo-sync.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0029-vertical-product-slices-backend-frontend-demo-sync.md) - Accepted
 30. [ADR-0030-design-system-as-mandatory-frontend-standard.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0030-design-system-as-mandatory-frontend-standard.md) - Accepted
+31. [ADR-0031-frontend-shell-v2-1-s1-lightweight-python-dev-server.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0031-frontend-shell-v2-1-s1-lightweight-python-dev-server.md) - Accepted
 
 ## Template
 
