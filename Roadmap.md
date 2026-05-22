@@ -24,6 +24,7 @@
 1. Каждый слайс включает `Backend + Frontend + Demo + QA`.
 2. Функциональность развивается вширь по capability, а не последовательно по слоям системы.
 3. Любая backend-возможность считается незавершенной, пока не проверяется через UI и e2e путь.
+4. Любой frontend-слайс обязан соблюдать `design_system` как обязательный стандарт интерфейса.
 
 ### Capability Matrix (single source of truth)
 
@@ -175,6 +176,7 @@
 3. Слайс закрывается только при выполнении вертикального DoD:
    - backend изменение,
    - frontend проверяемый surface,
+   - frontend соответствует `design_system` (tokens/components/voice),
    - demo-сценарий,
    - тесты (unit/integration/e2e) на затронутый путь.
 4. После каждого слайса сразу обновляем:
@@ -184,6 +186,8 @@
    - `docs/adr/*` (если было архитектурное решение)
 5. Каждый слайс фиксируется отдельным commit.
 6. Перед commit обязателен полный прогон `python -m pytest` (unit + integration + e2e).
+7. При фронтовых изменениях в описании слайса фиксируем, какие артефакты `design_system` использованы
+   (`colors_and_type.css`, `ui_kits/*`, `assets/*`, copy rules).
 
 ## Backlog Source
 

@@ -22,6 +22,8 @@
 
 Статус фиксируется по осям `BE / FE / Demo / QA`.
 
+Дополнительный обязательный gate для всех `FE` статусов: соответствие `design_system`.
+
 1. `C1` DSL/IR Studio
 2. `C2` Runtime Run
 3. `C3` Evaluation Profile Runner
@@ -35,6 +37,7 @@
 
 - Status: Planned
 - Goal: дать проверяемые frontend surfaces по C1-C6 и связать их с backend контрактами.
+- Design constraint: каждый UI-инкремент реализуется на токенах и паттернах `design_system`.
 - Slices:
   1. `V2.1.S1` UI shell + API contract skeleton for C1-C6.
   2. `V2.1.S2` C1 vertical slice (`validate/compile` + UI compile-report).
@@ -46,6 +49,7 @@
 
 - Status: Planned
 - Goal: расширить функциональность вширь по всем capability с сохранением вертикального DoD.
+- Design constraint: расширения UI допускаются только в рамках `design_system` visual/content rules.
 - Slices:
   1. `V2.2.S1` C3 profile runner UI (`dsl/native` target switch).
   2. `V2.2.S2` C5 comparative/diagnostic UI panels.

@@ -56,6 +56,7 @@
 27. [ADR-0027-dsl-vs-native-parity-harness-and-ci-gate-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0027-dsl-vs-native-parity-harness-and-ci-gate-v0.md) - Accepted
 28. [ADR-0028-native-first-champion-bundle-default.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0028-native-first-champion-bundle-default.md) - Accepted
 29. [ADR-0029-vertical-product-slices-backend-frontend-demo-sync.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0029-vertical-product-slices-backend-frontend-demo-sync.md) - Accepted
+30. [ADR-0030-design-system-as-mandatory-frontend-standard.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0030-design-system-as-mandatory-frontend-standard.md) - Accepted
 
 ## Template
 

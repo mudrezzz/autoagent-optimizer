@@ -68,6 +68,7 @@ Input (Task + Constraints + Data + Tools + Budget)
    - capability-oriented frontend surfaces (C1..C6).
    - unified scenario runner for demo/validation.
    - explicit mapping `backend capability -> user-visible control -> e2e assertion`.
+   - strict `design_system` compliance (tokens, typography, iconography, UI kits, voice).
 
 ## External Dependency Strategy
 
@@ -77,6 +78,7 @@ Input (Task + Constraints + Data + Tools + Budget)
 - Version policy: pin to explicit tag for reproducibility.
 - Coupling rule: РёР·Р±РµРіР°РµРј РїСЂСЏРјРѕР№ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РЅР° РЅРµСЃС‚Р°Р±РёР»СЊРЅС‹Рµ internal API С‡РµСЂРµР· adapter boundary РІ РЅР°С€РµРј РєРѕРґРµ.
 - Export rule: winner runtime artifact РЅРµ РґРѕР»Р¶РµРЅ Р·Р°РІРёСЃРµС‚СЊ РѕС‚ `optimizer.*` РІ production Р·Р°РїСѓСЃРєРµ.
+- Frontend rule: UI implementation must follow local `design_system` package as single source of truth.
 
 ## Core Internal Modules (Planned)
 
