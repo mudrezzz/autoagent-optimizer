@@ -20,33 +20,46 @@
 ## High-Level Layers
 
 ```text
-Input (Task + Constraints + Data + Tools + Budget)
-  -> Product Experience Layer (Web UI / API Gateway / Demo Surfaces)
+Input (Workspace + Project + Task Brief + Constraints + Data + Budget)
+  -> Product Experience Layer (Workspace UI / Project Chat / Run Workbench)
+  -> Copilot Orchestrator (task-to-candidates loop)
+  -> Pattern Library + RAG Retrieval
   -> Architecture Generator
-  -> AgentOpt DSL
+  -> Internal Agent Spec -> AgentOpt DSL
   -> Graph IR (runtime-neutral)
   -> Renderer (LangGraph first)
   -> Execution Runtime
   -> White-box Trace + Metrics
+  -> Dataset + Evaluator Fabric
   -> Evaluation Fabric (configurable evaluators + metrics)
   -> Tournament + Optimization
-  -> Evidence Pack + Champion Export
+  -> Evidence Pack + Champion Export/Import
 ```
 
-## Current Target Architecture (MVP-1)
+## Current Target Architecture (MVP-2 transition)
 
-1. `DSL Layer`
-   - YAML-first spec.
-   - Typed validation.
-2. `Graph IR Layer`
+1. `Workspace/Project Layer`
+   - Workspace registry и проектный контекст.
+   - Версионируемые сущности проекта (agents/datasets/metrics/prompts/tools/settings).
+2. `Copilot Layer`
+   - Chat-first постановка задачи.
+   - Candidate generation + согласование с пользователем.
+3. `Pattern Layer`
+   - Библиотека design patterns.
+   - RAG retrieval без загрузки всей библиотеки в prompt context.
+4. `DSL Layer (internal)`
+   - DSL не является пользовательским UI.
+   - Typed validation/compile как внутренний readiness gate.
+5. `Graph IR Layer`
    - Runtime-neutral graph model.
    - Explicit node contracts.
-3. `Renderer Layer`
+6. `Renderer Layer`
    - IR -> `BaseWorkflow`/`WorkflowNodeSpec` adapter over `langgraph-dai`.
-4. `Execution Layer`
+7. `Execution Layer`
    - invoke/resume path.
    - fallback-safe execution mode.
-5. `Evaluation Layer`
+8. `Evaluation Layer`
+   - dataset lifecycle (upload/manual/synthetic/clean/check).
    - task-specific `Evaluation Profile` (config-driven metrics, judges, gates).
    - pluggable evaluator adapters:
      - golden dataset oracle,
@@ -54,19 +67,20 @@ Input (Task + Constraints + Data + Tools + Budget)
      - executable validator (tests/code/run),
      - render validator.
    - Metric-Crafting Agent loop with HITL approval for metric/profile evolution.
-6. `Optimization Layer`
+9. `Optimization Layer`
    - equal-budget baseline tournament.
    - dual-metrics model:
      - comparative metrics for ranking,
      - diagnostic signals for bottleneck localization.
    - local config search in promoted families.
-7. `Evidence Layer`
+10. `Evidence Layer`
    - champion/challenger comparison.
    - reproducible artifact bundle.
    - native standalone export package on `langgraph-dai`.
+   - native import path for re-benchmark after external code changes.
    - post-export benchmark loop (native artifact re-evaluation + regression gates).
-8. `Product Experience Layer`
-   - capability-oriented frontend surfaces (C1..C6).
+11. `Product Experience Layer`
+   - capability-oriented frontend surfaces (workspace/chat/candidates/datasets/metrics/runs/champion).
    - unified scenario runner for demo/validation.
    - explicit mapping `backend capability -> user-visible control -> e2e assertion`.
    - strict `design_system` compliance (tokens, typography, iconography, UI kits, voice).
@@ -96,6 +110,31 @@ Input (Task + Constraints + Data + Tools + Budget)
 9. `optimizer.evidence`
 10. `optimizer.champion`
 11. `frontend` (planned capability UI layer C1..C6)
+12. `optimizer.workspace` (planned)
+13. `optimizer.copilot` (planned)
+14. `optimizer.patterns` (planned)
+15. `optimizer.versioning` (planned)
+16. `optimizer.native_import` (planned)
+
+## Missing Elements (Frontend + Backend)
+
+Фронтенд-пустоты:
+
+1. отсутствует `Workspaces` list/create/open flow;
+2. отсутствует `Project Chat` как основной вход постановки задачи;
+3. отсутствует pattern library browser с include/exclude controls;
+4. отсутствует dataset/metrics/evaluator studio;
+5. отсутствует run-monitor по эпохам и version-manifest;
+6. отсутствует native import UX path.
+
+Бэкенд-пустоты:
+
+1. отсутствуют workspace/project domain entities и API;
+2. отсутствует copilot orchestrator (task brief -> candidate set);
+3. отсутствует pattern library RAG service;
+4. отсутствует unified version-manifest service;
+5. отсутствует dataset synthesis/cleaning assistant pipeline;
+6. отсутствует native import parser + compatibility pipeline.
 
 ## Implementation Status Snapshot
 

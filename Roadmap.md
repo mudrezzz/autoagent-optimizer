@@ -17,7 +17,7 @@
 
 Принцип: расширяем концентрическими кругами, а не строим длинную линейную фазу.
 
-## Execution Shift (Roadmap v2)
+## Execution Shift (Roadmap v3)
 
 Начиная с текущего окна, работа ведется вертикальными продуктовыми слайсами:
 
@@ -31,12 +31,14 @@
 
 | Capability | Scope | Status Axes |
 |---|---|---|
-| C1 | DSL/IR Studio (`validate`, `compile_report`) | `BE / FE / Demo / QA` |
-| C2 | Runtime Run (`invoke`, `trace`, `node_outputs`) | `BE / FE / Demo / QA` |
-| C3 | Evaluation Profile Runner (`dsl/native`, budgets) | `BE / FE / Demo / QA` |
-| C4 | Arena Ranking (`participants`, `winner`, `comparison`) | `BE / FE / Demo / QA` |
-| C5 | Evidence & Diagnostics (`comparison vs diagnostics`) | `BE / FE / Demo / QA` |
-| C6 | Champion Bundle (`native-first export`, `parity`) | `BE / FE / Demo / QA` |
+| C1 | Workspace & Project Registry | `BE / FE / Demo / QA` |
+| C2 | Task Chat + Candidate Generation | `BE / FE / Demo / QA` |
+| C3 | Pattern Library + RAG Retrieval | `BE / FE / Demo / QA` |
+| C4 | Dataset & Metrics Studio | `BE / FE / Demo / QA` |
+| C5 | Optimizer Run Monitor | `BE / FE / Demo / QA` |
+| C6 | Report + Champion Export/Import | `BE / FE / Demo / QA` |
+
+Legacy note: исторические DSL-first слайсы (validate/compile/run/arena/evidence/champion) остаются частью foundation, но больше не являются пользовательской capability-моделью.
 
 ---
 
@@ -99,26 +101,40 @@
 
 Цель: сделать оценку конфигурируемой под задачу, добавить MetricOps/HITL контур и углубить оптимизацию.
 
-### Iteration V2.1 - Product Skeleton Across All Capabilities
+### Iteration V2.1 - Legacy Capability Shell Foundation
 
 | Slice | Description | Status | Output |
 |---|---|---|---|
-| V2.1.S1 | UI shell + API contract skeleton for C1-C6 | Done | frontend shell + lightweight API (`C1 real`, `C2..C6 stub`) + smoke/e2e checks |
-| V2.1.S2 | C1 vertical slice | Done | app-v3-aligned workbench shell + real DSL validate/compile + compile-report/diagnostics visible in UI |
-| V2.1.S3a | React/TypeScript migration baseline | Done | Vite + React/TS toolchain, migrated C1 workbench UI, Python dev server serves `frontend/dist` |
-| V2.1.S3 | C2 vertical slice | Planned | runtime run + trace explorer in UI |
-| V2.1.S4 | C4 vertical slice (smoke budget) | Planned | arena ranking/winner visible in UI |
-| V2.1.S5 | C6 read-only vertical slice | Planned | bundle inspector in UI (manifest/parity/evidence) |
+| V2.1.S1 | UI shell + API contract skeleton for legacy C1-C6 | Done | frontend shell + lightweight API (`legacy C1 real`, `legacy C2..C6 stub`) + smoke/e2e checks |
+| V2.1.S2 | Legacy C1 vertical slice | Done | app-v3-aligned workbench shell + real DSL validate/compile + compile-report/diagnostics visible in UI |
+| V2.1.S3a | React/TypeScript migration baseline | Done | Vite + React/TS toolchain, migrated legacy C1 workbench UI, Python dev server serves `frontend/dist` |
+| V2.1.S3 | Legacy C2 vertical slice | Planned | runtime run + trace explorer in UI |
+| V2.1.S4 | Legacy C4 vertical slice (smoke budget) | Planned | arena ranking/winner visible in UI |
+| V2.1.S5 | Legacy C6 read-only vertical slice | Planned | bundle inspector in UI (manifest/parity/evidence) |
 
-### Iteration V2.2 - Functional Expansion Across All Capabilities
+### Iteration V2.2 - Evaluation Fabric Expansion (Backend-heavy)
 
 | Slice | Description | Status | Output |
 |---|---|---|---|
-| V2.2.S1 | C3 vertical slice | Planned | profile runner UI with target switch (`dsl/native`) |
-| V2.2.S2 | C5 vertical slice | Planned | comparative/diagnostic panels in UI |
-| V2.2.S3 | C6 action slice | Planned | export trigger + native-first run instruction path |
+| V2.2.S1 | Evaluator adapters foundation | Planned | profile runner + pluggable evaluators (`golden`/`llm_judge`/`executable`/`render`) |
+| V2.2.S2 | Comparative vs diagnostics UI surfacing | Planned | comparative/diagnostic panels in UI |
+| V2.2.S3 | Champion export/import loop surface | Planned | export trigger + native import entry + re-benchmark hook |
 | V2.2.S4 | Unified budget controls | Planned | smoke/decision/full presets across run surfaces |
-| V2.2.S5 | One-click end-to-end demo path | Planned | C1->C6 guided demo scenario with deterministic checks |
+| V2.2.S5 | One-click end-to-end demo path | Planned | guided scenario with deterministic checks and saved artifacts |
+
+### Iteration V2.3 - Product Realignment Vertical Slices (Primary)
+
+| Slice | Description | Status | Output |
+|---|---|---|---|
+| V2.3.S1 | C1 Workspace & Project Registry vertical slice | Planned | workspace list/create/open + project list/create/open + FE/BE/e2e |
+| V2.3.S2 | C2 Project Chat brief-to-candidates v0 | Planned | task brief chat + AI proposal + candidate-set draft |
+| V2.3.S3 | C3 Pattern Library + RAG controls v0 | Planned | pattern browse/search + include/exclude + retrieval trace |
+| V2.3.S4 | Candidate assembly + internal compile readiness | Planned | candidate graph build + compile/validate gate + ready status |
+| V2.3.S5 | C4 Dataset Studio v0 | Planned | upload/manual/synthetic/clean/check flows + versioned dataset artifacts |
+| V2.3.S6 | C4 Metrics & Evaluators Studio v0 | Planned | configurable comparative/diagnostic metrics + evaluator method selection |
+| V2.3.S7 | C5 Optimizer setup + budget/epoch controls | Planned | optimization method settings + budget limits + launch guardrails |
+| V2.3.S8 | C5 Run Monitor + version manifest timeline | Planned | progress/epochs/events/trace drilldown + run manifest visibility |
+| V2.3.S9 | C6 Report + Champion export/import loop | Planned | final report view + champion export + native import + re-benchmark trigger |
 
 ### Iteration I5 - Evaluation Fabric & MetricOps
 

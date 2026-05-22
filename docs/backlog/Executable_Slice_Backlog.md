@@ -15,8 +15,8 @@
 
 ## Active Window (Now)
 
-- `Current Focus`: MVP-2 vertical product delivery bootstrap (`Roadmap v2`)
-- `Active Next Slice`: V2.1.S2
+- `Current Focus`: MVP-2 product realignment vertical delivery (`Roadmap v3`)
+- `Active Next Slice`: V2.3.S1
 
 ## Active Capability Board
 
@@ -24,26 +24,26 @@
 
 Дополнительный обязательный gate для всех `FE` статусов: соответствие `design_system`.
 
-1. `C1` DSL/IR Studio
-2. `C2` Runtime Run
-3. `C3` Evaluation Profile Runner
-4. `C4` Arena Ranking
-5. `C5` Evidence & Diagnostics
-6. `C6` Champion Bundle
+1. `C1` Workspace & Project Registry
+2. `C2` Task Chat + Candidate Generation
+3. `C3` Pattern Library + RAG Retrieval
+4. `C4` Dataset & Metrics Studio
+5. `C5` Optimizer Run Monitor
+6. `C6` Report + Champion Export/Import
 
 ## Near-Term Vertical Iterations (V2)
 
-### V2.1 - Product Skeleton Across All Capabilities
+### V2.1 - Legacy Capability Shell Foundation
 
 - Status: In Progress
-- Goal: дать проверяемые frontend surfaces по C1-C6 и связать их с backend контрактами.
+- Goal: сохранить уже сделанный legacy capability shell как технический фундамент.
 - Design constraint: каждый UI-инкремент реализуется на токенах и паттернах `design_system`.
 - Slices:
-  1. `V2.1.S1` UI shell + API contract skeleton for C1-C6. (`Done`)
-  2. `V2.1.S2` C1 vertical slice (`validate/compile` + UI compile-report).
-  3. `V2.1.S3` C2 vertical slice (`run/trace` + UI trace explorer).
-  4. `V2.1.S4` C4 vertical slice (smoke arena ranking in UI).
-  5. `V2.1.S5` C6 read-only slice (bundle inspector UI).
+  1. `V2.1.S1` legacy shell + API skeleton. (`Done`)
+  2. `V2.1.S2` legacy DSL validate/compile slice. (`Done`)
+  3. `V2.1.S3` legacy run/trace slice.
+  4. `V2.1.S4` legacy arena ranking slice.
+  5. `V2.1.S5` legacy bundle inspector slice.
 
 - Progress (2026-05-22):
   1. Добавлен `frontend/` capability shell с вкладками C1..C6 и состояниями `idle/loading/success/error`.
@@ -51,17 +51,33 @@
   3. Добавлены stub-endpoints `GET /api/c2..c6/sample` для сквозной UI-проверки.
   4. Добавлены unit/integration/e2e проверки frontend shell + smoke-скрипт `scripts/smoke_frontend_shell.ps1`.
 
-### V2.2 - Functional Expansion Across All Capabilities
+### V2.2 - Evaluation Fabric Expansion
 
 - Status: Planned
-- Goal: расширить функциональность вширь по всем capability с сохранением вертикального DoD.
+- Goal: расширить configurable evaluation fabric и связать ее с UI без ухода в ad-hoc.
 - Design constraint: расширения UI допускаются только в рамках `design_system` visual/content rules.
 - Slices:
-  1. `V2.2.S1` C3 profile runner UI (`dsl/native` target switch).
-  2. `V2.2.S2` C5 comparative/diagnostic UI panels.
-  3. `V2.2.S3` C6 export action + native-first execution path.
+  1. `V2.2.S1` evaluator adapters (`golden`/`llm_judge`/`executable`/`render`).
+  2. `V2.2.S2` comparative/diagnostic UI panels.
+  3. `V2.2.S3` export/import loop entry points.
   4. `V2.2.S4` unified budget presets (`smoke/decision/full`) across run surfaces.
-  5. `V2.2.S5` one-click end-to-end demo scenario `C1 -> C6`.
+  5. `V2.2.S5` one-click end-to-end demo scenario with saved artifacts.
+
+### V2.3 - Product Realignment Vertical Slices (Primary)
+
+- Status: Planned
+- Goal: выстроить пользовательский flow по ТЗ (workspace -> chat -> candidates -> dataset/metrics -> run -> report -> champion -> import loop).
+- Design constraint: каждый слайс обязателен как `BE + FE + Demo + QA` и проверяется в UI.
+- Slices:
+  1. `V2.3.S1` C1 workspace/project registry.
+  2. `V2.3.S2` C2 project chat brief-to-candidates v0.
+  3. `V2.3.S3` C3 pattern library + RAG include/exclude controls.
+  4. `V2.3.S4` candidate assembly + internal compile readiness gate.
+  5. `V2.3.S5` C4 dataset studio v0.
+  6. `V2.3.S6` C4 metrics/evaluators studio v0.
+  7. `V2.3.S7` C5 optimizer setup + budget/epoch controls.
+  8. `V2.3.S8` C5 run monitor + version manifest timeline.
+  9. `V2.3.S9` C6 report + champion export/import loop.
 
 ---
 

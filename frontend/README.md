@@ -30,6 +30,33 @@ npm run dev
 http://127.0.0.1:5173/
 ```
 
+Важно для раздельного запуска:
+
+1. Vite dev server (`5173`) проксирует `/api/*` на Python backend `http://127.0.0.1:4173`.
+2. Vite также проксирует `/design_system/*` на Python backend, чтобы фронт видел токены и ассеты дизайн-системы.
+3. Прокси настроен в [vite.config.ts](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/frontend/vite.config.ts).
+
+### Раздельный запуск (2 терминала)
+
+Терминал 1 (backend):
+
+```powershell
+python -m optimizer.frontend.dev_server --host 127.0.0.1 --port 4173
+```
+
+Терминал 2 (frontend):
+
+```powershell
+cd .\frontend
+npm run dev
+```
+
+Открыть фронт:
+
+```text
+http://127.0.0.1:5173/
+```
+
 ## Сборка для Python dev server
 
 Собрать фронтенд:

@@ -1,11 +1,27 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: РєРѕРЅС„РёРіСѓСЂР°С†РёСЏ Vite РґР»СЏ СЃР±РѕСЂРєРё React/TS С„СЂРѕРЅС‚РµРЅРґР° РІ СЃС‚Р°С‚РёС‡РµСЃРєРёР№ РєР°С‚Р°Р»РѕРі, РєРѕС‚РѕСЂС‹Р№ РѕС‚РґР°РµС‚ Python dev server.
+// Русский комментарий: Vite-конфиг для React/TS фронтенда с проксированием API и design_system к Python backend.
 export default defineConfig({
   plugins: [react()],
+  server: {
+    host: "127.0.0.1",
+    port: 5173,
+    proxy: {
+      // Русский комментарий: все backend API вызовы из фронта на dev-сервере идут через Python backend.
+      "/api": {
+        target: "http://127.0.0.1:4173",
+        changeOrigin: true,
+      },
+      // Русский комментарий: design_system ассеты берем с Python backend, чтобы UI в dev совпадал с runtime.
+      "/design_system": {
+        target: "http://127.0.0.1:4173",
+        changeOrigin: true,
+      },
+    },
+  },
   build: {
     outDir: "dist",
-    emptyOutDir: true
-  }
+    emptyOutDir: true,
+  },
 });

@@ -4,10 +4,10 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 
 ## Current Status
 
-- `Phase`: MVP-2 transition (evaluation fabric bootstrap)
-- `Iteration`: Roadmap v2 - vertical product slices
-- `Overall`: In Progress (I1.S1-I5.S2a + I4.S8 + V2.1.S3a done)
-- `Next Slice`: V2.1.S3 C2 vertical slice
+- `Phase`: MVP-2 transition (product realignment + evaluation fabric)
+- `Iteration`: Roadmap v3 - vertical product slices
+- `Overall`: In Progress (foundation complete, product capabilities C1-C6 in rollout)
+- `Next Slice`: V2.3.S1 Workspace & Project Registry vertical slice
 
 РџРѕРґСЂРѕР±РЅС‹Р№ СЃС‚Р°С‚СѓСЃ:
 
@@ -47,16 +47,16 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 7. Любой фронтовый PR/слайс должен явно подтвердить соответствие `design_system` в описании изменений.
 8. Для layout и user flow ориентируемся на North Star экран [app-v3.png](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/design_system/screenshots/app-v3.png) (левый workspace-nav, центральный run-workbench, правый intervention rail).
 
-## Capability Board (Roadmap v2)
+## Capability Board (Roadmap v3)
 
 Статус ведем по каждой capability в четырех осях: `BE / FE / Demo / QA`.
 
-1. `C1` DSL/IR Studio
-2. `C2` Runtime Run
-3. `C3` Evaluation Profile Runner
-4. `C4` Arena Ranking
-5. `C5` Evidence & Diagnostics
-6. `C6` Champion Bundle
+1. `C1` Workspace & Project Registry
+2. `C2` Task Chat + Candidate Generation
+3. `C3` Pattern Library + RAG Retrieval
+4. `C4` Dataset & Metrics Studio
+5. `C5` Optimizer Run Monitor
+6. `C6` Report + Champion Export/Import
 
 ## Repository Map
 
@@ -81,9 +81,8 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 - `optimizer/metrics` - middle-РјРµС‚СЂРёРєРё Рё СЃР»СѓР¶РµР±РЅС‹Рµ Р°РіСЂРµРіР°С‚РѕСЂС‹ РґР»СЏ arena scoring.
 - `optimizer/evidence` - РіРµРЅРµСЂР°С†РёСЏ Evidence Pack (`comparison` + `diagnostics` + explainable diff).
 - `optimizer/champion` - export Champion Bundle (`diagnostic_map`, `winner_graph_ir`, `generated_agent`, `manifest`).
-- `frontend` (planned in Roadmap v2) - capability-oriented UI surfaces C1..C6 for runtime/evaluation/arena/evidence/champion flows.
-- `frontend` - app-v3-aligned capability workbench on React/TypeScript (V2.1.S3a): C1 real flow + C2..C6 planned surfaces.
-- `optimizer/frontend/dev_server.py` - lightweight frontend dev server (serves `frontend/dist` build + capability API + real C1 validate/compile endpoint).
+- `frontend` - app-v3-aligned React/TypeScript workbench, evolving toward product capabilities C1..C6 (workspace/chat/patterns/datasets/runs/champion).
+- `optimizer/frontend/dev_server.py` - lightweight frontend dev server (serves `frontend/dist` build + capability API endpoints).
 - `components` - deterministic demo-РєРѕРјРїРѕРЅРµРЅС‚С‹ РґР»СЏ РїР°Р№РїР»Р°Р№РЅРѕРІ (РІРєР»СЋС‡Р°СЏ AI-pattern РёРЅСЃС‚СЂСѓРјРµРЅС‚С‹).
 - `validators` - python-РІР°Р»РёРґР°С‚РѕСЂС‹ demo-СЃС†РµРЅР°СЂРёРµРІ (РІРєР»СЋС‡Р°СЏ style output guard).
 - `docs/specs/Evaluation_Profile_v0.md` - РєРѕРЅС†РµРїС‚ profile-driven РѕС†РµРЅРєРё (task-specific metrics + pluggable evaluators).
@@ -433,6 +432,33 @@ python -m optimizer.frontend.dev_server --host 127.0.0.1 --port 4173
 ```text
 http://127.0.0.1:4173/
 ```
+
+Раздельный запуск frontend и backend:
+
+1. Backend (терминал 1):
+
+```powershell
+python -m optimizer.frontend.dev_server --host 127.0.0.1 --port 4173
+```
+
+2. Frontend Vite dev server (терминал 2):
+
+```powershell
+cd .\frontend
+npm run dev
+```
+
+3. Открыть frontend:
+
+```text
+http://127.0.0.1:5173/
+```
+
+Как работает `/api` в раздельном режиме:
+
+1. Фронт на `5173` обращается к относительным URL вида `/api/...`.
+2. Vite proxy перенаправляет эти запросы на Python backend `http://127.0.0.1:4173`.
+3. Также через proxy идет `/design_system/*`, поэтому токены и ассеты дизайн-системы корректно доступны в dev.
 
 Smoke-прогон frontend shell:
 

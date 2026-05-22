@@ -74,14 +74,17 @@ Browser (React/TS SPA)
 
 ## Application Information Architecture
 
-Основные разделы (стабильный каркас):
+Основные продуктовые разделы (стабильный каркас):
 
-1. `Workbench`
-2. `Arena`
-3. `Evaluation`
-4. `Champion`
-5. `Diagnostics`
-6. `Settings`
+1. `Workspaces`
+2. `Project Chat`
+3. `Candidates`
+4. `Datasets`
+5. `Metrics & Evaluators`
+6. `Optimizer Runs`
+7. `Reports`
+8. `Champion`
+9. `Settings`
 
 Каждый раздел имеет:
 
@@ -91,22 +94,39 @@ Browser (React/TS SPA)
 
 ## Core User Flow (v0 target)
 
-1. Пользователь выбирает сценарий и профиль оценки.
-2. Запускает run (CI/local/live budget-aware).
-3. Видит прогресс, промежуточные сигналы, итоговый ranking.
-4. Открывает детальные diagnostics (где и почему деградация/улучшение).
-5. Экспортирует champion bundle и проверяет parity/native.
+Центральный flow для пользователя:
+
+1. Пользователь создает `Workspace` и открывает проект.
+2. В `Project Chat` формулирует задачу естественным языком.
+3. ИИ предлагает кандидатов на базе pattern library + ограничений пользователя.
+4. Пользователь подтверждает/исключает паттерны, получает набор candidate-агентов.
+5. Система внутренне валидирует/компилирует кандидатов (без ручной DSL-работы).
+6. Пользователь формирует dataset (ручной ввод/загрузка/ИИ-синтез/очистка).
+7. Пользователь настраивает метрики/evaluators и optimizer policy.
+8. Запускает оптимизацию, наблюдает прогресс/логи/метрики в глубину.
+9. Получает аналитический отчет, выбирает winner.
+10. Экспортирует champion в native.
+11. Опционально импортирует измененный native agent обратно и повторяет цикл оценки.
 
 ## Capability Contract Model
 
 `/api/capabilities` возвращает каталог функций, которым управляется доступность UI:
 
-1. `id` (`c1_validate_compile`, `c2_arena_run`, ...);
+1. `id`;
 2. `title`;
 3. `status` (`enabled|planned|beta|disabled`);
 4. `routes`;
 5. `required_backends`;
 6. `notes`.
+
+Product capability map (новая целевая модель):
+
+1. `C1` Workspace & Project Registry
+2. `C2` Task Chat + Candidate Generation
+3. `C3` Pattern Library + RAG Retrieval
+4. `C4` Dataset & Metrics Studio
+5. `C5` Optimizer Run Monitor
+6. `C6` Report + Champion Export/Import
 
 Frontend не "угадывает" готовность, а читает capability-манифест от backend.
 
@@ -134,20 +154,26 @@ Frontend не "угадывает" готовность, а читает capabil
 
 Разделение состояния:
 
-1. `Server state`: TanStack Query (`runs`, `reports`, `trace`, `capabilities`).
-2. `Session/UI state`: выбранные фильтры, активные вкладки, layout-настройки.
-3. `Run state machine`: `idle -> validating -> running -> aggregating -> completed|failed`.
+1. `Server state`: TanStack Query (`workspaces`, `projects`, `candidates`, `datasets`, `runs`, `reports`, `capabilities`).
+2. `Session/UI state`: выбранный workspace/project, активные панели, фильтры, layout.
+3. `Project state machine`: `draft -> candidate_design -> candidate_ready -> dataset_ready -> run_ready -> running -> analyzed -> champion_selected`.
 
-Ключевая сущность UI: `RunEnvelope`.
+Ключевые сущности UI:
+
+1. `WorkspaceEnvelope`
+2. `ProjectEnvelope`
+3. `CandidateSetEnvelope`
+4. `RunEnvelope`
 
 `RunEnvelope` минимум содержит:
 
 1. `run_id`;
-2. `target` (`dsl_runtime|native_runtime`);
-3. `status`;
-4. `comparative_metrics`;
-5. `diagnostic_signals`;
-6. `artifacts`.
+2. `project_id`;
+3. `versions_manifest` (agents/datasets/metrics/evaluators/prompts/tools/settings);
+4. `status`;
+5. `comparative_metrics`;
+6. `diagnostic_signals`;
+7. `artifacts`.
 
 ## API Contract Strategy
 
@@ -156,11 +182,14 @@ Frontend не "угадывает" готовность, а читает capabil
 Минимальные контракты:
 
 1. health/capabilities;
-2. validate+compile DSL;
-3. arena run;
-4. evaluation profile run;
-5. evidence/champion artifacts metadata;
-6. native parity/preflight results.
+2. workspace/project CRUD;
+3. chat task brief + candidate generation session;
+4. pattern library retrieval & selection/exclusion;
+5. internal candidate validate/compile readiness;
+6. dataset/metrics/evaluator configuration;
+7. optimizer run orchestration & monitoring;
+8. evidence/champion artifacts metadata;
+9. native import/export + compatibility/preflight results.
 
 Любое изменение backend-формата:
 
@@ -244,6 +273,29 @@ Frontend развивается вертикально, синхронно с ba
 1. в каждом слайсе фиксируется, какие capability стали `enabled`;
 2. UI для остальных capability остается видимым (`planned`);
 3. Roadmap обновляется по модели `BE + FE + Demo + QA` в одном слайсе.
+
+## Missing Elements (Gap Analysis)
+
+Ключевые пробелы относительно целевого продукта:
+
+1. `FE` отсутствует экран `Workspaces` и вход в проект.
+2. `FE` отсутствует основной `Project Chat` как точка постановки задачи.
+3. `FE` отсутствует библиотека паттернов с include/exclude UX.
+4. `FE` отсутствуют `Dataset Studio` и `Metrics Studio`.
+5. `FE` отсутствует продуктовый run-monitor с версиями сущностей и эпохами.
+6. `FE` отсутствует путь native `import` (есть export/read-only артефакты).
+7. `BE` отсутствуют workspace/project сущности и API.
+8. `BE` отсутствует chat-orchestrator для candidate generation.
+9. `BE` отсутствует pattern library service + RAG index/query API.
+10. `BE` отсутствует unified version-manifest service для runs.
+11. `BE` отсутствует native import pipeline с compatibility/preflight по коду.
+
+Приоритет закрытия gap:
+
+1. сначала `Workspaces + Project Chat + Candidate lifecycle`;
+2. затем `Dataset/Metrics/Optimizer setup`;
+3. затем `Run monitor/report/champion`;
+4. затем `native import` как замыкание пост-экспортного цикла.
 
 ## Definition of Done for Frontend Slice
 
