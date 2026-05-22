@@ -16,7 +16,7 @@
 ## Active Window (Now)
 
 - `Current Focus`: MVP-2 product realignment vertical delivery (`Roadmap v3`)
-- `Active Next Slice`: V2.3.S2
+- `Active Next Slice`: V2.3.S1a
 
 ## Active Capability Board
 
@@ -70,14 +70,15 @@
 - Design constraint: каждый слайс обязателен как `BE + FE + Demo + QA` и проверяется в UI.
 - Slices:
   1. `V2.3.S1` C1 workspace/project registry. (`Done`)
-  2. `V2.3.S2` C2 project chat brief-to-candidates v0.
-  3. `V2.3.S3` C3 pattern library + RAG include/exclude controls.
-  4. `V2.3.S4` candidate assembly + internal compile readiness gate.
-  5. `V2.3.S5` C4 dataset studio v0.
-  6. `V2.3.S6` C4 metrics/evaluators studio v0.
-  7. `V2.3.S7` C5 optimizer setup + budget/epoch controls.
-  8. `V2.3.S8` C5 run monitor + version manifest timeline.
-  9. `V2.3.S9` C6 report + champion export/import loop.
+  2. `V2.3.S1a` SaaS IA split (Projects Hub vs Project Workspace).
+  3. `V2.3.S2` C2 project chat brief-to-candidates v0.
+  4. `V2.3.S3` C3 pattern library + RAG include/exclude controls.
+  5. `V2.3.S4` candidate assembly + internal compile readiness gate.
+  6. `V2.3.S5` C4 dataset studio v0.
+  7. `V2.3.S6` C4 metrics/evaluators studio v0.
+  8. `V2.3.S7` C5 optimizer setup + budget/epoch controls.
+  9. `V2.3.S8` C5 run monitor + version manifest timeline.
+  10. `V2.3.S9` C6 report + champion export/import loop.
 
 ---
 

@@ -7,7 +7,7 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 - `Phase`: MVP-2 transition (product realignment + evaluation fabric)
 - `Iteration`: Roadmap v3 - vertical product slices
 - `Overall`: In Progress (V2.3.S1 done, product capabilities C1-C6 in rollout)
-- `Next Slice`: V2.3.S2 Task Chat + Candidate Generation vertical slice
+- `Next Slice`: V2.3.S1a SaaS IA split (Projects Hub vs Project Workspace)
 
 РџРѕРґСЂРѕР±РЅС‹Р№ СЃС‚Р°С‚СѓСЃ:
 

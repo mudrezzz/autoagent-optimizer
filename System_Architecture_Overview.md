@@ -20,8 +20,8 @@
 ## High-Level Layers
 
 ```text
-Input (Workspace + Project + Task Brief + Constraints + Data + Budget)
-  -> Product Experience Layer (Workspace UI / Project Chat / Run Workbench)
+Input (Tenant + User + Project + Task Brief + Constraints + Data + Budget)
+  -> Product Experience Layer (Projects Hub / Project Workspace)
   -> Copilot Orchestrator (task-to-candidates loop)
   -> Pattern Library + RAG Retrieval
   -> Architecture Generator
@@ -39,7 +39,7 @@ Input (Workspace + Project + Task Brief + Constraints + Data + Budget)
 ## Current Target Architecture (MVP-2 transition)
 
 1. `Workspace/Project Layer`
-   - Workspace registry и проектный контекст.
+   - Tenant-scoped project registry и проектный контекст.
    - Версионируемые сущности проекта (agents/datasets/metrics/prompts/tools/settings).
 2. `Copilot Layer`
    - Chat-first постановка задачи.
@@ -80,11 +80,11 @@ Input (Workspace + Project + Task Brief + Constraints + Data + Budget)
    - native import path for re-benchmark after external code changes.
    - post-export benchmark loop (native artifact re-evaluation + regression gates).
 11. `Product Experience Layer`
-   - capability-oriented frontend surfaces (workspace/chat/candidates/datasets/metrics/runs/champion).
+   - capability-oriented frontend surfaces (projects-hub + project-workspace).
    - unified scenario runner for demo/validation.
    - explicit mapping `backend capability -> user-visible control -> e2e assertion`.
    - strict `design_system` compliance (tokens, typography, iconography, UI kits, voice).
-   - UX composition aligned with North Star screen (`app-v3`): workspace nav, run workbench center, intervention rail.
+   - UX composition rule: `Projects Hub` без правого rail; `Project Workspace` по North Star (`app-v3`).
 
 ## External Dependency Strategy
 
@@ -120,19 +120,21 @@ Input (Workspace + Project + Task Brief + Constraints + Data + Budget)
 
 Фронтенд-пустоты:
 
-1. отсутствует `Project Chat` как основной вход постановки задачи;
-2. отсутствует pattern library browser с include/exclude controls;
-3. отсутствует dataset/metrics/evaluator studio;
-4. отсутствует run-monitor по эпохам и version-manifest;
-5. отсутствует native import UX path.
+1. отсутствует корректное разделение `Projects Hub` и `Project Workspace`;
+2. отсутствует `Project Chat` как основной вход постановки задачи;
+3. отсутствует pattern library browser с include/exclude controls;
+4. отсутствует dataset/metrics/evaluator studio;
+5. отсутствует run-monitor по эпохам и version-manifest;
+6. отсутствует native import UX path.
 
 Бэкенд-пустоты:
 
-1. отсутствует copilot orchestrator (task brief -> candidate set);
-2. отсутствует pattern library RAG service;
-3. отсутствует unified version-manifest service;
-4. отсутствует dataset synthesis/cleaning assistant pipeline;
-5. отсутствует native import parser + compatibility pipeline.
+1. отсутствует tenant/user access enforcement для project API;
+2. отсутствует copilot orchestrator (task brief -> candidate set);
+3. отсутствует pattern library RAG service;
+4. отсутствует unified version-manifest service;
+5. отсутствует dataset synthesis/cleaning assistant pipeline;
+6. отсутствует native import parser + compatibility pipeline.
 
 ## Implementation Status Snapshot
 
@@ -185,7 +187,7 @@ Input (Workspace + Project + Task Brief + Constraints + Data + Budget)
    - `optimizer.workspace` (JSON-backed workspace/project registry store for product C1 flow),
    - `optimizer.frontend.dev_server` + `frontend/` (V2.3.S1 C1 vertical slice: workspace/project API + app-v3-aligned UI + unit/integration/e2e smoke coverage; C2..C6 planned surfaces).
 2. Next:
-   - Vertical product delivery track (`V2.3.*`) starting from C2 chat/candidate flow and subsequent capability unlocks.
+   - Vertical product delivery track (`V2.3.*`) starts with SaaS IA split (`V2.3.S1a`) before C2 chat/candidate flow.
    - Evaluation Fabric & MetricOps (`I5.*`) including evaluator adapter layer and post-export native evaluation loop.
 
 ## Decision Records

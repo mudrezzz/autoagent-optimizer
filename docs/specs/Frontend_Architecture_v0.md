@@ -43,12 +43,11 @@
 
 Обязательные принципы композиции:
 
-1. трехколоночная структура: `левый workspace-nav` -> `центральная рабочая зона` -> `правый intervention rail`;
-2. run-centric header с breadcrumb, статусом версии, бюджетом и основными действиями;
-3. центральный контур "сверху вниз": KPI strip -> architecture table -> white-box trace;
-4. правый rail как operational decision panel: bottleneck, interventions, export;
-5. важные действия (`compare`, `promote champion`, `apply intervention`, `export`) всегда остаются в зоне первого экрана;
-6. новые capability встраиваются в эту композицию, а не ломают ее.
+1. Для `Project Workspace` сохраняется app-v3 композиция как North Star.
+2. Для `Projects Hub` используется упрощенная композиция без правого rail.
+3. run-centric header, KPI и intervention rail относятся только к `Project Workspace`.
+4. Важные действия проекта (`compare`, `promote champion`, `apply intervention`, `export`) живут в `Project Workspace`.
+5. Новые capability встраиваются в композицию `Project Workspace`, а не в `Projects Hub`.
 
 Это не "пиксель-перфект копия", а обязательная продуктовая рамка UX-структуры.
 
@@ -74,17 +73,27 @@ Browser (React/TS SPA)
 
 ## Application Information Architecture
 
-Основные продуктовые разделы (стабильный каркас):
+Ключевая SaaS-оговорка:
 
-1. `Workspaces`
-2. `Project Chat`
-3. `Candidates`
-4. `Datasets`
-5. `Metrics & Evaluators`
-6. `Optimizer Runs`
-7. `Reports`
-8. `Champion`
-9. `Settings`
+1. В пользовательском UX `Workspace = Project`.
+2. Пользователь сначала попадает на отдельный список своих проектов.
+3. Внутри конкретного проекта открывается отдельный рабочий экран проекта.
+
+Основные экраны:
+
+1. `Projects Hub` (только список проектов клиента + создание проекта).
+2. `Project Workspace` (чат, кандидаты, датасеты, метрики, раны, отчеты, champion).
+3. `Settings`.
+
+Разделы внутри `Project Workspace`:
+
+1. `Project Chat`
+2. `Candidates`
+3. `Datasets`
+4. `Metrics & Evaluators`
+5. `Optimizer Runs`
+6. `Reports`
+7. `Champion`
 
 Каждый раздел имеет:
 
@@ -96,17 +105,37 @@ Browser (React/TS SPA)
 
 Центральный flow для пользователя:
 
-1. Пользователь создает `Workspace` и открывает проект.
-2. В `Project Chat` формулирует задачу естественным языком.
-3. ИИ предлагает кандидатов на базе pattern library + ограничений пользователя.
-4. Пользователь подтверждает/исключает паттерны, получает набор candidate-агентов.
-5. Система внутренне валидирует/компилирует кандидатов (без ручной DSL-работы).
-6. Пользователь формирует dataset (ручной ввод/загрузка/ИИ-синтез/очистка).
-7. Пользователь настраивает метрики/evaluators и optimizer policy.
-8. Запускает оптимизацию, наблюдает прогресс/логи/метрики в глубину.
-9. Получает аналитический отчет, выбирает winner.
-10. Экспортирует champion в native.
-11. Опционально импортирует измененный native agent обратно и повторяет цикл оценки.
+1. Пользователь открывает `Projects Hub` и видит только свои проекты.
+2. Создает новый проект (workspace) или открывает существующий.
+3. Переходит в отдельный `Project Workspace`.
+4. В `Project Chat` формулирует задачу естественным языком.
+5. ИИ предлагает кандидатов на базе pattern library + ограничений пользователя.
+6. Пользователь подтверждает/исключает паттерны, получает набор candidate-агентов.
+7. Система внутренне валидирует/компилирует кандидатов (без ручной DSL-работы).
+8. Пользователь формирует dataset (ручной ввод/загрузка/ИИ-синтез/очистка).
+9. Пользователь настраивает метрики/evaluators и optimizer policy.
+10. Запускает оптимизацию, наблюдает прогресс/логи/метрики в глубину.
+11. Получает аналитический отчет, выбирает winner.
+12. Экспортирует champion в native.
+13. Опционально импортирует измененный native agent обратно и повторяет цикл оценки.
+
+## Layout Rules (SaaS)
+
+Обязательные правила компоновки:
+
+1. На `Projects Hub` нет правого operational rail.
+2. Левый каркас (navigation/settings zone) не уезжает при прокрутке.
+3. Нижний блок профиля/настроек всегда прибит к низу viewport.
+4. Прокрутка должна происходить в контентной области, а не во всем app-shell.
+5. Capability-меню C2..C6 не показывается на `Projects Hub`; оно живет в `Project Workspace`.
+
+## Multi-User and Tenant Scope
+
+Frontend изначально проектируется как multi-tenant SaaS:
+
+1. Любой список проектов отображает только tenant-scoped данные пользователя.
+2. Активный контекст в UI: `tenant -> project`.
+3. Доступ к проекту по id всегда подтверждается backend (нельзя доверять только frontend state).
 
 ## Capability Contract Model
 
@@ -182,7 +211,7 @@ Frontend не "угадывает" готовность, а читает capabil
 Минимальные контракты:
 
 1. health/capabilities;
-2. workspace/project CRUD;
+2. tenant-scoped projects CRUD/list;
 3. chat task brief + candidate generation session;
 4. pattern library retrieval & selection/exclusion;
 5. internal candidate validate/compile readiness;
@@ -278,17 +307,18 @@ Frontend развивается вертикально, синхронно с ba
 
 Ключевые пробелы относительно целевого продукта:
 
-1. `FE` отсутствует экран `Workspaces` и вход в проект.
+1. `FE` отсутствует корректное разделение `Projects Hub` и `Project Workspace`.
 2. `FE` отсутствует основной `Project Chat` как точка постановки задачи.
 3. `FE` отсутствует библиотека паттернов с include/exclude UX.
 4. `FE` отсутствуют `Dataset Studio` и `Metrics Studio`.
 5. `FE` отсутствует продуктовый run-monitor с версиями сущностей и эпохами.
 6. `FE` отсутствует путь native `import` (есть export/read-only артефакты).
-7. `BE` отсутствуют workspace/project сущности и API.
-8. `BE` отсутствует chat-orchestrator для candidate generation.
-9. `BE` отсутствует pattern library service + RAG index/query API.
-10. `BE` отсутствует unified version-manifest service для runs.
-11. `BE` отсутствует native import pipeline с compatibility/preflight по коду.
+7. `FE` не зафиксированы sticky правила app-shell для SaaS-навигации.
+8. `BE` отсутствует tenant/user-bound access enforcement для project API.
+9. `BE` отсутствует chat-orchestrator для candidate generation.
+10. `BE` отсутствует pattern library service + RAG index/query API.
+11. `BE` отсутствует unified version-manifest service для runs.
+12. `BE` отсутствует native import pipeline с compatibility/preflight по коду.
 
 Приоритет закрытия gap:
 
