@@ -15,8 +15,8 @@ export type CapabilityCatalogResponse = {
   capabilities: Capability[];
 };
 
-// Русский комментарий: тип записи workspace в C1 API.
-export type WorkspaceRecord = {
+// Русский комментарий: тип записи battle-арены в C1 API.
+export type ArenaRecord = {
   workspace_id: string;
   name: string;
   description: string;
@@ -25,102 +25,29 @@ export type WorkspaceRecord = {
   owner_user_id: string;
 };
 
-// Русский комментарий: тип записи project в C1 API.
-export type ProjectRecord = {
-  project_id: string;
-  workspace_id: string;
-  name: string;
-  description: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  tenant_id: string;
-  owner_user_id: string;
-};
-
-// Русский комментарий: ответ списка workspace.
-export type WorkspacesListResponse = {
+// Русский комментарий: ответ списка арен.
+export type ArenasListResponse = {
   status: "success";
-  workspaces: WorkspaceRecord[];
+  arenas: ArenaRecord[];
   total: number;
 };
 
-// Русский комментарий: ответ создания workspace.
-export type WorkspaceCreateResponse = {
+// Русский комментарий: ответ создания/обновления/дублирования арены.
+export type ArenaMutationResponse = {
   status: "success";
-  workspace: WorkspaceRecord;
+  arena: ArenaRecord;
 };
 
-// Русский комментарий: ответ обновления workspace.
-export type WorkspaceUpdateResponse = {
+// Русский комментарий: ответ удаления арены.
+export type ArenaDeleteResponse = {
   status: "success";
-  workspace: WorkspaceRecord;
+  arena_id: string;
 };
 
-// Русский комментарий: ответ удаления workspace.
-export type WorkspaceDeleteResponse = {
+// Русский комментарий: ответ получения арены по id.
+export type ArenaGetResponse = {
   status: "success";
-  workspace_id: string;
-};
-
-// Русский комментарий: ответ списка project в workspace.
-export type ProjectsListResponse = {
-  status: "success";
-  workspace_id: string;
-  projects: ProjectRecord[];
-  total: number;
-};
-
-// Русский комментарий: ответ создания project.
-export type ProjectCreateResponse = {
-  status: "success";
-  project: ProjectRecord;
-};
-
-// Русский комментарий: ответ получения project по id.
-export type ProjectGetResponse = {
-  status: "success";
-  project: ProjectRecord;
-};
-
-// Русский комментарий: тип issue в compile report legacy debug endpoint.
-export type CompileIssue = {
-  severity: "warning" | "error" | string;
-  message: string;
-};
-
-// Русский комментарий: тип compile summary для legacy debug endpoint.
-export type CompileSummary = {
-  status: string;
-  source: string;
-  node_mappings: number;
-  warnings: number;
-  errors: number;
-};
-
-// Русский комментарий: тип graph IR summary для legacy debug endpoint.
-export type GraphIrSummary = {
-  available: boolean;
-  entry_node?: string;
-  nodes_total?: number;
-  edges_total?: number;
-  terminal_nodes?: string[];
-};
-
-// Русский комментарий: тип ответа успешного C1 legacy вызова.
-export type C1SuccessPayload = {
-  status: "success";
-  capability_id: "c1";
-  dsl_file: string;
-  dsl_summary: Record<string, unknown>;
-  compile_summary: CompileSummary;
-  compile_report: {
-    status: string;
-    source: string;
-    node_mappings: Array<Record<string, unknown>>;
-    issues: CompileIssue[];
-  };
-  graph_ir_summary: GraphIrSummary;
+  arena: ArenaRecord;
 };
 
 // Русский комментарий: тип error payload от backend.
@@ -166,17 +93,17 @@ export type C2CandidateSetDraft = {
   source: string;
   task_brief: string;
   generation_mode: string;
-  project_id: string;
+  arena_id: string;
   candidates: C2CandidateDraftItem[];
   total: number;
 };
 
-// Русский комментарий: ответ чтения текущего C2 chat state для проекта.
+// Русский комментарий: ответ чтения текущего C2 chat state для арены.
 export type C2ChatStateResponse = {
   status: "success";
   capability_id: "c2";
-  project_id: string;
-  project_name: string;
+  arena_id: string;
+  arena_name: string;
   messages: C2ChatMessage[];
   messages_total: number;
   candidate_set_draft: C2CandidateSetDraft | null;
@@ -186,10 +113,50 @@ export type C2ChatStateResponse = {
 export type C2ChatPostMessageResponse = {
   status: "success";
   capability_id: "c2";
-  project_id: string;
+  arena_id: string;
   message: C2ChatMessage;
   assistant_message: C2ChatMessage | null;
   messages: C2ChatMessage[];
   messages_total: number;
   candidate_set_draft: C2CandidateSetDraft | null;
+};
+
+// Русский комментарий: тип issue в compile report legacy debug endpoint.
+export type CompileIssue = {
+  severity: "warning" | "error" | string;
+  message: string;
+};
+
+// Русский комментарий: тип compile summary для legacy debug endpoint.
+export type CompileSummary = {
+  status: string;
+  source: string;
+  node_mappings: number;
+  warnings: number;
+  errors: number;
+};
+
+// Русский комментарий: тип graph IR summary для legacy debug endpoint.
+export type GraphIrSummary = {
+  available: boolean;
+  entry_node?: string;
+  nodes_total?: number;
+  edges_total?: number;
+  terminal_nodes?: string[];
+};
+
+// Русский комментарий: тип ответа успешного legacy C1 validate/compile.
+export type C1SuccessPayload = {
+  status: "success";
+  capability_id: "c1";
+  dsl_file: string;
+  dsl_summary: Record<string, unknown>;
+  compile_summary: CompileSummary;
+  compile_report: {
+    status: string;
+    source: string;
+    node_mappings: Array<Record<string, unknown>>;
+    issues: CompileIssue[];
+  };
+  graph_ir_summary: GraphIrSummary;
 };

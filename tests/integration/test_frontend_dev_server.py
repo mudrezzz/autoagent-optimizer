@@ -44,12 +44,7 @@ def _wait_until_server_ready(base_url: str, *, timeout_sec: float = 15.0) -> Non
     raise AssertionError("Frontend dev server did not become ready in time.")
 
 
-def _json_post(
-    url: str,
-    payload: dict[str, object],
-    *,
-    headers: dict[str, str] | None = None,
-) -> tuple[int, dict[str, object]]:
+def _json_post(url: str, payload: dict[str, object], *, headers: dict[str, str] | None = None) -> tuple[int, dict[str, object]]:
     """Выполняет JSON POST и возвращает `(status_code, payload)` даже при HTTP 4xx/5xx."""
 
     raw = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -83,7 +78,7 @@ def _json_get(url: str, *, headers: dict[str, str] | None = None) -> tuple[int, 
 
 @pytest.mark.integration
 def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
-    """Проверяет, что dev server отдает shell, capability-каталог и C1+C2 API-контур."""
+    """Проверяет, что dev server отдает shell, capability-каталог и C1+C2 arena API-контур."""
 
     port = _find_free_port()
     base_url = f"http://127.0.0.1:{port}"
@@ -109,12 +104,12 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         with urlopen(f"{base_url}/", timeout=5.0) as response:
             html = response.read().decode("utf-8")
             assert response.status == 200
-            assert "Workspace Registry" in html
+            assert "Battles Hub" in html
             assert "id=\"root\"" in html
             assert "/design_system/colors_and_type.css" in html
             match = re.search(r'"/assets/[^"]+\.js"', html)
             assert match is not None
-            asset_path = match.group(0).strip("\"")
+            asset_path = match.group(0).strip('"')
 
         with urlopen(f"{base_url}{asset_path}", timeout=5.0) as response:
             assert response.status == 200
@@ -125,59 +120,41 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
             assert payload["ux_reference"] == "design_system/screenshots/app-v3.png"
             assert len(payload["capabilities"]) == 6
             assert payload["capabilities"][0]["id"] == "c1"
-            assert payload["capabilities"][0]["name"] == "Workspace & Projects"
+            assert payload["capabilities"][0]["name"] == "Battle Registry"
             assert payload["capabilities"][0]["status"] == "enabled"
             c2 = next(item for item in payload["capabilities"] if item["id"] == "c2")
             assert c2["status"] == "enabled"
 
-        status_workspaces, workspaces_payload = _json_get(f"{base_url}/api/workspaces")
-        assert status_workspaces == 200
-        assert workspaces_payload["status"] == "success"
-        assert workspaces_payload["total"] == 0
-        assert workspaces_payload["tenant_id"] == "tenant_demo_1"
-        assert workspaces_payload["owner_user_id"] == "user_demo_1"
+        status_arenas, arenas_payload = _json_get(f"{base_url}/api/arenas")
+        assert status_arenas == 200
+        assert arenas_payload["status"] == "success"
+        assert arenas_payload["total"] == 0
+        assert arenas_payload["tenant_id"] == "tenant_demo_1"
+        assert arenas_payload["owner_user_id"] == "user_demo_1"
 
-        status_create_workspace, workspace_payload = _json_post(
-            f"{base_url}/api/workspaces",
+        status_create_arena, arena_payload = _json_post(
+            f"{base_url}/api/arenas",
             {"name": "support-qa", "description": "Support experiments"},
         )
-        assert status_create_workspace == 201
-        assert workspace_payload["status"] == "success"
-        workspace_id = str(workspace_payload["workspace"]["workspace_id"])
-        assert workspace_payload["workspace"]["tenant_id"] == "tenant_demo_1"
-        assert workspace_payload["workspace"]["owner_user_id"] == "user_demo_1"
+        assert status_create_arena == 201
+        assert arena_payload["status"] == "success"
+        arena_id = str(arena_payload["arena"]["workspace_id"])
+        assert arena_payload["arena"]["tenant_id"] == "tenant_demo_1"
+        assert arena_payload["arena"]["owner_user_id"] == "user_demo_1"
 
-        status_create_project, project_payload = _json_post(
-            f"{base_url}/api/workspaces/{workspace_id}/projects",
-            {"name": "support-qa.v1", "description": "Project v1"},
-        )
-        assert status_create_project == 201
-        assert project_payload["status"] == "success"
-        project_id = str(project_payload["project"]["project_id"])
-        assert project_payload["project"]["tenant_id"] == "tenant_demo_1"
-        assert project_payload["project"]["owner_user_id"] == "user_demo_1"
+        status_get_arena, get_arena_payload = _json_get(f"{base_url}/api/arenas/{arena_id}")
+        assert status_get_arena == 200
+        assert get_arena_payload["status"] == "success"
+        assert get_arena_payload["arena"]["workspace_id"] == arena_id
 
-        status_projects, projects_list_payload = _json_get(f"{base_url}/api/workspaces/{workspace_id}/projects")
-        assert status_projects == 200
-        assert projects_list_payload["status"] == "success"
-        assert projects_list_payload["total"] == 1
-        assert projects_list_payload["tenant_id"] == "tenant_demo_1"
-        assert projects_list_payload["owner_user_id"] == "user_demo_1"
-
-        status_project, project_get_payload = _json_get(f"{base_url}/api/projects/{project_id}")
-        assert status_project == 200
-        assert project_get_payload["status"] == "success"
-        assert project_get_payload["project"]["project_id"] == project_id
-
-        # Русский комментарий: проверяет C2 chat state до первого сообщения.
-        status_chat_state_empty, chat_state_empty_payload = _json_get(f"{base_url}/api/projects/{project_id}/chat/state")
+        status_chat_state_empty, chat_state_empty_payload = _json_get(f"{base_url}/api/arenas/{arena_id}/chat/state")
         assert status_chat_state_empty == 200
         assert chat_state_empty_payload["status"] == "success"
         assert chat_state_empty_payload["messages_total"] == 0
         assert chat_state_empty_payload["candidate_set_draft"] is None
 
         status_chat_message, chat_message_payload = _json_post(
-            f"{base_url}/api/projects/{project_id}/chat/messages",
+            f"{base_url}/api/arenas/{arena_id}/chat/messages",
             {
                 "message": "Нужен агент для стилизации постов в живой тон.",
                 "generate_candidates": True,
@@ -190,94 +167,67 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert chat_message_payload["candidate_set_draft"] is not None
         assert chat_message_payload["candidate_set_draft"]["total"] == 3
 
-        status_chat_state, chat_state_payload = _json_get(f"{base_url}/api/projects/{project_id}/chat/state")
+        status_chat_state, chat_state_payload = _json_get(f"{base_url}/api/arenas/{arena_id}/chat/state")
         assert status_chat_state == 200
         assert chat_state_payload["messages_total"] >= 2
-        assert chat_state_payload["candidate_set_draft"]["project_id"] == project_id
+        assert chat_state_payload["candidate_set_draft"]["arena_id"] == arena_id
 
-        status_rename_workspace, renamed_payload = _json_post(
-            f"{base_url}/api/workspaces/{workspace_id}/rename",
+        status_rename_arena, renamed_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/rename",
             {"name": "support-qa-renamed"},
         )
-        assert status_rename_workspace == 200
-        assert renamed_payload["workspace"]["name"] == "support-qa-renamed"
+        assert status_rename_arena == 200
+        assert renamed_payload["arena"]["name"] == "support-qa-renamed"
 
-        status_duplicate_workspace, duplicate_workspace_payload = _json_post(
-            f"{base_url}/api/workspaces/{workspace_id}/duplicate",
+        status_duplicate_arena, duplicate_arena_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/duplicate",
             {},
         )
-        assert status_duplicate_workspace == 201
-        assert duplicate_workspace_payload["status"] == "success"
-        duplicated_workspace_id = str(duplicate_workspace_payload["workspace"]["workspace_id"])
-        assert duplicated_workspace_id != workspace_id
+        assert status_duplicate_arena == 201
+        duplicated_arena_id = str(duplicate_arena_payload["arena"]["workspace_id"])
+        assert duplicated_arena_id != arena_id
 
-        status_delete_workspace, delete_payload = _json_post(
-            f"{base_url}/api/workspaces/{workspace_id}/delete",
+        status_delete_arena, delete_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/delete",
             {},
         )
-        assert status_delete_workspace == 200
-        assert delete_payload["workspace_id"] == workspace_id
+        assert status_delete_arena == 200
+        assert delete_payload["arena_id"] == arena_id
 
-        status_projects_deleted, deleted_projects_payload = _json_get(
-            f"{base_url}/api/workspaces/{workspace_id}/projects",
-        )
-        assert status_projects_deleted == 404
-        assert deleted_projects_payload["status"] == "error"
+        status_missing_arena, missing_arena_payload = _json_get(f"{base_url}/api/arenas/{arena_id}")
+        assert status_missing_arena == 404
+        assert missing_arena_payload["status"] == "error"
 
-        status_projects_duplicated, duplicated_projects_payload = _json_get(
-            f"{base_url}/api/workspaces/{duplicated_workspace_id}/projects",
-        )
-        assert status_projects_duplicated == 200
-        assert duplicated_projects_payload["total"] == 0
-
-        status_duplicate_workspace, duplicate_workspace_payload = _json_post(
-            f"{base_url}/api/workspaces",
-            {"name": "support-qa", "description": "duplicate"},
-        )
-        assert status_duplicate_workspace == 201
-        assert duplicate_workspace_payload["status"] == "success"
-
-        status_missing_workspace, missing_workspace_payload = _json_post(
-            f"{base_url}/api/workspaces/ws_missing/projects",
-            {"name": "support-qa.v2", "description": ""},
-        )
-        assert status_missing_workspace == 404
-        assert missing_workspace_payload["status"] == "error"
-
-        # Русский комментарий: второй tenant не видит данные первого tenant и может создать одноименный workspace.
+        # Русский комментарий: второй tenant не видит данные первого tenant и может создать одноименную арену.
         second_actor_headers = {
             "X-Demo-Tenant-Id": "tenant_demo_2",
             "X-Demo-User-Id": "user_demo_2",
         }
-        status_workspaces_second, second_workspaces_payload = _json_get(
-            f"{base_url}/api/workspaces",
-            headers=second_actor_headers,
-        )
-        assert status_workspaces_second == 200
-        assert second_workspaces_payload["total"] == 0
+        status_arenas_second, second_arenas_payload = _json_get(f"{base_url}/api/arenas", headers=second_actor_headers)
+        assert status_arenas_second == 200
+        assert second_arenas_payload["total"] == 0
 
-        status_create_workspace_second, workspace_payload_second = _json_post(
-            f"{base_url}/api/workspaces",
+        status_create_arena_second, arena_payload_second = _json_post(
+            f"{base_url}/api/arenas",
             {"name": "support-qa", "description": "Second tenant scope"},
             headers=second_actor_headers,
         )
-        assert status_create_workspace_second == 201
-        workspace_id_second = str(workspace_payload_second["workspace"]["workspace_id"])
+        assert status_create_arena_second == 201
+        arena_id_second = str(arena_payload_second["arena"]["workspace_id"])
 
-        status_forbidden_cross_tenant, cross_tenant_project_payload = _json_post(
-            f"{base_url}/api/workspaces/{workspace_id}/projects",
-            {"name": "support-qa.v2", "description": "wrong scope"},
+        status_cross_tenant_get, cross_tenant_payload = _json_get(
+            f"{base_url}/api/arenas/{duplicated_arena_id}",
             headers=second_actor_headers,
         )
-        assert status_forbidden_cross_tenant == 404
-        assert cross_tenant_project_payload["status"] == "error"
+        assert status_cross_tenant_get == 404
+        assert cross_tenant_payload["status"] == "error"
 
-        status_projects_second, projects_second_payload = _json_get(
-            f"{base_url}/api/workspaces/{workspace_id_second}/projects",
+        status_get_second, get_second_payload = _json_get(
+            f"{base_url}/api/arenas/{arena_id_second}",
             headers=second_actor_headers,
         )
-        assert status_projects_second == 200
-        assert projects_second_payload["total"] == 0
+        assert status_get_second == 200
+        assert get_second_payload["arena"]["workspace_id"] == arena_id_second
 
         # Русский комментарий: legacy C1 endpoint остается доступным как debug-route.
         status_legacy, legacy_payload = _json_post(

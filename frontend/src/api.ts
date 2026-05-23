@@ -1,17 +1,14 @@
 ﻿import type {
+  ArenaDeleteResponse,
+  ArenaGetResponse,
+  ArenasListResponse,
+  ArenaMutationResponse,
   C2ChatPostMessageResponse,
   C2ChatStateResponse,
   C1SuccessPayload,
   CapabilityCatalogResponse,
   ErrorPayload,
-  ProjectCreateResponse,
-  ProjectGetResponse,
-  ProjectsListResponse,
   StubPayload,
-  WorkspaceCreateResponse,
-  WorkspaceDeleteResponse,
-  WorkspaceUpdateResponse,
-  WorkspacesListResponse,
 } from "./types";
 
 // Русский комментарий: helper, который парсит JSON и при ошибке создает человекочитаемое сообщение.
@@ -34,18 +31,18 @@ export async function fetchCapabilityCatalog(): Promise<CapabilityCatalogRespons
   return parseJsonOrThrow<CapabilityCatalogResponse>(response);
 }
 
-// Русский комментарий: загружает список workspace из C1 backend API.
-export async function listWorkspaces(): Promise<WorkspacesListResponse> {
-  const response = await fetch("/api/workspaces");
+// Русский комментарий: загружает список battle-арен из C1 backend API.
+export async function listArenas(): Promise<ArenasListResponse> {
+  const response = await fetch("/api/arenas");
   if (!response.ok) {
-    throw new Error(`Failed to load workspaces: HTTP ${response.status}`);
+    throw new Error(`Failed to load arenas: HTTP ${response.status}`);
   }
-  return parseJsonOrThrow<WorkspacesListResponse>(response);
+  return parseJsonOrThrow<ArenasListResponse>(response);
 }
 
-// Русский комментарий: создает workspace через C1 backend API.
-export async function createWorkspace(name: string, description: string): Promise<WorkspaceCreateResponse> {
-  const response = await fetch("/api/workspaces", {
+// Русский комментарий: создает arena через C1 backend API.
+export async function createArena(name: string, description: string): Promise<ArenaMutationResponse> {
+  const response = await fetch("/api/arenas", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, description }),
@@ -53,95 +50,66 @@ export async function createWorkspace(name: string, description: string): Promis
 
   if (!response.ok) {
     const payload = await parseJsonOrThrow<ErrorPayload>(response);
-    throw new Error(payload.message || `Failed to create workspace: HTTP ${response.status}`);
+    throw new Error(payload.message || `Failed to create arena: HTTP ${response.status}`);
   }
 
-  return parseJsonOrThrow<WorkspaceCreateResponse>(response);
+  return parseJsonOrThrow<ArenaMutationResponse>(response);
 }
 
-// Русский комментарий: обновляет имя workspace через C1 backend API.
-export async function renameWorkspace(workspaceId: string, name: string): Promise<WorkspaceUpdateResponse> {
-  const response = await fetch(`/api/workspaces/${encodeURIComponent(workspaceId)}/rename`, {
+// Русский комментарий: обновляет имя arena через C1 backend API.
+export async function renameArena(arenaId: string, name: string): Promise<ArenaMutationResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/rename`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name }),
   });
   if (!response.ok) {
     const payload = await parseJsonOrThrow<ErrorPayload>(response);
-    throw new Error(payload.message || `Failed to rename workspace: HTTP ${response.status}`);
+    throw new Error(payload.message || `Failed to rename arena: HTTP ${response.status}`);
   }
-  return parseJsonOrThrow<WorkspaceUpdateResponse>(response);
+  return parseJsonOrThrow<ArenaMutationResponse>(response);
 }
 
-// Русский комментарий: дублирует workspace через C1 backend API.
-export async function duplicateWorkspace(workspaceId: string): Promise<WorkspaceCreateResponse> {
-  const response = await fetch(`/api/workspaces/${encodeURIComponent(workspaceId)}/duplicate`, {
+// Русский комментарий: дублирует arena через C1 backend API.
+export async function duplicateArena(arenaId: string): Promise<ArenaMutationResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/duplicate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: "{}",
   });
   if (!response.ok) {
     const payload = await parseJsonOrThrow<ErrorPayload>(response);
-    throw new Error(payload.message || `Failed to duplicate workspace: HTTP ${response.status}`);
+    throw new Error(payload.message || `Failed to duplicate arena: HTTP ${response.status}`);
   }
-  return parseJsonOrThrow<WorkspaceCreateResponse>(response);
+  return parseJsonOrThrow<ArenaMutationResponse>(response);
 }
 
-// Русский комментарий: удаляет workspace через C1 backend API.
-export async function deleteWorkspace(workspaceId: string): Promise<WorkspaceDeleteResponse> {
-  const response = await fetch(`/api/workspaces/${encodeURIComponent(workspaceId)}/delete`, {
+// Русский комментарий: удаляет arena через C1 backend API.
+export async function deleteArena(arenaId: string): Promise<ArenaDeleteResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/delete`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: "{}",
   });
   if (!response.ok) {
     const payload = await parseJsonOrThrow<ErrorPayload>(response);
-    throw new Error(payload.message || `Failed to delete workspace: HTTP ${response.status}`);
+    throw new Error(payload.message || `Failed to delete arena: HTTP ${response.status}`);
   }
-  return parseJsonOrThrow<WorkspaceDeleteResponse>(response);
+  return parseJsonOrThrow<ArenaDeleteResponse>(response);
 }
 
-// Русский комментарий: загружает проекты выбранного workspace.
-export async function listProjects(workspaceId: string): Promise<ProjectsListResponse> {
-  const response = await fetch(`/api/workspaces/${encodeURIComponent(workspaceId)}/projects`);
+// Русский комментарий: загружает arena по id, чтобы подтвердить активный выбор.
+export async function getArena(arenaId: string): Promise<ArenaGetResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}`);
   if (!response.ok) {
-    throw new Error(`Failed to load projects: HTTP ${response.status}`);
+    throw new Error(`Failed to load arena: HTTP ${response.status}`);
   }
-  return parseJsonOrThrow<ProjectsListResponse>(response);
+  return parseJsonOrThrow<ArenaGetResponse>(response);
 }
 
-// Русский комментарий: создает проект в выбранном workspace.
-export async function createProject(
-  workspaceId: string,
-  name: string,
-  description: string,
-): Promise<ProjectCreateResponse> {
-  const response = await fetch(`/api/workspaces/${encodeURIComponent(workspaceId)}/projects`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, description }),
-  });
-
-  if (!response.ok) {
-    const payload = await parseJsonOrThrow<ErrorPayload>(response);
-    throw new Error(payload.message || `Failed to create project: HTTP ${response.status}`);
-  }
-
-  return parseJsonOrThrow<ProjectCreateResponse>(response);
-}
-
-// Русский комментарий: загружает проект по id, чтобы подтвердить активный выбор.
-export async function getProject(projectId: string): Promise<ProjectGetResponse> {
-  const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}`);
-  if (!response.ok) {
-    throw new Error(`Failed to load project: HTTP ${response.status}`);
-  }
-  return parseJsonOrThrow<ProjectGetResponse>(response);
-}
-
-// Русский комментарий: загружает C2 chat state для выбранного project.
-export async function getProjectChatState(projectId: string): Promise<C2ChatStateResponse> {
-  const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/chat/state`);
+// Русский комментарий: загружает C2 chat state для выбранной arena.
+export async function getArenaChatState(arenaId: string): Promise<C2ChatStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/chat/state`);
   if (!response.ok) {
     const payload = await parseJsonOrThrow<ErrorPayload>(response);
     throw new Error(payload.message || `Failed to load C2 chat state: HTTP ${response.status}`);
@@ -150,8 +118,8 @@ export async function getProjectChatState(projectId: string): Promise<C2ChatStat
 }
 
 // Русский комментарий: отправляет сообщение в C2 чат и опционально запускает генерацию candidate draft.
-export async function postProjectChatMessage(
-  projectId: string,
+export async function postArenaChatMessage(
+  arenaId: string,
   message: string,
   options: {
     generateCandidates: boolean;
@@ -159,7 +127,7 @@ export async function postProjectChatMessage(
   },
 ): Promise<C2ChatPostMessageResponse> {
   const maxCandidates = options.maxCandidates ?? 3;
-  const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/chat/messages`, {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/chat/messages`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

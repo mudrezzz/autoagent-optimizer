@@ -51,7 +51,7 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 
 Статус ведем по каждой capability в четырех осях: `BE / FE / Demo / QA`.
 
-1. `C1` Workspace & Project Registry
+1. `C1` Battle Registry
 2. `C2` Task Chat + Candidate Generation
 3. `C3` Pattern Library + RAG Retrieval
 4. `C4` Dataset & Metrics Studio
@@ -513,6 +513,7 @@ python -m optimizer.renderer.langgraph_dai.run --dsl-file .\examples\dsl\hitl_ga
 4. Для более высокого качества на финальных full-прогонах можно временно переключаться на более сильную модель.
 
 Р’Р°Р¶РЅРѕ: `.env` РґРѕР±Р°РІР»РµРЅ РІ `.gitignore` Рё РЅРµ РґРѕР»Р¶РµРЅ РїРѕРїР°РґР°С‚СЊ РІ git.
+
 
 
 

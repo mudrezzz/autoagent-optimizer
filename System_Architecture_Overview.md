@@ -20,8 +20,8 @@
 ## High-Level Layers
 
 ```text
-Input (Tenant + User + Project + Task Brief + Constraints + Data + Budget)
-  -> Product Experience Layer (Projects Hub / Project Workspace)
+Input (Tenant + User + Battle + Task Brief + Constraints + Data + Budget)
+  -> Product Experience Layer (Battles Hub / Battle Workspace)
   -> Copilot Orchestrator (task-to-candidates loop)
   -> Pattern Library + RAG Retrieval
   -> Architecture Generator
@@ -38,8 +38,8 @@ Input (Tenant + User + Project + Task Brief + Constraints + Data + Budget)
 
 ## Current Target Architecture (MVP-2 transition)
 
-1. `Workspace/Project Layer`
-   - Tenant-scoped project registry и проектный контекст.
+1. `Battle Registry Layer`
+   - tenant-scoped battle registry и проектный контекст.
    - Версионируемые сущности проекта (agents/datasets/metrics/prompts/tools/settings).
 2. `Copilot Layer`
    - Chat-first постановка задачи.
@@ -80,7 +80,7 @@ Input (Tenant + User + Project + Task Brief + Constraints + Data + Budget)
    - native import path for re-benchmark after external code changes.
    - post-export benchmark loop (native artifact re-evaluation + regression gates).
 11. `Product Experience Layer`
-   - capability-oriented frontend surfaces (projects-hub + project-workspace).
+   - capability-oriented frontend surfaces (projects-hub + battle-workspace).
    - unified scenario runner for demo/validation.
    - explicit mapping `backend capability -> user-visible control -> e2e assertion`.
    - risk-based QA gates for delivery speed (`fast` / `targeted` / `full`) with full regression reserved for high-risk slices.
@@ -197,4 +197,5 @@ Input (Tenant + User + Project + Task Brief + Constraints + Data + Budget)
 - [docs/adr/README.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/README.md)
 
 РР·РјРµРЅРµРЅРёРµ Р°СЂС…РёС‚РµРєС‚СѓСЂРЅРѕРіРѕ РЅР°РїСЂР°РІР»РµРЅРёСЏ Р±РµР· ADR РЅРµ РґРѕРїСѓСЃРєР°РµС‚СЃСЏ.
+
 

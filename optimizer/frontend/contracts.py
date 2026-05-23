@@ -9,10 +9,10 @@ from typing import Any
 CAPABILITY_CATALOG: tuple[dict[str, str | int], ...] = (
     {
         "id": "c1",
-        "name": "Workspace & Projects",
-        "description": "Управление workspace и project как входной точкой продукта.",
+        "name": "Battle Registry",
+        "description": "Управление battle-аренами как входной точкой продукта.",
         "status": "enabled",
-        "route": "/projects",
+        "route": "/battles",
         "badge_count": 1,
     },
     {
@@ -20,7 +20,7 @@ CAPABILITY_CATALOG: tuple[dict[str, str | int], ...] = (
         "name": "Task Chat + Candidates",
         "description": "Постановка задачи в чате и генерация кандидатов.",
         "status": "enabled",
-        "route": "/projects/chat",
+        "route": "/battles/chat",
         "badge_count": 1,
     },
     {

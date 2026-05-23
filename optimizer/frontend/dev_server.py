@@ -41,12 +41,12 @@ class FrontendDevServerCli:
 
         project_root = Path(__file__).resolve().parents[2]
         store_file = _resolve_workspace_store_file(project_root=project_root)
-        workspace_store = WorkspaceRegistryStore(store_file=store_file)
-        handler_class = _build_handler(project_root=project_root, workspace_store=workspace_store)
+        registry_store = WorkspaceRegistryStore(store_file=store_file)
+        handler_class = _build_handler(project_root=project_root, registry_store=registry_store)
         server = ThreadingHTTPServer((args.host, args.port), handler_class)
 
         print(f"[FRONTEND] dev server started at http://{args.host}:{args.port}", flush=True)
-        print(f"[FRONTEND] workspace store: {store_file}", flush=True)
+        print(f"[FRONTEND] registry store: {store_file}", flush=True)
         try:
             server.serve_forever()
         except KeyboardInterrupt:
@@ -57,7 +57,7 @@ class FrontendDevServerCli:
 
 
 def _resolve_workspace_store_file(*, project_root: Path) -> Path:
-    """Определяет путь к JSON-store workspace/project с возможностью override через env."""
+    """Определяет путь к JSON-store arena/workspace с override через env."""
 
     raw = os.environ.get("AUTOAGENT_WORKSPACE_STORE_FILE", "").strip()
     if raw:
@@ -73,8 +73,8 @@ def _resolve_default_actor() -> tuple[str, str]:
     return tenant_id, user_id
 
 
-def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStore) -> type[SimpleHTTPRequestHandler]:
-    """Создает handler-класс с замыканием на project_root и workspace_store."""
+def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore) -> type[SimpleHTTPRequestHandler]:
+    """Создает handler-класс с замыканием на project_root и registry_store."""
 
     class FrontendRequestHandler(SimpleHTTPRequestHandler):
         """HTTP handler для frontend shell: static + capability API + C1/C2 product API."""
@@ -102,71 +102,27 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
                 self._send_json(build_stub_capability_payload(capability_id))
                 return
 
-            if path == "/api/workspaces":
-                workspaces = [record.__dict__ for record in workspace_store.list_workspaces(tenant_id=tenant_id, owner_user_id=user_id)]
-                self._send_json(
-                    {
-                        "status": "success",
-                        "tenant_id": tenant_id,
-                        "owner_user_id": user_id,
-                        "workspaces": workspaces,
-                        "total": len(workspaces),
-                    }
-                )
+            if path in {"/api/arenas", "/api/workspaces"}:
+                self._handle_list_arenas(tenant_id=tenant_id, user_id=user_id, legacy_workspace=(path == "/api/workspaces"))
                 return
 
-            workspace_projects_match = re.fullmatch(r"/api/workspaces/([^/]+)/projects", path)
-            if workspace_projects_match is not None:
-                workspace_id = workspace_projects_match.group(1)
-                try:
-                    projects = [
-                        record.__dict__
-                        for record in workspace_store.list_projects(
-                            tenant_id=tenant_id,
-                            owner_user_id=user_id,
-                            workspace_id=workspace_id,
-                        )
-                    ]
-                except KeyError as exc:
-                    self._send_json(
-                        {"status": "error", "code": "workspace_not_found", "message": str(exc)},
-                        status=HTTPStatus.NOT_FOUND,
-                    )
-                    return
-                self._send_json(
-                    {
-                        "status": "success",
-                        "tenant_id": tenant_id,
-                        "owner_user_id": user_id,
-                        "workspace_id": workspace_id,
-                        "projects": projects,
-                        "total": len(projects),
-                    }
-                )
+            arena_get_match = re.fullmatch(r"/api/arenas/([^/]+)", path)
+            if arena_get_match is not None:
+                arena_id = arena_get_match.group(1)
+                self._handle_get_arena(tenant_id=tenant_id, user_id=user_id, arena_id=arena_id)
                 return
 
+            arena_chat_state_match = re.fullmatch(r"/api/arenas/([^/]+)/chat/state", path)
+            if arena_chat_state_match is not None:
+                arena_id = arena_chat_state_match.group(1)
+                self._handle_get_arena_chat_state(tenant_id=tenant_id, user_id=user_id, arena_id=arena_id)
+                return
+
+            # Русский комментарий: оставляем legacy project-роут как alias к arena id для плавной миграции.
             project_chat_state_match = re.fullmatch(r"/api/projects/([^/]+)/chat/state", path)
             if project_chat_state_match is not None:
-                project_id = project_chat_state_match.group(1)
-                self._handle_get_project_chat_state(project_id=project_id)
-                return
-
-            project_match = re.fullmatch(r"/api/projects/([^/]+)", path)
-            if project_match is not None:
-                project_id = project_match.group(1)
-                try:
-                    project = workspace_store.get_project(
-                        tenant_id=tenant_id,
-                        owner_user_id=user_id,
-                        project_id=project_id,
-                    )
-                except KeyError as exc:
-                    self._send_json(
-                        {"status": "error", "code": "project_not_found", "message": str(exc)},
-                        status=HTTPStatus.NOT_FOUND,
-                    )
-                    return
-                self._send_json({"status": "success", "project": project.__dict__})
+                arena_id = project_chat_state_match.group(1)
+                self._handle_get_arena_chat_state(tenant_id=tenant_id, user_id=user_id, arena_id=arena_id)
                 return
 
             if self.path.startswith("/assets/"):
@@ -174,7 +130,7 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
                 if dist_assets_path.exists():
                     self.path = f"/frontend/dist{self.path}"
 
-            if self.path == "/" or self.path == "/index.html":
+            if self.path == "/" or self.path == "/index.html" or self.path.startswith("/battles"):
                 dist_index_path = project_root / "frontend" / "dist" / "index.html"
                 if dist_index_path.exists():
                     self.path = "/frontend/dist/index.html"
@@ -187,38 +143,51 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
             """Обрабатывает POST-запросы API для C1/C2 и legacy debug endpoint."""
 
             path = urlparse(self.path).path
-            if path == "/api/workspaces":
-                self._handle_create_workspace()
+            tenant_id, user_id = self._resolve_request_actor()
+
+            if path in {"/api/arenas", "/api/workspaces"}:
+                self._handle_create_arena(tenant_id=tenant_id, user_id=user_id, legacy_workspace=(path == "/api/workspaces"))
+                return
+
+            arena_rename_match = re.fullmatch(r"/api/arenas/([^/]+)/rename", path)
+            if arena_rename_match is not None:
+                self._handle_rename_arena(tenant_id=tenant_id, user_id=user_id, arena_id=arena_rename_match.group(1), legacy_workspace=False)
+                return
+
+            arena_delete_match = re.fullmatch(r"/api/arenas/([^/]+)/delete", path)
+            if arena_delete_match is not None:
+                self._handle_delete_arena(tenant_id=tenant_id, user_id=user_id, arena_id=arena_delete_match.group(1), legacy_workspace=False)
+                return
+
+            arena_duplicate_match = re.fullmatch(r"/api/arenas/([^/]+)/duplicate", path)
+            if arena_duplicate_match is not None:
+                self._handle_duplicate_arena(tenant_id=tenant_id, user_id=user_id, arena_id=arena_duplicate_match.group(1), legacy_workspace=False)
                 return
 
             workspace_rename_match = re.fullmatch(r"/api/workspaces/([^/]+)/rename", path)
             if workspace_rename_match is not None:
-                workspace_id = workspace_rename_match.group(1)
-                self._handle_rename_workspace(workspace_id=workspace_id)
+                self._handle_rename_arena(tenant_id=tenant_id, user_id=user_id, arena_id=workspace_rename_match.group(1), legacy_workspace=True)
                 return
 
             workspace_delete_match = re.fullmatch(r"/api/workspaces/([^/]+)/delete", path)
             if workspace_delete_match is not None:
-                workspace_id = workspace_delete_match.group(1)
-                self._handle_delete_workspace(workspace_id=workspace_id)
+                self._handle_delete_arena(tenant_id=tenant_id, user_id=user_id, arena_id=workspace_delete_match.group(1), legacy_workspace=True)
                 return
 
             workspace_duplicate_match = re.fullmatch(r"/api/workspaces/([^/]+)/duplicate", path)
             if workspace_duplicate_match is not None:
-                workspace_id = workspace_duplicate_match.group(1)
-                self._handle_duplicate_workspace(workspace_id=workspace_id)
+                self._handle_duplicate_arena(tenant_id=tenant_id, user_id=user_id, arena_id=workspace_duplicate_match.group(1), legacy_workspace=True)
                 return
 
-            workspace_projects_match = re.fullmatch(r"/api/workspaces/([^/]+)/projects", path)
-            if workspace_projects_match is not None:
-                workspace_id = workspace_projects_match.group(1)
-                self._handle_create_project(workspace_id=workspace_id)
+            arena_chat_match = re.fullmatch(r"/api/arenas/([^/]+)/chat/messages", path)
+            if arena_chat_match is not None:
+                self._handle_post_arena_chat_message(tenant_id=tenant_id, user_id=user_id, arena_id=arena_chat_match.group(1))
                 return
 
-            project_chat_messages_match = re.fullmatch(r"/api/projects/([^/]+)/chat/messages", path)
-            if project_chat_messages_match is not None:
-                project_id = project_chat_messages_match.group(1)
-                self._handle_post_project_chat_message(project_id=project_id)
+            # Русский комментарий: legacy project-роут как alias к arena id для плавной миграции.
+            project_chat_match = re.fullmatch(r"/api/projects/([^/]+)/chat/messages", path)
+            if project_chat_match is not None:
+                self._handle_post_arena_chat_message(tenant_id=tenant_id, user_id=user_id, arena_id=project_chat_match.group(1))
                 return
 
             if path == "/api/c1/validate-compile":
@@ -227,31 +196,36 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
 
             self._send_json({"status": "error", "message": "Not found"}, status=HTTPStatus.NOT_FOUND)
 
-        def do_PATCH(self) -> None:  # noqa: N802
-            """Обрабатывает PATCH-запросы API для обновления workspace."""
+        def _handle_list_arenas(self, *, tenant_id: str, user_id: str, legacy_workspace: bool) -> None:
+            """Возвращает tenant-scoped список арен с опциональным legacy-полем workspace."""
 
-            path = urlparse(self.path).path
-            workspace_match = re.fullmatch(r"/api/workspaces/([^/]+)", path)
-            if workspace_match is not None:
-                workspace_id = workspace_match.group(1)
-                self._handle_rename_workspace(workspace_id=workspace_id)
+            arenas = [record.__dict__ for record in registry_store.list_arenas(tenant_id=tenant_id, owner_user_id=user_id)]
+            payload = {
+                "status": "success",
+                "tenant_id": tenant_id,
+                "owner_user_id": user_id,
+                "arenas": arenas,
+                "total": len(arenas),
+            }
+            if legacy_workspace:
+                payload["workspaces"] = arenas
+            self._send_json(payload)
+
+        def _handle_get_arena(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Возвращает арену по идентификатору."""
+
+            try:
+                arena = registry_store.get_arena(tenant_id=tenant_id, owner_user_id=user_id, arena_id=arena_id)
+            except KeyError as exc:
+                self._send_json(
+                    {"status": "error", "code": "arena_not_found", "message": str(exc)},
+                    status=HTTPStatus.NOT_FOUND,
+                )
                 return
-            self._send_json({"status": "error", "message": "Not found"}, status=HTTPStatus.NOT_FOUND)
+            self._send_json({"status": "success", "arena": arena.__dict__})
 
-        def do_DELETE(self) -> None:  # noqa: N802
-            """Обрабатывает DELETE-запросы API для удаления workspace."""
-
-            path = urlparse(self.path).path
-            workspace_match = re.fullmatch(r"/api/workspaces/([^/]+)", path)
-            if workspace_match is not None:
-                workspace_id = workspace_match.group(1)
-                self._handle_delete_workspace(workspace_id=workspace_id)
-                return
-            self._send_json({"status": "error", "message": "Not found"}, status=HTTPStatus.NOT_FOUND)
-
-        def _handle_create_workspace(self) -> None:
-            """Создает workspace из JSON-пейлоада и возвращает созданную сущность."""
-            tenant_id, user_id = self._resolve_request_actor()
+        def _handle_create_arena(self, *, tenant_id: str, user_id: str, legacy_workspace: bool) -> None:
+            """Создает новую арену и возвращает созданную сущность."""
 
             try:
                 payload = self._read_json_body()
@@ -275,7 +249,7 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
                 return
 
             try:
-                workspace = workspace_store.create_workspace(
+                arena = registry_store.create_arena(
                     tenant_id=tenant_id,
                     owner_user_id=user_id,
                     name=name,
@@ -283,65 +257,26 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
                 )
             except ValueError as exc:
                 self._send_json(
-                    {"status": "error", "code": "workspace_conflict", "message": str(exc)},
+                    {"status": "error", "code": "arena_conflict", "message": str(exc)},
                     status=HTTPStatus.CONFLICT,
                 )
                 return
 
-            self._send_json({"status": "success", "workspace": workspace.__dict__}, status=HTTPStatus.CREATED)
+            response_payload = {"status": "success", "arena": arena.__dict__}
+            if legacy_workspace:
+                response_payload["workspace"] = arena.__dict__
+            self._send_json(response_payload, status=HTTPStatus.CREATED)
 
-        def _handle_create_project(self, *, workspace_id: str) -> None:
-            """Создает project в указанном workspace и возвращает созданную сущность."""
-            tenant_id, user_id = self._resolve_request_actor()
+        def _handle_rename_arena(
+            self,
+            *,
+            tenant_id: str,
+            user_id: str,
+            arena_id: str,
+            legacy_workspace: bool,
+        ) -> None:
+            """Переименовывает арену и возвращает обновленную запись."""
 
-            try:
-                payload = self._read_json_body()
-            except ValueError as exc:
-                self._send_json({"status": "error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
-                return
-
-            name = payload.get("name")
-            description = payload.get("description", "")
-            if not isinstance(name, str) or not name.strip():
-                self._send_json(
-                    {"status": "error", "code": "validation_error", "message": "Field `name` must be a non-empty string."},
-                    status=HTTPStatus.BAD_REQUEST,
-                )
-                return
-            if not isinstance(description, str):
-                self._send_json(
-                    {"status": "error", "code": "validation_error", "message": "Field `description` must be a string."},
-                    status=HTTPStatus.BAD_REQUEST,
-                )
-                return
-
-            try:
-                project = workspace_store.create_project(
-                    tenant_id=tenant_id,
-                    owner_user_id=user_id,
-                    workspace_id=workspace_id,
-                    name=name,
-                    description=description,
-                )
-            except KeyError as exc:
-                self._send_json(
-                    {"status": "error", "code": "workspace_not_found", "message": str(exc)},
-                    status=HTTPStatus.NOT_FOUND,
-                )
-                return
-            except ValueError as exc:
-                self._send_json(
-                    {"status": "error", "code": "project_conflict", "message": str(exc)},
-                    status=HTTPStatus.CONFLICT,
-                )
-                return
-
-            self._send_json({"status": "success", "project": project.__dict__}, status=HTTPStatus.CREATED)
-
-        def _handle_rename_workspace(self, *, workspace_id: str) -> None:
-            """Переименовывает workspace и возвращает обновленную запись."""
-
-            tenant_id, user_id = self._resolve_request_actor()
             try:
                 payload = self._read_json_body()
             except ValueError as exc:
@@ -355,36 +290,47 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
                     status=HTTPStatus.BAD_REQUEST,
                 )
                 return
+
             try:
-                workspace = workspace_store.rename_workspace(
+                arena = registry_store.rename_arena(
                     tenant_id=tenant_id,
                     owner_user_id=user_id,
-                    workspace_id=workspace_id,
+                    arena_id=arena_id,
                     name=name,
                 )
             except KeyError as exc:
                 self._send_json(
-                    {"status": "error", "code": "workspace_not_found", "message": str(exc)},
+                    {"status": "error", "code": "arena_not_found", "message": str(exc)},
                     status=HTTPStatus.NOT_FOUND,
                 )
                 return
             except ValueError as exc:
                 self._send_json(
-                    {"status": "error", "code": "workspace_conflict", "message": str(exc)},
+                    {"status": "error", "code": "arena_conflict", "message": str(exc)},
                     status=HTTPStatus.CONFLICT,
                 )
                 return
 
-            self._send_json({"status": "success", "workspace": workspace.__dict__})
+            response_payload = {"status": "success", "arena": arena.__dict__}
+            if legacy_workspace:
+                response_payload["workspace"] = arena.__dict__
+            self._send_json(response_payload)
 
-        def _handle_duplicate_workspace(self, *, workspace_id: str) -> None:
-            """Дублирует workspace и возвращает новую запись."""
+        def _handle_duplicate_arena(
+            self,
+            *,
+            tenant_id: str,
+            user_id: str,
+            arena_id: str,
+            legacy_workspace: bool,
+        ) -> None:
+            """Дублирует арену и возвращает новую запись."""
 
-            tenant_id, user_id = self._resolve_request_actor()
             try:
                 payload = self._read_json_body()
             except ValueError:
                 payload = {}
+
             name_raw = payload.get("name")
             if name_raw is not None and not isinstance(name_raw, str):
                 self._send_json(
@@ -392,69 +338,78 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
                     status=HTTPStatus.BAD_REQUEST,
                 )
                 return
+
             try:
-                workspace = workspace_store.duplicate_workspace(
+                arena = registry_store.duplicate_arena(
                     tenant_id=tenant_id,
                     owner_user_id=user_id,
-                    workspace_id=workspace_id,
+                    arena_id=arena_id,
                     name=name_raw,
                 )
             except KeyError as exc:
                 self._send_json(
-                    {"status": "error", "code": "workspace_not_found", "message": str(exc)},
+                    {"status": "error", "code": "arena_not_found", "message": str(exc)},
                     status=HTTPStatus.NOT_FOUND,
                 )
                 return
             except ValueError as exc:
                 self._send_json(
-                    {"status": "error", "code": "workspace_conflict", "message": str(exc)},
+                    {"status": "error", "code": "arena_conflict", "message": str(exc)},
                     status=HTTPStatus.CONFLICT,
                 )
                 return
-            self._send_json({"status": "success", "workspace": workspace.__dict__}, status=HTTPStatus.CREATED)
 
-        def _handle_delete_workspace(self, *, workspace_id: str) -> None:
-            """Удаляет workspace в tenant/user scope."""
+            response_payload = {"status": "success", "arena": arena.__dict__}
+            if legacy_workspace:
+                response_payload["workspace"] = arena.__dict__
+            self._send_json(response_payload, status=HTTPStatus.CREATED)
 
-            tenant_id, user_id = self._resolve_request_actor()
+        def _handle_delete_arena(
+            self,
+            *,
+            tenant_id: str,
+            user_id: str,
+            arena_id: str,
+            legacy_workspace: bool,
+        ) -> None:
+            """Удаляет арену в tenant/user scope."""
+
             try:
-                workspace_store.delete_workspace(
+                registry_store.delete_arena(
                     tenant_id=tenant_id,
                     owner_user_id=user_id,
-                    workspace_id=workspace_id,
+                    arena_id=arena_id,
                 )
             except KeyError as exc:
                 self._send_json(
-                    {"status": "error", "code": "workspace_not_found", "message": str(exc)},
+                    {"status": "error", "code": "arena_not_found", "message": str(exc)},
                     status=HTTPStatus.NOT_FOUND,
                 )
                 return
 
-            self._send_json({"status": "success", "workspace_id": workspace_id})
+            payload = {"status": "success", "arena_id": arena_id}
+            if legacy_workspace:
+                payload["workspace_id"] = arena_id
+            self._send_json(payload)
 
-        def _handle_get_project_chat_state(self, *, project_id: str) -> None:
-            """Возвращает состояние C2-чата и candidate draft для выбранного проекта."""
+        def _handle_get_arena_chat_state(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Возвращает состояние C2-чата и candidate draft для выбранной арены."""
 
-            tenant_id, user_id = self._resolve_request_actor()
             try:
-                project = workspace_store.get_project(
+                arena = registry_store.get_arena(tenant_id=tenant_id, owner_user_id=user_id, arena_id=arena_id)
+                messages = registry_store.list_arena_chat_messages(
                     tenant_id=tenant_id,
                     owner_user_id=user_id,
-                    project_id=project_id,
+                    arena_id=arena_id,
                 )
-                messages = workspace_store.list_project_chat_messages(
+                candidate_set_draft = registry_store.get_arena_candidate_set_draft(
                     tenant_id=tenant_id,
                     owner_user_id=user_id,
-                    project_id=project_id,
-                )
-                candidate_set_draft = workspace_store.get_project_candidate_set_draft(
-                    tenant_id=tenant_id,
-                    owner_user_id=user_id,
-                    project_id=project_id,
+                    arena_id=arena_id,
                 )
             except KeyError as exc:
                 self._send_json(
-                    {"status": "error", "code": "project_not_found", "message": str(exc)},
+                    {"status": "error", "code": "arena_not_found", "message": str(exc)},
                     status=HTTPStatus.NOT_FOUND,
                 )
                 return
@@ -463,18 +418,17 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
                 {
                     "status": "success",
                     "capability_id": "c2",
-                    "project_id": project_id,
-                    "project_name": project.name,
+                    "arena_id": arena_id,
+                    "arena_name": arena.name,
                     "messages": messages,
                     "messages_total": len(messages),
                     "candidate_set_draft": candidate_set_draft,
                 }
             )
 
-        def _handle_post_project_chat_message(self, *, project_id: str) -> None:
-            """Добавляет сообщение в C2-чат проекта и опционально генерирует candidate draft."""
+        def _handle_post_arena_chat_message(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Добавляет сообщение в C2-чат арены и опционально генерирует candidate draft."""
 
-            tenant_id, user_id = self._resolve_request_actor()
             try:
                 payload = self._read_json_body()
             except ValueError as exc:
@@ -488,6 +442,7 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
                     status=HTTPStatus.BAD_REQUEST,
                 )
                 return
+
             generate_candidates = bool(payload.get("generate_candidates", False))
             max_candidates_raw = payload.get("max_candidates", 3)
             if not isinstance(max_candidates_raw, int):
@@ -508,16 +463,16 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
                 return
 
             try:
-                chat_message = workspace_store.append_project_chat_message(
+                chat_message = registry_store.append_arena_chat_message(
                     tenant_id=tenant_id,
                     owner_user_id=user_id,
-                    project_id=project_id,
+                    arena_id=arena_id,
                     role="user",
                     content=message_raw,
                 )
             except KeyError as exc:
                 self._send_json(
-                    {"status": "error", "code": "project_not_found", "message": str(exc)},
+                    {"status": "error", "code": "arena_not_found", "message": str(exc)},
                     status=HTTPStatus.NOT_FOUND,
                 )
                 return
@@ -533,20 +488,20 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
             if generate_candidates:
                 try:
                     candidate_set_draft = build_candidate_draft_from_brief(
-                        project_id=project_id,
+                        arena_id=arena_id,
                         brief=message_raw,
                         max_candidates=max_candidates_raw,
                     )
-                    workspace_store.save_project_candidate_set_draft(
+                    registry_store.save_arena_candidate_set_draft(
                         tenant_id=tenant_id,
                         owner_user_id=user_id,
-                        project_id=project_id,
+                        arena_id=arena_id,
                         candidate_set_draft=candidate_set_draft,
                     )
-                    assistant_message = workspace_store.append_project_chat_message(
+                    assistant_message = registry_store.append_arena_chat_message(
                         tenant_id=tenant_id,
                         owner_user_id=user_id,
-                        project_id=project_id,
+                        arena_id=arena_id,
                         role="assistant",
                         content=f"Prepared {candidate_set_draft['total']} candidate drafts from the brief.",
                     )
@@ -558,21 +513,21 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
                     return
                 except KeyError as exc:
                     self._send_json(
-                        {"status": "error", "code": "project_not_found", "message": str(exc)},
+                        {"status": "error", "code": "arena_not_found", "message": str(exc)},
                         status=HTTPStatus.NOT_FOUND,
                     )
                     return
 
-            messages = workspace_store.list_project_chat_messages(
+            messages = registry_store.list_arena_chat_messages(
                 tenant_id=tenant_id,
                 owner_user_id=user_id,
-                project_id=project_id,
+                arena_id=arena_id,
             )
             self._send_json(
                 {
                     "status": "success",
                     "capability_id": "c2",
-                    "project_id": project_id,
+                    "arena_id": arena_id,
                     "message": chat_message,
                     "assistant_message": assistant_message,
                     "messages": messages,

@@ -65,7 +65,7 @@ try {
   if ($null -eq $c1 -or $c1.status -ne "enabled") {
     throw "C1 capability must be enabled in V2.3.S2."
   }
-  if ($c1.name -ne "Workspace & Projects") {
+  if ($c1.name -ne "Battle Registry") {
     throw "C1 capability name must match product capability model."
   }
   $c2 = $capabilities.capabilities | Where-Object { $_.id -eq "c2" }
@@ -73,24 +73,17 @@ try {
     throw "C2 capability must be enabled in V2.3.S2."
   }
 
-  Write-Host "[SMOKE] run C1 workspace/project flow"
-  $workspacePayload = @{ name = "support-qa"; description = "Smoke workspace" } | ConvertTo-Json -Compress
-  $workspaceResult = Invoke-RestMethod -Uri "$baseUrl/api/workspaces" -Method Post -Body $workspacePayload -ContentType "application/json" -TimeoutSec 8
-  if ($workspaceResult.status -ne "success") {
-    throw "Workspace create endpoint returned non-success status."
+  Write-Host "[SMOKE] run C1 battle flow"
+  $arenaPayload = @{ name = "support-qa"; description = "Smoke battle" } | ConvertTo-Json -Compress
+  $arenaResult = Invoke-RestMethod -Uri "$baseUrl/api/arenas" -Method Post -Body $arenaPayload -ContentType "application/json" -TimeoutSec 8
+  if ($arenaResult.status -ne "success") {
+    throw "Arena create endpoint returned non-success status."
   }
-  $workspaceId = $workspaceResult.workspace.workspace_id
+  $arenaId = $arenaResult.arena.workspace_id
 
-  $projectPayload = @{ name = "support-qa.v1"; description = "Smoke project" } | ConvertTo-Json -Compress
-  $projectResult = Invoke-RestMethod -Uri "$baseUrl/api/workspaces/$workspaceId/projects" -Method Post -Body $projectPayload -ContentType "application/json" -TimeoutSec 8
-  if ($projectResult.status -ne "success") {
-    throw "Project create endpoint returned non-success status."
-  }
-  $projectId = $projectResult.project.project_id
-
-  $projectGet = Invoke-RestMethod -Uri "$baseUrl/api/projects/$projectId" -Method Get -TimeoutSec 8
-  if ($projectGet.status -ne "success" -or $projectGet.project.project_id -ne $projectId) {
-    throw "Project get endpoint returned unexpected payload."
+  $arenaGet = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId" -Method Get -TimeoutSec 8
+  if ($arenaGet.status -ne "success" -or $arenaGet.arena.workspace_id -ne $arenaId) {
+    throw "Arena get endpoint returned unexpected payload."
   }
 
   Write-Host "[SMOKE] run C2 chat flow"
@@ -99,7 +92,7 @@ try {
     generate_candidates = $true
     max_candidates = 3
   } | ConvertTo-Json -Compress
-  $chatResult = Invoke-RestMethod -Uri "$baseUrl/api/projects/$projectId/chat/messages" -Method Post -Body $chatPayload -ContentType "application/json" -TimeoutSec 8
+  $chatResult = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId/chat/messages" -Method Post -Body $chatPayload -ContentType "application/json" -TimeoutSec 8
   if ($chatResult.status -ne "success") {
     throw "C2 chat message endpoint returned non-success status."
   }
@@ -107,7 +100,7 @@ try {
     throw "C2 candidate draft was not generated."
   }
 
-  $chatState = Invoke-RestMethod -Uri "$baseUrl/api/projects/$projectId/chat/state" -Method Get -TimeoutSec 8
+  $chatState = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId/chat/state" -Method Get -TimeoutSec 8
   if ($chatState.status -ne "success" -or $chatState.messages_total -lt 2) {
     throw "C2 chat state endpoint returned unexpected payload."
   }

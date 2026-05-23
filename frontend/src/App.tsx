@@ -1,27 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 
 import {
-  createProject,
-  createWorkspace,
-  deleteWorkspace,
-  duplicateWorkspace,
+  createArena,
+  deleteArena,
+  duplicateArena,
   fetchCapabilityCatalog,
   fetchStubCapability,
-  getProject,
-  getProjectChatState,
-  listProjects,
-  listWorkspaces,
-  postProjectChatMessage,
-  renameWorkspace,
+  getArena,
+  getArenaChatState,
+  listArenas,
+  postArenaChatMessage,
+  renameArena,
 } from "./api";
-import type {
-  C2CandidateSetDraft,
-  C2ChatMessage,
-  Capability,
-  ProjectRecord,
-  StubPayload,
-  WorkspaceRecord,
-} from "./types";
+import type { ArenaRecord, C2CandidateSetDraft, C2ChatMessage, Capability, StubPayload } from "./types";
 import { exportJsonToFile, makeTimestampedFileName, prettyJson } from "./utils";
 
 declare global {
@@ -34,13 +25,7 @@ declare global {
 
 // Русский комментарий: fallback-каталог capability на случай временной недоступности capability API.
 const FALLBACK_CAPABILITIES: Capability[] = [
-  {
-    id: "c1",
-    name: "Workspace & Projects",
-    description: "Manage workspaces and projects.",
-    status: "enabled",
-    badge_count: 1,
-  },
+  { id: "c1", name: "Battle Registry", description: "Manage battle arenas.", status: "enabled", badge_count: 1 },
   {
     id: "c2",
     name: "Task Chat + Candidates",
@@ -48,39 +33,15 @@ const FALLBACK_CAPABILITIES: Capability[] = [
     status: "enabled",
     badge_count: 1,
   },
-  {
-    id: "c3",
-    name: "Pattern Library + RAG",
-    description: "Planned slice for pattern retrieval and controls.",
-    status: "planned",
-    badge_count: 0,
-  },
-  {
-    id: "c4",
-    name: "Dataset & Metrics Studio",
-    description: "Planned slice for datasets and evaluators.",
-    status: "planned",
-    badge_count: 0,
-  },
-  {
-    id: "c5",
-    name: "Optimizer Run Monitor",
-    description: "Planned slice for run timeline and metrics monitor.",
-    status: "planned",
-    badge_count: 0,
-  },
-  {
-    id: "c6",
-    name: "Report + Champion Export/Import",
-    description: "Planned slice for reports and native loop.",
-    status: "planned",
-    badge_count: 0,
-  },
+  { id: "c3", name: "Pattern Library + RAG", description: "Planned slice for pattern retrieval and controls.", status: "planned", badge_count: 0 },
+  { id: "c4", name: "Dataset & Metrics Studio", description: "Planned slice for datasets and evaluators.", status: "planned", badge_count: 0 },
+  { id: "c5", name: "Optimizer Run Monitor", description: "Planned slice for run timeline and metrics monitor.", status: "planned", badge_count: 0 },
+  { id: "c6", name: "Report + Champion Export/Import", description: "Planned slice for reports and native loop.", status: "planned", badge_count: 0 },
 ];
 
-// Русский комментарий: иконки capability для меню рабочего экрана проекта.
+// Русский комментарий: иконки capability для меню рабочего экрана battle.
 const CAPABILITY_ICONS: Record<string, string> = {
-  c1: "folders",
+  c1: "swords",
   c2: "messages-square",
   c3: "library",
   c4: "database",
@@ -88,387 +49,258 @@ const CAPABILITY_ICONS: Record<string, string> = {
   c6: "package-check",
 };
 
-// Русский комментарий: структурный тип маршрута для двух основных экранов SaaS-каркаса.
-type ScreenRoute =
-  | { name: "projects_hub" }
-  | {
-      name: "workspace";
-      workspaceId: string;
-    };
+// Русский комментарий: маршруты двух экранов - hub и workspace.
+type ScreenRoute = { name: "battles_hub" } | { name: "battle_workspace"; arenaId: string };
 
-// Русский комментарий: режим модалки workspace для создания/переименования.
-type WorkspaceDialogMode = "create" | "rename" | null;
+// Русский комментарий: режим модалки арены.
+type ArenaDialogMode = "create" | "rename" | null;
 
-// Русский комментарий: структура состояния UI для C1 и planned-preview capability.
+// Русский комментарий: состояние React-приложения для C1/C2 с planned-заглушками.
 type UiState = {
   capabilities: Capability[];
   activeCapabilityId: string;
-  workspaces: WorkspaceRecord[];
-  activeWorkspaceId: string;
-  projects: ProjectRecord[];
-  activeProjectId: string;
-  projectNameInput: string;
-  projectDescriptionInput: string;
+  arenas: ArenaRecord[];
+  activeArenaId: string;
   c2ChatInput: string;
   c2Messages: C2ChatMessage[];
   c2CandidateSetDraft: C2CandidateSetDraft | null;
   budgetPercent: number;
   budgetStage: string;
-  metricWorkspaces: string;
-  metricProjects: string;
-  metricWorkspaceStatus: string;
-  metricProjectStatus: string;
+  metricArenas: string;
+  metricArenaStatus: string;
   jsonText: string;
   exportMeta: string;
   lastPayload: Record<string, unknown> | null;
 };
 
-// Русский комментарий: корневой React-компонент frontend workbench с разделением на Projects Hub и Project Workspace.
+// Русский комментарий: корневой компонент frontend shell.
 export function App(): JSX.Element {
   const [route, setRoute] = useState<ScreenRoute>(() => parseRoute(window.location.pathname));
   const [state, setState] = useState<UiState>({
     capabilities: FALLBACK_CAPABILITIES,
-    activeCapabilityId: "c1",
-    workspaces: [],
-    activeWorkspaceId: "",
-    projects: [],
-    activeProjectId: "",
-    projectNameInput: "",
-    projectDescriptionInput: "",
+    activeCapabilityId: "c2",
+    arenas: [],
+    activeArenaId: "",
     c2ChatInput: "",
     c2Messages: [],
     c2CandidateSetDraft: null,
     budgetPercent: 0,
     budgetStage: "idle",
-    metricWorkspaces: "0",
-    metricProjects: "0",
-    metricWorkspaceStatus: "not selected",
-    metricProjectStatus: "not selected",
-    jsonText: "Run C1 actions to see API payloads.",
+    metricArenas: "0",
+    metricArenaStatus: "not selected",
+    jsonText: "Run C1/C2 actions to see API payloads.",
     exportMeta: "No payload available yet.",
     lastPayload: null,
   });
+  const [arenaDialogMode, setArenaDialogMode] = useState<ArenaDialogMode>(null);
+  const [arenaDialogArenaId, setArenaDialogArenaId] = useState<string>("");
+  const [arenaDialogName, setArenaDialogName] = useState<string>("");
+  const [arenaDialogDescription, setArenaDialogDescription] = useState<string>("");
+  const [arenaMenuOpenId, setArenaMenuOpenId] = useState<string | null>(null);
 
-  const [workspaceDialogMode, setWorkspaceDialogMode] = useState<WorkspaceDialogMode>(null);
-  const [workspaceDialogWorkspaceId, setWorkspaceDialogWorkspaceId] = useState<string>("");
-  const [workspaceDialogName, setWorkspaceDialogName] = useState<string>("");
-  const [workspaceDialogDescription, setWorkspaceDialogDescription] = useState<string>("");
-  const [workspaceMenuOpenId, setWorkspaceMenuOpenId] = useState<string | null>(null);
-
-  // Русский комментарий: активная capability, отображаемая в меню рабочего экрана проекта.
+  // Русский комментарий: активная capability для контентной панели.
   const activeCapability = useMemo(
     () => state.capabilities.find((item) => item.id === state.activeCapabilityId) ?? FALLBACK_CAPABILITIES[0],
     [state.capabilities, state.activeCapabilityId],
   );
 
-  // Русский комментарий: выбранный workspace для заголовков и операций C1.
-  const activeWorkspace = useMemo(
-    () => state.workspaces.find((item) => item.workspace_id === state.activeWorkspaceId) ?? null,
-    [state.workspaces, state.activeWorkspaceId],
+  // Русский комментарий: активная арена по выбранному id.
+  const activeArena = useMemo(
+    () => state.arenas.find((item) => item.workspace_id === state.activeArenaId) ?? null,
+    [state.arenas, state.activeArenaId],
   );
 
-  // Русский комментарий: загружает capability-каталог при старте приложения.
+  // Русский комментарий: загрузка capability-каталога.
   useEffect(() => {
     void (async () => {
       try {
         const catalog = await fetchCapabilityCatalog();
         setState((prev) => ({ ...prev, capabilities: catalog.capabilities }));
       } catch {
-        // Русский комментарий: fallback остается активным, чтобы UI не ломался при сетевых сбоях.
+        // Русский комментарий: fallback остается активным.
       }
     })();
   }, []);
 
-  // Русский комментарий: загружает список workspace и синхронизирует его с текущим маршрутом.
+  // Русский комментарий: первичная загрузка арен.
   useEffect(() => {
-    void refreshWorkspaces();
+    void refreshArenas();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Русский комментарий: слушает переходы браузера назад/вперед и обновляет локальный route-state.
+  // Русский комментарий: синхронизация route-state на popstate.
   useEffect(() => {
-    const onPopState = (): void => {
-      setRoute(parseRoute(window.location.pathname));
-    };
+    const onPopState = (): void => setRoute(parseRoute(window.location.pathname));
     window.addEventListener("popstate", onPopState);
-    return () => {
-      window.removeEventListener("popstate", onPopState);
-    };
+    return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
-  // Русский комментарий: при переходе в workspace-route подгружает проекты нужного workspace.
+  // Русский комментарий: при переходе в workspace загружаем контекст арены.
   useEffect(() => {
-    if (route.name !== "workspace") {
+    if (route.name !== "battle_workspace" || !route.arenaId) {
       return;
     }
-    if (!route.workspaceId) {
-      return;
-    }
-    void loadWorkspaceProjects(route.workspaceId);
+    void loadArenaContext(route.arenaId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route]);
 
-  // Русский комментарий: закрывает меню workspace-карточки при клике за пределами меню.
+  // Русский комментарий: закрывает меню карточки при клике вне зоны меню.
   useEffect(() => {
     const onDocumentClick = (event: MouseEvent): void => {
       const target = event.target as Element | null;
-      if (!target) {
+      if (target && target.closest(".workspace-menu-wrap")) {
         return;
       }
-      if (target.closest(".workspace-menu-wrap")) {
-        return;
-      }
-      setWorkspaceMenuOpenId(null);
+      setArenaMenuOpenId(null);
     };
     document.addEventListener("click", onDocumentClick);
-    return () => {
-      document.removeEventListener("click", onDocumentClick);
-    };
+    return () => document.removeEventListener("click", onDocumentClick);
   }, []);
 
-  // Русский комментарий: закрывает модалку по Escape для удобства UX.
+  // Русский комментарий: закрытие модалки по клавише Escape.
   useEffect(() => {
     const onEsc = (event: KeyboardEvent): void => {
       if (event.key === "Escape") {
-        closeWorkspaceDialog();
+        closeArenaDialog();
       }
     };
     document.addEventListener("keydown", onEsc);
-    return () => {
-      document.removeEventListener("keydown", onEsc);
-    };
+    return () => document.removeEventListener("keydown", onEsc);
   });
 
-  // Русский комментарий: после каждого рендера переинициализирует Lucide-иконки.
+  // Русский комментарий: переинициализация lucide-иконок после рендера.
   useEffect(() => {
     if (window.lucide && typeof window.lucide.createIcons === "function") {
       window.lucide.createIcons();
     }
   });
 
-  // Русский комментарий: переключает интерфейс на Projects Hub и синхронизирует URL.
-  function navigateToProjectsHub(): void {
-    const path = "/projects";
-    window.history.pushState({}, "", path);
-    setRoute({ name: "projects_hub" });
+  // Русский комментарий: переход на hub.
+  function navigateToBattlesHub(): void {
+    window.history.pushState({}, "", "/battles");
+    setRoute({ name: "battles_hub" });
     setState((prev) => ({
       ...prev,
-      activeCapabilityId: "c1",
-      activeWorkspaceId: "",
-      projects: [],
-      activeProjectId: "",
+      activeArenaId: "",
       c2ChatInput: "",
       c2Messages: [],
       c2CandidateSetDraft: null,
-      metricProjects: "0",
-      metricWorkspaceStatus: "not selected",
-      metricProjectStatus: "not selected",
+      metricArenaStatus: "not selected",
     }));
   }
 
-  // Русский комментарий: переключает интерфейс на рабочий экран конкретного workspace и синхронизирует URL.
-  function navigateToWorkspace(workspaceId: string): void {
-    const path = `/projects/${encodeURIComponent(workspaceId)}/workspace`;
-    window.history.pushState({}, "", path);
-    setRoute({ name: "workspace", workspaceId });
+  // Русский комментарий: переход в workspace выбранной арены.
+  function navigateToArenaWorkspace(arenaId: string): void {
+    window.history.pushState({}, "", `/battles/${encodeURIComponent(arenaId)}`);
+    setRoute({ name: "battle_workspace", arenaId });
   }
 
-  // Русский комментарий: обновляет список workspace и поддерживает консистентность активного контекста.
-  async function refreshWorkspaces(preferredWorkspaceId?: string): Promise<void> {
+  // Русский комментарий: загрузка списка арен.
+  async function refreshArenas(preferredArenaId?: string): Promise<void> {
     try {
-      const workspacesResponse = await listWorkspaces();
-      const workspaces = workspacesResponse.workspaces;
-
-      let nextWorkspaceId = "";
-      if (preferredWorkspaceId && workspaces.some((item) => item.workspace_id === preferredWorkspaceId)) {
-        nextWorkspaceId = preferredWorkspaceId;
-      } else if (route.name === "workspace" && workspaces.some((item) => item.workspace_id === route.workspaceId)) {
-        nextWorkspaceId = route.workspaceId;
+      const arenasResponse = await listArenas();
+      const arenas = arenasResponse.arenas;
+      let nextArenaId = "";
+      if (preferredArenaId && arenas.some((item) => item.workspace_id === preferredArenaId)) {
+        nextArenaId = preferredArenaId;
+      } else if (route.name === "battle_workspace" && arenas.some((item) => item.workspace_id === route.arenaId)) {
+        nextArenaId = route.arenaId;
       }
 
-      const snapshot = {
-        status: "success",
-        c1_slice: "workspace_registry_v0",
-        workspaces,
-        active_workspace_id: nextWorkspaceId,
-      };
-
+      const snapshot = { status: "success", c1_slice: "battle_registry_v0", arenas, active_arena_id: nextArenaId };
       setState((prev) => ({
         ...prev,
-        workspaces,
-        activeWorkspaceId: nextWorkspaceId,
-        metricWorkspaces: String(workspaces.length),
-        metricWorkspaceStatus: nextWorkspaceId ? "selected" : "not selected",
+        arenas,
+        activeArenaId: nextArenaId,
+        metricArenas: String(arenas.length),
+        metricArenaStatus: nextArenaId ? "selected" : "not selected",
         budgetPercent: 100,
         budgetStage: "loaded",
         jsonText: prettyJson(snapshot),
         lastPayload: snapshot,
       }));
-
-      if (route.name === "workspace" && nextWorkspaceId === "") {
-        navigateToProjectsHub();
+      if (route.name === "battle_workspace" && nextArenaId === "") {
+        navigateToBattlesHub();
       }
     } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        budgetPercent: 100,
-        budgetStage: "failed",
-        jsonText: prettyJson({ status: "error", message: String(error) }),
-      }));
+      setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
     }
   }
 
-  // Русский комментарий: подгружает проекты выбранного workspace и фиксирует активный project-контекст.
-  async function loadWorkspaceProjects(workspaceId: string): Promise<void> {
-    setState((prev) => ({ ...prev, activeWorkspaceId: workspaceId, budgetStage: "loading projects" }));
-
+  // Русский комментарий: загрузка C2-контекста по арене.
+  async function loadArenaContext(arenaId: string): Promise<void> {
+    setState((prev) => ({ ...prev, activeArenaId: arenaId, budgetStage: "loading battle", budgetPercent: 40 }));
     try {
-      const projectsResponse = await listProjects(workspaceId);
-      const projects = projectsResponse.projects;
-      const nextProjectId = projects[0]?.project_id ?? "";
+      const arenaResponse = await getArena(arenaId);
+      const chatResponse = await getArenaChatState(arenaId);
       const snapshot = {
         status: "success",
-        action: "select_workspace",
-        workspace_id: workspaceId,
-        projects,
+        action: "open_battle_workspace",
+        arena: arenaResponse.arena,
+        messages_total: chatResponse.messages_total,
+        candidate_set_id: chatResponse.candidate_set_draft?.candidate_set_id ?? null,
       };
-
       setState((prev) => ({
         ...prev,
-        projects,
-        activeWorkspaceId: workspaceId,
-        activeProjectId: nextProjectId,
-        metricProjects: String(projects.length),
-        metricWorkspaceStatus: "selected",
-        metricProjectStatus: nextProjectId ? "selected" : "not selected",
+        activeArenaId: arenaId,
+        c2Messages: chatResponse.messages,
+        c2CandidateSetDraft: chatResponse.candidate_set_draft,
+        metricArenaStatus: "selected",
         budgetPercent: 100,
-        budgetStage: "workspace selected",
+        budgetStage: "battle ready",
         jsonText: prettyJson(snapshot),
         lastPayload: snapshot,
       }));
-      if (state.activeCapabilityId === "c2" && nextProjectId) {
-        await loadC2State(nextProjectId);
-      }
     } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        projects: [],
-        activeProjectId: "",
-        budgetPercent: 100,
-        budgetStage: "failed",
-        jsonText: prettyJson({ status: "error", message: String(error) }),
-      }));
+      setState((prev) => ({ ...prev, c2Messages: [], c2CandidateSetDraft: null, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
     }
   }
 
-  // Русский комментарий: обрабатывает переключение capability в рабочем экране проекта.
+  // Русский комментарий: переключение capability в workspace.
   async function handleSwitchCapability(capabilityId: string): Promise<void> {
     setState((prev) => ({
       ...prev,
       activeCapabilityId: capabilityId,
-      budgetPercent: capabilityId === "c1" ? prev.budgetPercent : 10,
-      budgetStage: capabilityId === "c1" ? prev.budgetStage : "switch capability",
+      budgetPercent: capabilityId === "c2" ? prev.budgetPercent : 10,
+      budgetStage: capabilityId === "c2" ? prev.budgetStage : "switch capability",
     }));
-
-    if (capabilityId === "c1") {
-      return;
-    }
-
     if (capabilityId === "c2") {
-      if (!state.activeProjectId) {
-        setState((prev) => ({
-          ...prev,
-          jsonText: prettyJson({
-            status: "notice",
-            message: "Select project first, then use C2 chat to generate candidate drafts.",
-          }),
-        }));
+      if (!state.activeArenaId) {
+        setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "notice", message: "Select battle first, then use C2 chat." }) }));
         return;
       }
-      await loadC2State(state.activeProjectId);
+      await loadArenaContext(state.activeArenaId);
       return;
     }
-
     try {
       const payload: StubPayload = await fetchStubCapability(capabilityId);
-      setState((prev) => ({
-        ...prev,
-        jsonText: prettyJson(payload),
-      }));
+      setState((prev) => ({ ...prev, jsonText: prettyJson(payload) }));
     } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        jsonText: prettyJson({ status: "error", message: String(error) }),
-      }));
+      setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "error", message: String(error) }) }));
     }
   }
 
-  // Русский комментарий: загружает состояние C2-чата для выбранного project и синхронизирует UI.
-  async function loadC2State(projectId: string): Promise<void> {
-    setState((prev) => ({ ...prev, budgetStage: "loading c2 chat", budgetPercent: 40 }));
-    try {
-      const response = await getProjectChatState(projectId);
-      const snapshot = {
-        status: "success",
-        capability_id: "c2",
-        action: "load_chat_state",
-        project_id: projectId,
-        messages_total: response.messages_total,
-        candidate_set_id: response.candidate_set_draft?.candidate_set_id ?? null,
-      };
-      setState((prev) => ({
-        ...prev,
-        c2Messages: response.messages,
-        c2CandidateSetDraft: response.candidate_set_draft,
-        budgetStage: "c2 ready",
-        budgetPercent: 100,
-        jsonText: prettyJson(snapshot),
-        lastPayload: snapshot,
-      }));
-    } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        budgetStage: "failed",
-        budgetPercent: 100,
-        jsonText: prettyJson({ status: "error", message: String(error) }),
-      }));
-    }
-  }
-
-  // Русский комментарий: отправляет user-brief в C2 чат и при необходимости запускает генерацию candidate draft.
+  // Русский комментарий: отправка сообщения в C2 чат.
   async function handleSendC2Message(generateCandidates: boolean): Promise<void> {
-    const projectId = state.activeProjectId;
-    if (!projectId) {
-      setState((prev) => ({
-        ...prev,
-        jsonText: prettyJson({ status: "error", message: "Select project before using C2 chat." }),
-      }));
+    const arenaId = state.activeArenaId;
+    if (!arenaId) {
+      setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "error", message: "Open battle before using C2 chat." }) }));
       return;
     }
     const message = state.c2ChatInput.trim();
     if (!message) {
-      setState((prev) => ({
-        ...prev,
-        jsonText: prettyJson({ status: "error", message: "C2 brief message is required." }),
-      }));
+      setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "error", message: "C2 brief message is required." }) }));
       return;
     }
 
-    setState((prev) => ({
-      ...prev,
-      budgetStage: generateCandidates ? "generating candidates" : "sending message",
-      budgetPercent: 55,
-    }));
+    setState((prev) => ({ ...prev, budgetStage: generateCandidates ? "generating candidates" : "sending message", budgetPercent: 60 }));
     try {
-      const response = await postProjectChatMessage(projectId, message, {
-        generateCandidates,
-        maxCandidates: 3,
-      });
+      const response = await postArenaChatMessage(arenaId, message, { generateCandidates, maxCandidates: 3 });
       const snapshot = {
         status: "success",
         capability_id: "c2",
         action: generateCandidates ? "generate_candidates" : "append_message",
-        project_id: projectId,
+        arena_id: arenaId,
         messages_total: response.messages_total,
         candidate_set_id: response.candidate_set_draft?.candidate_set_id ?? null,
       };
@@ -477,337 +309,186 @@ export function App(): JSX.Element {
         c2ChatInput: "",
         c2Messages: response.messages,
         c2CandidateSetDraft: response.candidate_set_draft ?? prev.c2CandidateSetDraft,
+        budgetStage: "c2 updated",
         budgetPercent: 100,
-        budgetStage: generateCandidates ? "candidates generated" : "message saved",
         jsonText: prettyJson(snapshot),
         lastPayload: snapshot,
       }));
     } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        budgetPercent: 100,
-        budgetStage: "failed",
-        jsonText: prettyJson({ status: "error", message: String(error) }),
-      }));
+      setState((prev) => ({ ...prev, budgetStage: "failed", budgetPercent: 100, jsonText: prettyJson({ status: "error", message: String(error) }) }));
     }
   }
 
-  // Русский комментарий: открывает модалку создания workspace.
-  function openCreateWorkspaceDialog(): void {
-    setWorkspaceDialogMode("create");
-    setWorkspaceDialogWorkspaceId("");
-    setWorkspaceDialogName("");
-    setWorkspaceDialogDescription("");
-    setWorkspaceMenuOpenId(null);
-  }
-
-  // Русский комментарий: открывает модалку переименования выбранного workspace.
-  function openRenameWorkspaceDialog(workspace: WorkspaceRecord): void {
-    setWorkspaceDialogMode("rename");
-    setWorkspaceDialogWorkspaceId(workspace.workspace_id);
-    setWorkspaceDialogName(workspace.name);
-    setWorkspaceDialogDescription(workspace.description);
-    setWorkspaceMenuOpenId(null);
-  }
-
-  // Русский комментарий: закрывает модалку workspace и очищает временный draft.
-  function closeWorkspaceDialog(): void {
-    setWorkspaceDialogMode(null);
-    setWorkspaceDialogWorkspaceId("");
-    setWorkspaceDialogName("");
-    setWorkspaceDialogDescription("");
-  }
-
-  // Русский комментарий: создает или переименовывает workspace из модалки в зависимости от режима.
-  async function handleSubmitWorkspaceDialog(): Promise<void> {
-    const name = workspaceDialogName.trim();
-    if (!name) {
-      setState((prev) => ({
-        ...prev,
-        jsonText: prettyJson({ status: "error", message: "Workspace name is required." }),
-      }));
-      return;
-    }
-
-    try {
-      if (workspaceDialogMode === "create") {
-        const created = await createWorkspace(name, workspaceDialogDescription.trim());
-        await refreshWorkspaces(created.workspace.workspace_id);
-        setState((prev) => ({
-          ...prev,
-          jsonText: prettyJson({ status: "success", action: "create_workspace", workspace: created.workspace }),
-        }));
-      } else if (workspaceDialogMode === "rename") {
-        const updated = await renameWorkspace(workspaceDialogWorkspaceId, name);
-        await refreshWorkspaces(updated.workspace.workspace_id);
-        setState((prev) => ({
-          ...prev,
-          jsonText: prettyJson({ status: "success", action: "rename_workspace", workspace: updated.workspace }),
-        }));
-      }
-      closeWorkspaceDialog();
-    } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        jsonText: prettyJson({ status: "error", message: String(error) }),
-      }));
-    }
-  }
-
-  // Русский комментарий: дублирует workspace из меню карточки.
-  async function handleDuplicateWorkspace(workspaceId: string): Promise<void> {
-    setWorkspaceMenuOpenId(null);
-    try {
-      const duplicated = await duplicateWorkspace(workspaceId);
-      await refreshWorkspaces(duplicated.workspace.workspace_id);
-      setState((prev) => ({
-        ...prev,
-        jsonText: prettyJson({ status: "success", action: "duplicate_workspace", workspace: duplicated.workspace }),
-      }));
-    } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        jsonText: prettyJson({ status: "error", message: String(error) }),
-      }));
-    }
-  }
-
-  // Русский комментарий: удаляет workspace из меню карточки после подтверждения пользователя.
-  async function handleDeleteWorkspace(workspaceId: string): Promise<void> {
-    setWorkspaceMenuOpenId(null);
-    const confirmed = window.confirm("Delete this workspace? This action cannot be undone.");
-    if (!confirmed) {
-      return;
-    }
-    try {
-      await deleteWorkspace(workspaceId);
-      await refreshWorkspaces();
-      setState((prev) => ({
-        ...prev,
-        jsonText: prettyJson({ status: "success", action: "delete_workspace", workspace_id: workspaceId }),
-      }));
-    } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        jsonText: prettyJson({ status: "error", message: String(error) }),
-      }));
-    }
-  }
-
-  // Русский комментарий: открывает выбранный workspace и загружает его проектный контекст.
-  async function handleOpenWorkspace(workspaceId: string): Promise<void> {
-    navigateToWorkspace(workspaceId);
-    await loadWorkspaceProjects(workspaceId);
-  }
-
-  // Русский комментарий: создает project в активном workspace.
-  async function handleCreateProject(): Promise<void> {
-    const workspaceId = state.activeWorkspaceId;
-    if (!workspaceId) {
-      setState((prev) => ({
-        ...prev,
-        jsonText: prettyJson({ status: "error", message: "Select workspace before creating project." }),
-      }));
-      return;
-    }
-
-    const name = state.projectNameInput.trim();
-    const description = state.projectDescriptionInput.trim();
-    if (!name) {
-      setState((prev) => ({
-        ...prev,
-        jsonText: prettyJson({ status: "error", message: "Project name is required." }),
-      }));
-      return;
-    }
-
-    setState((prev) => ({ ...prev, budgetPercent: 50, budgetStage: "creating project" }));
-
-    try {
-      const created = await createProject(workspaceId, name, description);
-      const projectsResponse = await listProjects(workspaceId);
-      const projects = projectsResponse.projects;
-      const snapshot = {
-        status: "success",
-        action: "create_project",
-        workspace_id: workspaceId,
-        created_project_id: created.project.project_id,
-        projects,
-      };
-
-      setState((prev) => ({
-        ...prev,
-        projects,
-        activeProjectId: created.project.project_id,
-        projectNameInput: "",
-        projectDescriptionInput: "",
-        budgetPercent: 100,
-        budgetStage: "project created",
-        metricProjects: String(projects.length),
-        metricProjectStatus: "selected",
-        jsonText: prettyJson(snapshot),
-        lastPayload: snapshot,
-      }));
-      if (state.activeCapabilityId === "c2") {
-        await loadC2State(created.project.project_id);
-      }
-    } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        budgetPercent: 100,
-        budgetStage: "failed",
-        jsonText: prettyJson({ status: "error", message: String(error) }),
-      }));
-    }
-  }
-
-  // Русский комментарий: выбирает project и подтверждает выбор через GET /api/projects/{id}.
-  async function handleSelectProject(projectId: string): Promise<void> {
-    setState((prev) => ({ ...prev, activeProjectId: projectId, budgetStage: "loading project" }));
-    try {
-      const response = await getProject(projectId);
-      const snapshot = {
-        status: "success",
-        action: "select_project",
-        project: response.project,
-      };
-
-      setState((prev) => ({
-        ...prev,
-        budgetPercent: 100,
-        budgetStage: "project selected",
-        metricProjectStatus: "selected",
-        jsonText: prettyJson(snapshot),
-        lastPayload: snapshot,
-      }));
-      if (state.activeCapabilityId === "c2") {
-        await loadC2State(projectId);
-      }
-    } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        budgetPercent: 100,
-        budgetStage: "failed",
-        jsonText: prettyJson({ status: "error", message: String(error) }),
-      }));
-    }
-  }
-
-  // Русский комментарий: экспортирует последний JSON payload для ручной инспекции.
-  function handleExportPayload(): void {
-    if (!state.lastPayload) {
-      setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "notice", message: "No payload to export yet." }) }));
-      return;
-    }
-
-    const fileName = makeTimestampedFileName("c1_workspace_snapshot");
-    exportJsonToFile(state.lastPayload, fileName);
-    setState((prev) => ({ ...prev, exportMeta: `Saved: ${fileName}` }));
-  }
-
-  // Русский комментарий: синхронизирует input названия project.
-  function handleProjectNameChange(nextValue: string): void {
-    setState((prev) => ({ ...prev, projectNameInput: nextValue }));
-  }
-
-  // Русский комментарий: синхронизирует input описания project.
-  function handleProjectDescriptionChange(nextValue: string): void {
-    setState((prev) => ({ ...prev, projectDescriptionInput: nextValue }));
-  }
-
-  // Русский комментарий: синхронизирует текст brief-ввода для C2 чата.
+  // Русский комментарий: обработчик текста C2 input.
   function handleC2ChatInputChange(nextValue: string): void {
     setState((prev) => ({ ...prev, c2ChatInput: nextValue }));
   }
 
-  // Русский комментарий: возвращает демонстрационные агрегаты карточки workspace для живого визуального заполнения.
-  function buildWorkspaceCardMetrics(workspace: WorkspaceRecord, index: number): {
-    agents: number;
-    tests: number;
-    dataRows: number;
-    statusLabel: string;
-  } {
-    const seed = hashString(workspace.workspace_id) + index * 17;
-    const agents = 2 + (seed % 8);
-    const tests = 24 + (seed % 7) * 12;
-    const dataRows = 120 + (seed % 9) * 80;
-    const statusLabel = index === 0 ? "Champion" : "Baseline";
-    return { agents, tests, dataRows, statusLabel };
+  // Русский комментарий: открывает модалку создания арены.
+  function openCreateArenaDialog(): void {
+    setArenaDialogMode("create");
+    setArenaDialogArenaId("");
+    setArenaDialogName("");
+    setArenaDialogDescription("");
   }
 
-  // Русский комментарий: локально выбирает активную карточку workspace в Projects Hub без перехода на экран workspace.
-  function handleSelectWorkspaceCard(workspaceId: string): void {
-    setState((prev) => ({
-      ...prev,
-      activeWorkspaceId: workspaceId,
-      metricWorkspaceStatus: "selected",
-      budgetStage: "workspace highlighted",
-    }));
+  // Русский комментарий: открывает модалку переименования арены.
+  function openRenameArenaDialog(arena: ArenaRecord): void {
+    setArenaDialogMode("rename");
+    setArenaDialogArenaId(arena.workspace_id);
+    setArenaDialogName(arena.name);
+    setArenaDialogDescription(arena.description);
+    setArenaMenuOpenId(null);
   }
 
-  const isWorkspaceRoute = route.name === "workspace";
-  const isC1Enabled = activeCapability.id === "c1" && activeCapability.status === "enabled";
-  const isC2Enabled = activeCapability.id === "c2" && activeCapability.status === "enabled";
+  // Русский комментарий: закрывает модалку арены.
+  function closeArenaDialog(): void {
+    setArenaDialogMode(null);
+    setArenaDialogArenaId("");
+    setArenaDialogName("");
+    setArenaDialogDescription("");
+  }
+
+  // Русский комментарий: submit логики модалки создания/переименования.
+  async function handleSubmitArenaDialog(): Promise<void> {
+    const name = arenaDialogName.trim();
+    const description = arenaDialogDescription.trim();
+    if (!name) {
+      setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "error", message: "Battle name is required." }) }));
+      return;
+    }
+
+    if (arenaDialogMode === "create") {
+      setState((prev) => ({ ...prev, budgetPercent: 40, budgetStage: "creating battle" }));
+      try {
+        const created = await createArena(name, description);
+        await refreshArenas(created.arena.workspace_id);
+        const snapshot = { status: "success", action: "create_arena", arena: created.arena };
+        setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "battle created", jsonText: prettyJson(snapshot), lastPayload: snapshot }));
+        closeArenaDialog();
+      } catch (error) {
+        setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
+      }
+      return;
+    }
+
+    if (arenaDialogMode === "rename" && arenaDialogArenaId) {
+      setState((prev) => ({ ...prev, budgetPercent: 45, budgetStage: "renaming battle" }));
+      try {
+        const renamed = await renameArena(arenaDialogArenaId, name);
+        await refreshArenas(renamed.arena.workspace_id);
+        const snapshot = { status: "success", action: "rename_arena", arena: renamed.arena };
+        setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "battle renamed", jsonText: prettyJson(snapshot), lastPayload: snapshot }));
+        closeArenaDialog();
+      } catch (error) {
+        setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
+      }
+    }
+  }
+
+  // Русский комментарий: дублирует арену из меню карточки.
+  async function handleDuplicateArena(arenaId: string): Promise<void> {
+    setArenaMenuOpenId(null);
+    try {
+      const duplicated = await duplicateArena(arenaId);
+      await refreshArenas(duplicated.arena.workspace_id);
+      setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "success", action: "duplicate_arena", arena: duplicated.arena }) }));
+    } catch (error) {
+      setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "error", message: String(error) }) }));
+    }
+  }
+
+  // Русский комментарий: удаляет арену из меню карточки.
+  async function handleDeleteArena(arenaId: string): Promise<void> {
+    setArenaMenuOpenId(null);
+    const confirmed = window.confirm("Delete this battle? This action cannot be undone.");
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await deleteArena(arenaId);
+      await refreshArenas();
+      setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "success", action: "delete_arena", arena_id: arenaId }) }));
+      if (route.name === "battle_workspace" && route.arenaId === arenaId) {
+        navigateToBattlesHub();
+      }
+    } catch (error) {
+      setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "error", message: String(error) }) }));
+    }
+  }
+
+  // Русский комментарий: открывает выбранную арену.
+  async function handleOpenArena(arenaId: string): Promise<void> {
+    navigateToArenaWorkspace(arenaId);
+    await loadArenaContext(arenaId);
+  }
+
+  // Русский комментарий: локально выделяет карточку в hub.
+  function handleSelectArenaCard(arenaId: string): void {
+    setState((prev) => ({ ...prev, activeArenaId: arenaId, metricArenaStatus: "selected", budgetStage: "battle highlighted" }));
+  }
+
+  // Русский комментарий: экспортирует последний payload в файл.
+  function handleExportPayload(): void {
+    if (!state.lastPayload) {
+      return;
+    }
+    const fileName = makeTimestampedFileName("battle_snapshot");
+    exportJsonToFile(fileName, state.lastPayload);
+    setState((prev) => ({ ...prev, exportMeta: `${fileName}.json exported` }));
+  }
+
+  // Русский комментарий: генерирует демонстрационные метрики для плитки арены.
+  function buildArenaCardMetrics(arena: ArenaRecord, index: number): { agents: number; tests: number; dataRows: number } {
+    const seed = hashString(arena.workspace_id) + index * 17;
+    return { agents: (seed % 7) + 2, tests: (seed % 12) + 8, dataRows: (seed % 240) + 60 };
+  }
+
+  const isBattleRoute = route.name === "battle_workspace";
+  const isC2Enabled = activeCapability.id === "c2";
 
   return (
-    <div className={`app${isWorkspaceRoute ? " app--workspace" : " app--hub"}`} id="app-root">
+    <div className={`app${isBattleRoute ? " app--workspace" : " app--hub"}`} id="app-root">
       <aside className="app-sidebar">
         <div className="app-sidebar-brand">
-          <img src="/design_system/assets/logo-lockup.svg" alt="AutoAgent Optimizer" />
+          <img src="/design_system/assets/logo.svg" alt="AutoAgent Optimizer" />
         </div>
-
-        {isWorkspaceRoute ? (
-          <>
-            <div className="app-sidebar-section">
-              <div className="app-side-label">Project Workspace</div>
-              <button type="button" className="app-side-pick" onClick={navigateToProjectsHub}>
-                <i data-lucide="arrow-left" />
-                <span>Back to Projects Hub</span>
-              </button>
-            </div>
-
-            <nav className="app-side-nav" id="capability-nav" aria-label="Capabilities">
-              {state.capabilities.map((capability) => {
-                const iconName = CAPABILITY_ICONS[capability.id] ?? "circle";
+        <div className="app-sidebar-section">
+          <div className="app-side-label">Workspace</div>
+          <button type="button" className="app-side-pick" onClick={navigateToBattlesHub}>
+            <span className="ws-dot" />
+            <span>Battles Hub</span>
+            <i data-lucide="chevrons-up-down" />
+          </button>
+        </div>
+        <nav className="app-side-nav">
+          {isBattleRoute
+            ? state.capabilities.map((capability) => {
                 const statusClass = capability.status === "enabled" ? "enabled" : "planned";
+                const icon = CAPABILITY_ICONS[capability.id] ?? "dot";
                 return (
                   <button
                     key={capability.id}
                     type="button"
-                    className={`cap-link${capability.id === state.activeCapabilityId ? " active" : ""}${
-                      capability.status === "planned" ? " disabled" : ""
-                    }`}
+                    className={`cap-link${state.activeCapabilityId === capability.id ? " active" : ""}${capability.status === "planned" ? " disabled" : ""}`}
                     onClick={() => {
                       void handleSwitchCapability(capability.id);
                     }}
                   >
-                    <i data-lucide={iconName} className="cap-icon" />
+                    <i data-lucide={icon} className="cap-icon" />
                     <span className="cap-name">{capability.name}</span>
-                    <span className={`cap-badge ${statusClass}`}>
-                      {capability.status === "enabled" ? "live" : "planned"}
-                      {capability.badge_count ? ` ${capability.badge_count}` : ""}
-                    </span>
+                    <span className={`cap-badge ${statusClass}`}>{capability.status}</span>
                   </button>
                 );
-              })}
-            </nav>
-          </>
-        ) : (
-          <div className="app-sidebar-section">
-            <div className="app-side-label">Workspace</div>
-            <button type="button" className="app-side-pick" disabled>
-              <span className="ws-dot" />
-              <span>Projects Hub</span>
-            </button>
-          </div>
-        )}
-
+              })
+            : <div className="issue-row info">Open a battle to access capability menu.</div>}
+        </nav>
         <div className="app-sidebar-foot">
           <div className="app-side-user">
-            <div className="avatar">AO</div>
+            <div className="avatar">EK</div>
             <div>
-              <div className="user-name">Optimizer Team</div>
-              <div className="user-org">vertical delivery mode</div>
+              <div className="user-name">Elena Kuznetsova</div>
+              <div className="user-org">ctrl2go · operator</div>
             </div>
             <i data-lucide="settings-2" />
           </div>
@@ -817,192 +498,102 @@ export function App(): JSX.Element {
       <div className="app-main">
         <header className="app-topbar">
           <div className="tb-left">
-            {isWorkspaceRoute ? (
-              <>
-                <span className="tb-crumb">Projects</span>
-                <span className="tb-sep">/</span>
-                <span className="tb-id">{activeWorkspace?.name ?? route.workspaceId}</span>
-                <span className="tb-pill">workspace mode</span>
-              </>
-            ) : (
-              <>
-                <span className="tb-crumb">Projects</span>
-                <span className="tb-sep">/</span>
-                <span className="tb-id">hub</span>
-                <span className="tb-pill">workspace registry</span>
-              </>
-            )}
+            {isBattleRoute
+              ? <>
+                  <span className="tb-crumb">Battles</span>
+                  <span className="tb-sep">/</span>
+                  <span className="tb-id">{activeArena?.name ?? route.arenaId}</span>
+                  <span className="tb-pill">battle workspace</span>
+                </>
+              : <>
+                  <span className="tb-crumb">Battles</span>
+                  <span className="tb-sep">/</span>
+                  <span className="tb-id">Hub</span>
+                  <span className="tb-pill">registry</span>
+                </>}
           </div>
-
-          <div className="tb-budget" id="budget-box">
+          <div className="tb-budget">
             <div className="tb-budget-label">
               <i data-lucide="gauge" />
-              <span>{isWorkspaceRoute ? "Workspace progress" : "Hub progress"}</span>
+              <span>{isBattleRoute ? "Battle progress" : "Hub progress"}</span>
             </div>
-            <div className="tb-budget-bar">
-              <div className="tb-budget-fill" style={{ width: `${state.budgetPercent}%` }} />
-            </div>
-            <div className="tb-budget-vals">
-              <span>{Math.round(state.budgetPercent)}%</span>
-              <span className="muted">{state.budgetStage}</span>
-            </div>
+            <div className="tb-budget-bar"><div className="tb-budget-fill" style={{ width: `${Math.max(0, Math.min(state.budgetPercent, 100))}%` }} /></div>
+            <div className="tb-budget-vals">{state.budgetPercent}% <span className="muted">{state.budgetStage}</span></div>
           </div>
-
           <div className="tb-right">
             <button type="button" className="tb-btn tb-btn-ghost" onClick={handleExportPayload}>
-              <i data-lucide="file-json-2" />
+              <i data-lucide="download" />
               Export snapshot
+            </button>
+            <button type="button" className="tb-btn tb-btn-primary" disabled>
+              <i data-lucide="rocket" />
+              Promote champion
             </button>
           </div>
         </header>
 
-        <div className="app-content app-content--single">
+        <div className={`app-content${isBattleRoute ? "" : " app-content--single"}`}>
           <main className="app-center">
-            {!isWorkspaceRoute ? (
+            {!isBattleRoute ? (
               <>
                 <section className="content-head">
                   <div>
-                    <h1 className="ch-title">
-                      Projects Hub <span>- SaaS workspace list</span>
-                    </h1>
-                    <p className="ch-sub">
-                      Manage customer workspaces and open a project context for optimization lifecycle.
-                    </p>
+                    <h1 className="ch-title">Battles Hub <span>- SaaS arena list</span></h1>
+                    <p className="ch-sub">Manage customer battles and open a workspace for optimization lifecycle.</p>
                   </div>
                   <div className="hub-actions">
-                    <button type="button" className="btn btn-primary" onClick={openCreateWorkspaceDialog}>
+                    <button type="button" className="btn btn-primary" onClick={openCreateArenaDialog}>
                       <i data-lucide="plus" />
-                      Add workspace
+                      Add battle
                     </button>
                   </div>
                 </section>
 
                 <section className="workspace-board">
                   <header className="workspace-board-head">
-                    <div className="workspace-board-label">Workspaces</div>
-                    <div className="workspace-board-count">{state.workspaces.length} total</div>
+                    <div className="workspace-board-label">Battles</div>
+                    <div className="workspace-board-count">{state.arenas.length} total</div>
                   </header>
-
                   <div className="workspace-grid" id="workspace-grid">
-                    {state.workspaces.length === 0 ? (
-                      <div className="workspace-card workspace-card--empty">
-                        No workspace yet. Click <b>Add workspace</b> to create the first one.
-                      </div>
+                    {state.arenas.length === 0 ? (
+                      <div className="workspace-card workspace-card--empty">No battle yet. Click <b>Add battle</b> to create the first one.</div>
                     ) : (
-                      state.workspaces.map((workspace, index) => {
-                        const metrics = buildWorkspaceCardMetrics(workspace, index);
+                      state.arenas.map((arena, index) => {
+                        const metrics = buildArenaCardMetrics(arena, index);
                         const isChampionCard = index === 0;
-                        const isActiveCard = state.activeWorkspaceId
-                          ? state.activeWorkspaceId === workspace.workspace_id
-                          : index === 0;
-                        const isCardMenuOpen = workspaceMenuOpenId === workspace.workspace_id;
+                        const isActiveCard = state.activeArenaId ? state.activeArenaId === arena.workspace_id : index === 0;
+                        const isCardMenuOpen = arenaMenuOpenId === arena.workspace_id;
                         return (
-                          <article
-                            key={workspace.workspace_id}
-                            className={`workspace-arch-card${isChampionCard ? " is-champion" : ""}${
-                              isActiveCard ? " is-active" : ""
-                            }`}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => {
-                              handleSelectWorkspaceCard(workspace.workspace_id);
-                            }}
-                            onKeyDown={(event) => {
-                              if (event.key === "Enter" || event.key === " ") {
-                                event.preventDefault();
-                                handleSelectWorkspaceCard(workspace.workspace_id);
-                              }
-                            }}
-                          >
+                          <article key={arena.workspace_id} className={`workspace-arch-card${isChampionCard ? " is-champion" : ""}${isActiveCard ? " is-active" : ""}`} onClick={() => { handleSelectArenaCard(arena.workspace_id); }}>
                             <div className="workspace-arch-head">
                               <div>
-                                <div className="workspace-card-title">{workspace.name}</div>
-                                <div className="workspace-card-meta">{workspace.workspace_id}</div>
+                                <div className="workspace-card-title">{arena.name}</div>
+                                <div className="workspace-card-meta">{arena.workspace_id}</div>
                               </div>
                               <div className="workspace-head-actions">
-                                <span className={`workspace-pill${isChampionCard ? " champ" : " base"}`}>
-                                  <span className="dot" />
-                                  {metrics.statusLabel}
-                                </span>
+                                <span className={`workspace-pill${isChampionCard ? " champ" : " base"}`}><span className="dot" />{isChampionCard ? "Champion" : "Baseline"}</span>
                                 <div className="workspace-menu-wrap">
-                                  <button
-                                    type="button"
-                                    className="workspace-menu-trigger"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      setWorkspaceMenuOpenId((prev) =>
-                                        prev === workspace.workspace_id ? null : workspace.workspace_id,
-                                      );
-                                    }}
-                                  >
+                                  <button type="button" className="workspace-menu-trigger" aria-label="Open battle menu" onClick={(event) => { event.stopPropagation(); setArenaMenuOpenId((prev) => (prev === arena.workspace_id ? null : arena.workspace_id)); }}>
                                     <i data-lucide="ellipsis" />
                                   </button>
                                   {isCardMenuOpen ? (
-                                    <div
-                                      className="workspace-menu"
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                      }}
-                                    >
-                                      <button
-                                        type="button"
-                                        className="workspace-menu-item"
-                                        onClick={() => {
-                                          openRenameWorkspaceDialog(workspace);
-                                        }}
-                                      >
-                                        Rename
-                                      </button>
-                                      <button
-                                        type="button"
-                                        className="workspace-menu-item"
-                                        onClick={() => {
-                                          void handleDuplicateWorkspace(workspace.workspace_id);
-                                        }}
-                                      >
-                                        Duplicate
-                                      </button>
-                                      <button
-                                        type="button"
-                                        className="workspace-menu-item is-destructive"
-                                        onClick={() => {
-                                          void handleDeleteWorkspace(workspace.workspace_id);
-                                        }}
-                                      >
-                                        Delete
-                                      </button>
+                                    <div className="workspace-menu">
+                                      <button type="button" className="workspace-menu-item" onClick={() => { openRenameArenaDialog(arena); }}>Rename</button>
+                                      <button type="button" className="workspace-menu-item" onClick={() => { void handleDuplicateArena(arena.workspace_id); }}>Duplicate</button>
+                                      <button type="button" className="workspace-menu-item is-destructive" onClick={() => { void handleDeleteArena(arena.workspace_id); }}>Delete</button>
                                     </div>
                                   ) : null}
                                 </div>
                               </div>
                             </div>
-
                             <div className="workspace-arch-metrics">
-                              <div className="workspace-metric">
-                                <span className="m-val">{metrics.agents}</span>
-                                <span className="m-lbl">agents</span>
-                              </div>
-                              <div className="workspace-metric">
-                                <span className="m-val">{metrics.tests}</span>
-                                <span className="m-lbl">tests</span>
-                              </div>
-                              <div className="workspace-metric">
-                                <span className="m-val">{metrics.dataRows}</span>
-                                <span className="m-lbl">data rows</span>
-                              </div>
+                              <div className="workspace-metric"><span className="m-val">{metrics.agents}</span><span className="m-lbl">agents</span></div>
+                              <div className="workspace-metric"><span className="m-val">{metrics.tests}</span><span className="m-lbl">tests</span></div>
+                              <div className="workspace-metric"><span className="m-val">{metrics.dataRows}</span><span className="m-lbl">data rows</span></div>
                             </div>
-
                             <div className="workspace-card-footer">
-                              <div className="workspace-card-sub">{workspace.description || "No description"}</div>
-                              <button
-                                type="button"
-                                className="btn btn-secondary"
-                                onClick={() => {
-                                  void handleOpenWorkspace(workspace.workspace_id);
-                                }}
-                              >
-                                Open workspace
-                              </button>
+                              <div className="workspace-card-sub">{arena.description || "No description"}</div>
+                              <button type="button" className="btn btn-secondary" onClick={(event) => { event.stopPropagation(); void handleOpenArena(arena.workspace_id); }}>Open battle</button>
                             </div>
                           </article>
                         );
@@ -1012,321 +603,116 @@ export function App(): JSX.Element {
                 </section>
 
                 <section className="trace-view">
-                  <header className="tv-head">
-                    <div className="tv-title">
-                      <i data-lucide="file-json-2" />
-                      <span>Last C1 payload</span>
-                    </div>
-                  </header>
-                  <div className="tv-body">
-                    <pre className="json-view">{state.jsonText}</pre>
-                  </div>
+                  <header className="tv-head"><div className="tv-title"><i data-lucide="file-json-2" /><span>Last payload</span></div></header>
+                  <div className="tv-body"><pre className="json-view">{state.jsonText}</pre></div>
                 </section>
               </>
             ) : (
               <>
                 <section className="content-head">
                   <div>
-                    <h1 className="ch-title">
-                      {activeWorkspace?.name ?? route.workspaceId} <span>- project workspace</span>
-                    </h1>
-                    <p className="ch-sub">
-                      Use this screen to work with projects, then unlock next capabilities by roadmap slices.
-                    </p>
+                    <h1 className="ch-title">{activeArena?.name ?? route.arenaId} <span>- battle workspace</span></h1>
+                    <p className="ch-sub">Discuss task in chat and inspect generated candidate architectures.</p>
                   </div>
                 </section>
 
-                <section className="metric-strip" id="metric-strip-workspace">
-                  <article className="ms-cell">
-                    <div className="ms-lbl">Workspace</div>
-                    <div className="ms-row">
-                      <div className="ms-val">{activeWorkspace?.name ?? "n/a"}</div>
-                    </div>
-                    <div className="ms-cap">Active workspace context</div>
-                  </article>
-
-                  <article className="ms-cell">
-                    <div className="ms-lbl">Projects</div>
-                    <div className="ms-row">
-                      <div className="ms-val">{state.metricProjects}</div>
-                    </div>
-                    <div className="ms-cap">Inside selected workspace</div>
-                  </article>
-
-                  <article className="ms-cell">
-                    <div className="ms-lbl">Project context</div>
-                    <div className="ms-row">
-                      <div className="ms-val">{state.metricProjectStatus}</div>
-                    </div>
-                    <div className="ms-cap">Run-ready context</div>
-                  </article>
-
-                  <article className="ms-cell">
-                    <div className="ms-lbl">Capability</div>
-                    <div className="ms-row">
-                      <div className="ms-val">{activeCapability.id.toUpperCase()}</div>
-                    </div>
-                    <div className="ms-cap">{activeCapability.name}</div>
-                  </article>
+                <section className="metric-strip" id="metric-strip-battle">
+                  <article className="ms-cell"><div className="ms-lbl">Battle</div><div className="ms-row"><div className="ms-val">{activeArena?.name ?? "n/a"}</div></div><div className="ms-cap">Active arena context</div></article>
+                  <article className="ms-cell"><div className="ms-lbl">Messages</div><div className="ms-row"><div className="ms-val">{state.c2Messages.length}</div></div><div className="ms-cap">C2 chat history</div></article>
+                  <article className="ms-cell"><div className="ms-lbl">Candidates</div><div className="ms-row"><div className="ms-val">{state.c2CandidateSetDraft?.total ?? 0}</div></div><div className="ms-cap">Drafted architectures</div></article>
+                  <article className="ms-cell"><div className="ms-lbl">Capability</div><div className="ms-row"><div className="ms-val">{activeCapability.id.toUpperCase()}</div></div><div className="ms-cap">{activeCapability.name}</div></article>
                 </section>
 
-                {isC1Enabled ? (
-                  <>
-                    <section className="arch-list">
-                      <header className="arch-list-head">
-                        <div className="al-label">Create project in active workspace</div>
-                      </header>
-                      <div className="c1-form-row">
-                        <label className="c1-field-label" htmlFor="project-name-input">
-                          Project name ({activeWorkspace?.name ?? "no workspace"})
-                        </label>
-                        <div className="c1-form-controls c1-form-stack">
-                          <input
-                            id="project-name-input"
-                            type="text"
-                            value={state.projectNameInput}
-                            onChange={(event) => {
-                              handleProjectNameChange(event.target.value);
-                            }}
-                            placeholder="support-qa.v1"
-                            disabled={!state.activeWorkspaceId}
-                          />
-                          <textarea
-                            id="project-description-input"
-                            value={state.projectDescriptionInput}
-                            onChange={(event) => {
-                              handleProjectDescriptionChange(event.target.value);
-                            }}
-                            placeholder="Optional project description"
-                            disabled={!state.activeWorkspaceId}
-                          />
-                          <button
-                            type="button"
-                            className="tb-btn tb-btn-primary"
-                            onClick={() => {
-                              void handleCreateProject();
-                            }}
-                            disabled={!state.activeWorkspaceId}
-                          >
-                            Create project
-                          </button>
-                        </div>
-                      </div>
-                    </section>
-
-                    <section className="trace-view">
-                      <header className="tv-head">
-                        <div className="tv-title">
-                          <i data-lucide="folder-open" />
-                          <span>Projects in workspace</span>
-                          <span className="tv-arch">{state.projects.length} total</span>
-                        </div>
-                      </header>
-                      <div className="tv-body">
-                        <div className="issues-box">
-                          {state.projects.length === 0 ? (
-                            <div className="issue-row info">No project in selected workspace yet.</div>
-                          ) : (
-                            state.projects.map((project) => (
-                              <div key={project.project_id} className={`issue-row info${project.project_id === state.activeProjectId ? " selected-row" : ""}`}>
-                                <div className="row-main">
-                                  <b>{project.name}</b> <span className="muted">({project.project_id})</span>
-                                  <div className="row-sub">{project.description || "No description"}</div>
-                                </div>
-                                <button
-                                  type="button"
-                                  className="sg-apply"
-                                  onClick={() => {
-                                    void handleSelectProject(project.project_id);
-                                  }}
-                                >
-                                  Select
-                                </button>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                        <pre className="json-view">{state.jsonText}</pre>
-                      </div>
-                    </section>
-                  </>
-                ) : isC2Enabled ? (
-                  <>
-                    <section className="arch-list">
-                      <header className="arch-list-head">
-                        <div className="al-label">C2 task brief chat</div>
-                      </header>
-                      <div className="c1-form-row">
-                        <label className="c1-field-label" htmlFor="c2-chat-input">
-                          Brief message ({state.activeProjectId || "no project selected"})
-                        </label>
-                        <div className="c1-form-controls c1-form-stack">
-                          <textarea
-                            id="c2-chat-input"
-                            value={state.c2ChatInput}
-                            onChange={(event) => {
-                              handleC2ChatInputChange(event.target.value);
-                            }}
-                            placeholder="Describe the optimization task in plain language..."
-                            disabled={!state.activeProjectId}
-                          />
-                          <div className="c2-chat-actions">
-                            <button
-                              type="button"
-                              className="tb-btn tb-btn-ghost"
-                              onClick={() => {
-                                void handleSendC2Message(false);
-                              }}
-                              disabled={!state.activeProjectId}
-                            >
-                              Send message
-                            </button>
-                            <button
-                              type="button"
-                              className="tb-btn tb-btn-primary"
-                              onClick={() => {
-                                void handleSendC2Message(true);
-                              }}
-                              disabled={!state.activeProjectId}
-                            >
-                              Generate candidates
-                            </button>
+                <section className="trace-view">
+                  <header className="tv-head"><div className="tv-title"><i data-lucide="network" /><span>Candidate architectures</span><span className="tv-arch">{state.c2CandidateSetDraft?.total ?? 0} total</span></div></header>
+                  <div className="tv-body">
+                    <div className="issues-box">
+                      <div className="c2-candidate-head"><b>Candidate set</b><span className="muted">{state.c2CandidateSetDraft?.candidate_set_id ?? "not generated"}</span></div>
+                      {isC2Enabled && state.c2CandidateSetDraft ? state.c2CandidateSetDraft.candidates.map((candidate) => (
+                        <div key={candidate.candidate_id} className="issue-row info">
+                          <div className="row-main">
+                            <b>{candidate.title}</b> <span className="muted">({candidate.estimated_complexity})</span>
+                            <div className="row-sub">{candidate.summary}</div>
+                            <div className="row-sub">pattern: <code>{candidate.pattern_ref}</code> · dsl: <code>{candidate.dsl_stub_ref}</code></div>
                           </div>
-                          <p className="c1-hint">
-                            C2 keeps project-scoped chat history and candidate draft for follow-up slices.
-                          </p>
                         </div>
-                      </div>
-                    </section>
-
-                    <section className="trace-view">
-                      <header className="tv-head">
-                        <div className="tv-title">
-                          <i data-lucide="messages-square" />
-                          <span>C2 chat history</span>
-                          <span className="tv-arch">{state.c2Messages.length} messages</span>
-                        </div>
-                      </header>
-                      <div className="tv-body">
-                        <div className="issues-box">
-                          {state.c2Messages.length === 0 ? (
-                            <div className="issue-row info">No chat messages yet. Send a brief to start.</div>
-                          ) : (
-                            state.c2Messages.map((message) => (
-                              <div key={message.message_id} className="issue-row info">
-                                <div className="row-main">
-                                  <b>{message.role}</b> <span className="muted">({message.created_at})</span>
-                                  <div className="row-sub">{message.content}</div>
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-
-                        <div className="issues-box">
-                          <div className="c2-candidate-head">
-                            <b>Candidate draft</b>
-                            <span className="muted">
-                              {state.c2CandidateSetDraft?.candidate_set_id ?? "not generated"}
-                            </span>
-                          </div>
-                          {state.c2CandidateSetDraft ? (
-                            state.c2CandidateSetDraft.candidates.map((candidate) => (
-                              <div key={candidate.candidate_id} className="issue-row info">
-                                <div className="row-main">
-                                  <b>{candidate.title}</b>{" "}
-                                  <span className="muted">({candidate.estimated_complexity})</span>
-                                  <div className="row-sub">{candidate.summary}</div>
-                                  <div className="row-sub">
-                                    pattern: <code>{candidate.pattern_ref}</code> · dsl:{" "}
-                                    <code>{candidate.dsl_stub_ref}</code>
-                                  </div>
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="issue-row warning">Candidate draft is not generated yet.</div>
-                          )}
-                        </div>
-                        <pre className="json-view">{state.jsonText}</pre>
-                      </div>
-                    </section>
-                  </>
-                ) : (
-                  <section className="trace-view">
-                    <header className="tv-head">
-                      <div className="tv-title">
-                        <i data-lucide="lock" />
-                        <span>Planned capability preview</span>
-                      </div>
-                    </header>
-                    <div className="tv-body">
-                      <div className="issue-row warning">
-                        Capability {activeCapability.id.toUpperCase()} is visible in shell, but not unlocked yet in this slice.
-                      </div>
-                      <pre className="json-view">{state.jsonText}</pre>
+                      )) : <div className="issue-row warning">No candidate draft yet. Use chat action "Generate candidates".</div>}
                     </div>
-                  </section>
-                )}
+                    <pre className="json-view">{state.jsonText}</pre>
+                  </div>
+                </section>
               </>
             )}
           </main>
+
+          {isBattleRoute ? (
+            <aside className="rail">
+              <section>
+                <div className="rail-label">Battle chat</div>
+                <div className="rail-bottleneck">
+                  <div className="rb-top"><div className="rb-icon"><i data-lucide="message-square" /></div><div className="rb-id">C2 assistant</div></div>
+                  <p className="rb-copy">Write task brief in natural language and generate architecture candidates.</p>
+                </div>
+              </section>
+
+              <section className="arch-list">
+                <header className="arch-list-head"><div className="al-label">Brief input</div></header>
+                <div className="c1-form-row">
+                  <label className="c1-field-label" htmlFor="c2-chat-input">Message ({state.activeArenaId || "no battle selected"})</label>
+                  <div className="c1-form-controls c1-form-stack">
+                    <textarea id="c2-chat-input" value={state.c2ChatInput} onChange={(event) => { handleC2ChatInputChange(event.target.value); }} placeholder="Describe the optimization task in plain language..." disabled={!state.activeArenaId} />
+                    <div className="c2-chat-actions">
+                      <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSendC2Message(false); }} disabled={!state.activeArenaId || !isC2Enabled}>Send message</button>
+                      <button type="button" className="tb-btn tb-btn-primary" onClick={() => { void handleSendC2Message(true); }} disabled={!state.activeArenaId || !isC2Enabled}>Generate candidates</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section>
+                <div className="rail-label">History</div>
+                <div className="issues-box">
+                  {state.c2Messages.length === 0 ? (
+                    <div className="issue-row info">No chat messages yet.</div>
+                  ) : state.c2Messages.map((message) => (
+                    <div key={message.message_id} className="issue-row info">
+                      <div className="row-main"><b>{message.role}</b><div className="row-sub">{message.content}</div></div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section>
+                <button type="button" className="rail-export" onClick={handleExportPayload}>
+                  <i data-lucide="file-down" />
+                  Export evidence bundle
+                </button>
+                <div className="rail-export-meta">{state.exportMeta}</div>
+              </section>
+            </aside>
+          ) : null}
         </div>
       </div>
 
-      {workspaceDialogMode ? (
-        <div className="workspace-modal-overlay" onClick={closeWorkspaceDialog}>
-          <div
-            className="workspace-modal-card"
-            onClick={(event) => {
-              event.stopPropagation();
-            }}
-          >
-            <div className="workspace-modal-title">
-              {workspaceDialogMode === "create" ? "Create workspace" : "Rename workspace"}
-            </div>
-            <div className="workspace-modal-subtitle">
-              {workspaceDialogMode === "create"
-                ? "Add a new workspace for a separate optimization project."
-                : "Update workspace display name."}
-            </div>
+      {arenaDialogMode ? (
+        <div className="workspace-modal-overlay" onClick={closeArenaDialog}>
+          <div className="workspace-modal-card" onClick={(event) => { event.stopPropagation(); }}>
+            <div className="workspace-modal-title">{arenaDialogMode === "create" ? "Create battle" : "Rename battle"}</div>
+            <div className="workspace-modal-subtitle">{arenaDialogMode === "create" ? "Add a new battle for a separate optimization challenge." : "Update battle display name."}</div>
             <div className="workspace-modal-form">
-              <label htmlFor="workspace-dialog-name">Name</label>
-              <input
-                id="workspace-dialog-name"
-                type="text"
-                value={workspaceDialogName}
-                onChange={(event) => {
-                  setWorkspaceDialogName(event.target.value);
-                }}
-                placeholder="support-qa"
-              />
-              {workspaceDialogMode === "create" ? (
+              <label htmlFor="arena-dialog-name">Name</label>
+              <input id="arena-dialog-name" type="text" value={arenaDialogName} onChange={(event) => { setArenaDialogName(event.target.value); }} placeholder="support-qa" />
+              {arenaDialogMode === "create" ? (
                 <>
-                  <label htmlFor="workspace-dialog-description">Description</label>
-                  <textarea
-                    id="workspace-dialog-description"
-                    value={workspaceDialogDescription}
-                    onChange={(event) => {
-                      setWorkspaceDialogDescription(event.target.value);
-                    }}
-                    placeholder="Optional workspace description"
-                  />
+                  <label htmlFor="arena-dialog-description">Description</label>
+                  <textarea id="arena-dialog-description" value={arenaDialogDescription} onChange={(event) => { setArenaDialogDescription(event.target.value); }} placeholder="Optional battle description" />
                 </>
               ) : null}
             </div>
             <div className="workspace-modal-actions">
-              <button type="button" className="btn btn-secondary" onClick={closeWorkspaceDialog}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => {
-                  void handleSubmitWorkspaceDialog();
-                }}
-              >
-                {workspaceDialogMode === "create" ? "Create workspace" : "Save name"}
+              <button type="button" className="btn btn-secondary" onClick={closeArenaDialog}>Cancel</button>
+              <button type="button" className="btn btn-primary" onClick={() => { void handleSubmitArenaDialog(); }}>
+                {arenaDialogMode === "create" ? "Create battle" : "Save name"}
               </button>
             </div>
           </div>
@@ -1336,16 +722,16 @@ export function App(): JSX.Element {
   );
 }
 
-// Русский комментарий: парсит URL и определяет активный экран приложения.
+// Русский комментарий: определяет экран по текущему URL.
 function parseRoute(pathname: string): ScreenRoute {
-  const workspaceMatch = pathname.match(/^\/projects\/([^/]+)\/workspace\/?$/);
-  if (workspaceMatch && workspaceMatch[1]) {
-    return { name: "workspace", workspaceId: decodeURIComponent(workspaceMatch[1]) };
+  const battleMatch = pathname.match(/^\/battles\/([^/]+)\/?$/);
+  if (battleMatch && battleMatch[1]) {
+    return { name: "battle_workspace", arenaId: decodeURIComponent(battleMatch[1]) };
   }
-  return { name: "projects_hub" };
+  return { name: "battles_hub" };
 }
 
-// Русский комментарий: вычисляет простой стабильный hash для псевдо-детерминированных демо-метрик.
+// Русский комментарий: стабильный hash для генерации демонстрационных чисел в карточках.
 function hashString(value: string): number {
   let hash = 0;
   for (let index = 0; index < value.length; index += 1) {

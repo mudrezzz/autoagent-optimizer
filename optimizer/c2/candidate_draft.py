@@ -1,12 +1,23 @@
-"""Генератор чернового candidate set для C2 brief-to-candidates v0."""
+﻿"""Генератор чернового candidate set для C2 brief-to-candidates v0."""
 
 from __future__ import annotations
 
 from typing import Any
 
 
-def build_candidate_draft_from_brief(*, project_id: str, brief: str, max_candidates: int = 3) -> dict[str, Any]:
+def build_candidate_draft_from_brief(
+    *,
+    arena_id: str | None = None,
+    project_id: str | None = None,
+    brief: str,
+    max_candidates: int = 3,
+) -> dict[str, Any]:
     """Строит детерминированный candidate draft из текстового brief без LLM-зависимости."""
+
+    # Русский комментарий: поддерживаем оба ключа scope-id для мягкой миграции project -> arena.
+    scope_id = (arena_id or project_id or "").strip()
+    if not scope_id:
+        raise ValueError("Either `arena_id` or `project_id` must be provided.")
 
     normalized_brief = brief.strip()
     if not normalized_brief:
@@ -46,23 +57,26 @@ def build_candidate_draft_from_brief(*, project_id: str, brief: str, max_candida
     ]
 
     selected_candidates = base_candidates[:max_candidates]
-    return {
-        "candidate_set_id": f"cset_{_stable_suffix(project_id=project_id, brief=normalized_brief)}",
+    payload: dict[str, Any] = {
+        "candidate_set_id": f"cset_{_stable_suffix(scope_id=scope_id, brief=normalized_brief)}",
         "source": "c2_brief_to_candidates_v0",
         "task_brief": normalized_brief,
         "generation_mode": "templated_deterministic",
-        "project_id": project_id,
+        "arena_id": scope_id,
         "candidates": selected_candidates,
         "total": len(selected_candidates),
     }
+    # Русский комментарий: legacy-поле сохраняем для совместимости старых отчетов/тестов.
+    if project_id is not None:
+        payload["project_id"] = project_id
+    return payload
 
 
-def _stable_suffix(*, project_id: str, brief: str) -> str:
+def _stable_suffix(*, scope_id: str, brief: str) -> str:
     """Возвращает короткий детерминированный суффикс для candidate_set_id."""
 
-    seed = f"{project_id}:{brief}"
+    seed = f"{scope_id}:{brief}"
     value = 0
     for char in seed:
         value = (value * 31 + ord(char)) & 0xFFFFFFFF
     return f"{value:08x}"[:8]
-
