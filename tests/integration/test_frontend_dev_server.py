@@ -167,16 +167,12 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert project_get_payload["status"] == "success"
         assert project_get_payload["project"]["project_id"] == project_id
 
-        patch_request = Request(
-            url=f"{base_url}/api/workspaces/{workspace_id}",
-            data=json.dumps({"name": "support-qa-renamed"}, ensure_ascii=False).encode("utf-8"),
-            method="PATCH",
-            headers={"Content-Type": "application/json; charset=utf-8"},
+        status_rename_workspace, renamed_payload = _json_post(
+            f"{base_url}/api/workspaces/{workspace_id}/rename",
+            {"name": "support-qa-renamed"},
         )
-        with urlopen(patch_request, timeout=5.0) as response:
-            renamed_payload = json.loads(response.read().decode("utf-8"))
-            assert response.status == 200
-            assert renamed_payload["workspace"]["name"] == "support-qa-renamed"
+        assert status_rename_workspace == 200
+        assert renamed_payload["workspace"]["name"] == "support-qa-renamed"
 
         status_duplicate_workspace, duplicate_workspace_payload = _json_post(
             f"{base_url}/api/workspaces/{workspace_id}/duplicate",
@@ -187,14 +183,12 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         duplicated_workspace_id = str(duplicate_workspace_payload["workspace"]["workspace_id"])
         assert duplicated_workspace_id != workspace_id
 
-        delete_request = Request(
-            url=f"{base_url}/api/workspaces/{workspace_id}",
-            method="DELETE",
+        status_delete_workspace, delete_payload = _json_post(
+            f"{base_url}/api/workspaces/{workspace_id}/delete",
+            {},
         )
-        with urlopen(delete_request, timeout=5.0) as response:
-            delete_payload = json.loads(response.read().decode("utf-8"))
-            assert response.status == 200
-            assert delete_payload["workspace_id"] == workspace_id
+        assert status_delete_workspace == 200
+        assert delete_payload["workspace_id"] == workspace_id
 
         status_projects_deleted, deleted_projects_payload = _json_get(
             f"{base_url}/api/workspaces/{workspace_id}/projects",

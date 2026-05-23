@@ -12,7 +12,18 @@ if (Test-Path -LiteralPath $storeFile) {
 }
 
 $bindHost = "127.0.0.1"
-$port = 4173
+
+function Get-FreeTcpPort {
+  $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Parse("127.0.0.1"), 0)
+  $listener.Start()
+  try {
+    return $listener.LocalEndpoint.Port
+  } finally {
+    $listener.Stop()
+  }
+}
+
+$port = Get-FreeTcpPort
 $baseUrl = "http://$bindHost`:$port"
 $process = $null
 

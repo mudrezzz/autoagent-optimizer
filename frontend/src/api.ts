@@ -59,8 +59,8 @@ export async function createWorkspace(name: string, description: string): Promis
 
 // Русский комментарий: обновляет имя workspace через C1 backend API.
 export async function renameWorkspace(workspaceId: string, name: string): Promise<WorkspaceUpdateResponse> {
-  const response = await fetch(`/api/workspaces/${encodeURIComponent(workspaceId)}`, {
-    method: "PATCH",
+  const response = await fetch(`/api/workspaces/${encodeURIComponent(workspaceId)}/rename`, {
+    method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name }),
   });
@@ -87,8 +87,10 @@ export async function duplicateWorkspace(workspaceId: string): Promise<Workspace
 
 // Русский комментарий: удаляет workspace через C1 backend API.
 export async function deleteWorkspace(workspaceId: string): Promise<WorkspaceDeleteResponse> {
-  const response = await fetch(`/api/workspaces/${encodeURIComponent(workspaceId)}`, {
-    method: "DELETE",
+  const response = await fetch(`/api/workspaces/${encodeURIComponent(workspaceId)}/delete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
   });
   if (!response.ok) {
     const payload = await parseJsonOrThrow<ErrorPayload>(response);

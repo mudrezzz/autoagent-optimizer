@@ -184,6 +184,18 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
                 self._handle_create_workspace()
                 return
 
+            workspace_rename_match = re.fullmatch(r"/api/workspaces/([^/]+)/rename", path)
+            if workspace_rename_match is not None:
+                workspace_id = workspace_rename_match.group(1)
+                self._handle_rename_workspace(workspace_id=workspace_id)
+                return
+
+            workspace_delete_match = re.fullmatch(r"/api/workspaces/([^/]+)/delete", path)
+            if workspace_delete_match is not None:
+                workspace_id = workspace_delete_match.group(1)
+                self._handle_delete_workspace(workspace_id=workspace_id)
+                return
+
             workspace_duplicate_match = re.fullmatch(r"/api/workspaces/([^/]+)/duplicate", path)
             if workspace_duplicate_match is not None:
                 workspace_id = workspace_duplicate_match.group(1)

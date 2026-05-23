@@ -591,17 +591,17 @@ code { font-family: var(--font-mono); }
 
 .workspace-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .workspace-arch-card {
   background: var(--gray-0);
-  border-radius: 12px;
-  padding: 18px 20px;
+  border-radius: 10px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   box-shadow: var(--shadow-card);
 }
 
@@ -617,16 +617,25 @@ code { font-family: var(--font-mono); }
 }
 
 .workspace-card-title {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--gray-900);
+  line-height: 1.35;
+  max-width: 185px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .workspace-card-meta {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10px;
   color: var(--gray-400);
   margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 185px;
 }
 
 .workspace-head-actions {
@@ -639,9 +648,9 @@ code { font-family: var(--font-mono); }
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
-  padding: 3px 9px;
+  padding: 2px 7px;
   border-radius: 999px;
 }
 
@@ -676,8 +685,8 @@ code { font-family: var(--font-mono); }
 .workspace-menu-trigger {
   border: 1px solid transparent;
   background: transparent;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 7px;
   color: var(--gray-500);
   display: grid;
@@ -691,15 +700,15 @@ code { font-family: var(--font-mono); }
 }
 
 .workspace-menu-trigger i {
-  width: 15px;
-  height: 15px;
+  width: 13px;
+  height: 13px;
 }
 
 .workspace-menu {
   position: absolute;
-  top: 32px;
+  top: 26px;
   right: 0;
-  min-width: 170px;
+  min-width: 150px;
   border-radius: 10px;
   background: var(--gray-0);
   border: 1px solid var(--border-muted);
@@ -713,8 +722,8 @@ code { font-family: var(--font-mono); }
   border: none;
   background: transparent;
   text-align: left;
-  padding: 9px 12px;
-  font-size: 13px;
+  padding: 8px 10px;
+  font-size: 12px;
   color: var(--gray-800);
 }
 
@@ -732,7 +741,7 @@ code { font-family: var(--font-mono); }
 
 .workspace-arch-metrics {
   display: flex;
-  gap: 18px;
+  gap: 12px;
 }
 
 .workspace-metric {
@@ -743,14 +752,14 @@ code { font-family: var(--font-mono); }
 
 .workspace-metric .m-val {
   font-family: var(--font-mono);
-  font-size: 18px;
+  font-size: 14px;
   color: var(--gray-900);
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 
 .workspace-metric .m-lbl {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--gray-500);
 }
 
@@ -762,10 +771,15 @@ code { font-family: var(--font-mono); }
 }
 
 .workspace-card-sub {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--gray-600);
   line-height: 1.45;
-  max-width: 70%;
+  max-width: 62%;
+}
+
+.workspace-card-footer .btn {
+  font-size: 12px;
+  padding: 6px 10px;
 }
 
 .workspace-card--empty {
@@ -949,7 +963,7 @@ code { font-family: var(--font-mono); }
 @media (max-width: 1240px) {
   .app-content { grid-template-columns: 1fr; }
   .rail { border-left: none; border-top: 1px solid var(--border-muted); }
-  .workspace-grid { grid-template-columns: 1fr; }
+  .workspace-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .workspace-card-sub { max-width: 100%; }
 }
 
@@ -996,6 +1010,10 @@ code { font-family: var(--font-mono); }
 
   .metric-strip {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .workspace-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .compile-summary-grid {
