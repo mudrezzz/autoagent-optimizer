@@ -6,8 +6,8 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 
 - `Phase`: MVP-2 transition (product realignment + evaluation fabric)
 - `Iteration`: Roadmap v3 - vertical product slices
-- `Overall`: In Progress (V2.3.S1 + V2.3.S1a done, product capabilities C1-C6 in rollout)
-- `Next Slice`: V2.3.S2 Project Chat brief-to-candidates v0
+- `Overall`: In Progress (V2.3.S1 + V2.3.S1a + V2.3.S2 done, product capabilities C1-C6 in rollout)
+- `Next Slice`: V2.3.S3 Pattern Library + RAG controls v0
 
 РџРѕРґСЂРѕР±РЅС‹Р№ СЃС‚Р°С‚СѓСЃ:
 
@@ -84,6 +84,7 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 - `frontend` - app-v3-aligned React/TypeScript workbench, evolving toward product capabilities C1..C6 (workspace/chat/patterns/datasets/runs/champion).
 - `optimizer/frontend/dev_server.py` - lightweight frontend dev server (serves `frontend/dist` build + capability API endpoints).
 - `optimizer/workspace` - JSON-backed workspace/project registry store for C1 product capability.
+- `optimizer/c2` - deterministic C2 brief-to-candidates generator and project-chat draft utilities.
 - `components` - deterministic demo-РєРѕРјРїРѕРЅРµРЅС‚С‹ РґР»СЏ РїР°Р№РїР»Р°Р№РЅРѕРІ (РІРєР»СЋС‡Р°СЏ AI-pattern РёРЅСЃС‚СЂСѓРјРµРЅС‚С‹).
 - `validators` - python-РІР°Р»РёРґР°С‚РѕСЂС‹ demo-СЃС†РµРЅР°СЂРёРµРІ (РІРєР»СЋС‡Р°СЏ style output guard).
 - `docs/specs/Evaluation_Profile_v0.md` - РєРѕРЅС†РµРїС‚ profile-driven РѕС†РµРЅРєРё (task-specific metrics + pluggable evaluators).

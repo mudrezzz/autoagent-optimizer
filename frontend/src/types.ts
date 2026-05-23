@@ -140,3 +140,56 @@ export type StubPayload = {
   summary: string;
   next_step: string;
 };
+
+// Русский комментарий: тип chat-сообщения C2 для brief-to-candidates UI.
+export type C2ChatMessage = {
+  message_id: string;
+  role: "user" | "assistant" | "system" | string;
+  content: string;
+  created_at: string;
+};
+
+// Русский комментарий: тип одного кандидата из C2 candidate draft.
+export type C2CandidateDraftItem = {
+  candidate_id: string;
+  title: string;
+  pattern_ref: string;
+  summary: string;
+  rationale: string;
+  dsl_stub_ref: string;
+  estimated_complexity: string;
+};
+
+// Русский комментарий: тип candidate set draft, сформированного на основе chat brief.
+export type C2CandidateSetDraft = {
+  candidate_set_id: string;
+  source: string;
+  task_brief: string;
+  generation_mode: string;
+  project_id: string;
+  candidates: C2CandidateDraftItem[];
+  total: number;
+};
+
+// Русский комментарий: ответ чтения текущего C2 chat state для проекта.
+export type C2ChatStateResponse = {
+  status: "success";
+  capability_id: "c2";
+  project_id: string;
+  project_name: string;
+  messages: C2ChatMessage[];
+  messages_total: number;
+  candidate_set_draft: C2CandidateSetDraft | null;
+};
+
+// Русский комментарий: ответ отправки сообщения в C2 чат.
+export type C2ChatPostMessageResponse = {
+  status: "success";
+  capability_id: "c2";
+  project_id: string;
+  message: C2ChatMessage;
+  assistant_message: C2ChatMessage | null;
+  messages: C2ChatMessage[];
+  messages_total: number;
+  candidate_set_draft: C2CandidateSetDraft | null;
+};

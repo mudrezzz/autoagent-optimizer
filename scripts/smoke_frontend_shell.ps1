@@ -1,4 +1,4 @@
-﻿# Smoke runner for frontend capability shell (V2.3.S1 / C1 vertical slice).
+﻿# Smoke runner for frontend capability shell (V2.3.S2 / C1+C2 vertical slice).
 param()
 
 $ErrorActionPreference = "Stop"
@@ -63,10 +63,14 @@ try {
 
   $c1 = $capabilities.capabilities | Where-Object { $_.id -eq "c1" }
   if ($null -eq $c1 -or $c1.status -ne "enabled") {
-    throw "C1 capability must be enabled in V2.3.S1."
+    throw "C1 capability must be enabled in V2.3.S2."
   }
   if ($c1.name -ne "Workspace & Projects") {
     throw "C1 capability name must match product capability model."
+  }
+  $c2 = $capabilities.capabilities | Where-Object { $_.id -eq "c2" }
+  if ($null -eq $c2 -or $c2.status -ne "enabled") {
+    throw "C2 capability must be enabled in V2.3.S2."
   }
 
   Write-Host "[SMOKE] run C1 workspace/project flow"
@@ -87,6 +91,25 @@ try {
   $projectGet = Invoke-RestMethod -Uri "$baseUrl/api/projects/$projectId" -Method Get -TimeoutSec 8
   if ($projectGet.status -ne "success" -or $projectGet.project.project_id -ne $projectId) {
     throw "Project get endpoint returned unexpected payload."
+  }
+
+  Write-Host "[SMOKE] run C2 chat flow"
+  $chatPayload = @{
+    message = "Сделай пост для LinkedIn более человечным и менее шаблонным"
+    generate_candidates = $true
+    max_candidates = 3
+  } | ConvertTo-Json -Compress
+  $chatResult = Invoke-RestMethod -Uri "$baseUrl/api/projects/$projectId/chat/messages" -Method Post -Body $chatPayload -ContentType "application/json" -TimeoutSec 8
+  if ($chatResult.status -ne "success") {
+    throw "C2 chat message endpoint returned non-success status."
+  }
+  if ($null -eq $chatResult.candidate_set_draft -or $chatResult.candidate_set_draft.total -lt 1) {
+    throw "C2 candidate draft was not generated."
+  }
+
+  $chatState = Invoke-RestMethod -Uri "$baseUrl/api/projects/$projectId/chat/state" -Method Get -TimeoutSec 8
+  if ($chatState.status -ne "success" -or $chatState.messages_total -lt 2) {
+    throw "C2 chat state endpoint returned unexpected payload."
   }
 
   Write-Host "[SMOKE] frontend capability shell completed successfully."

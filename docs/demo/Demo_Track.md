@@ -208,6 +208,12 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_run_evaluation_profile_
 1. `V2.1`: скелет UI + рабочие поверхности C1/C2/C4/C6.
 2. `V2.2`: расширение C3/C5 и action path для C6 + one-click сквозной сценарий C1->C6.
 
+Что уже показываем в текущем срезе:
+
+1. `V2.3.S1/S1a`: Projects Hub + Project Workspace shell.
+2. `V2.3.S2`: C2 project-scoped chat (`/api/projects/{id}/chat/*`) и candidate draft generation в UI.
+3. smoke-сценарий `scripts/smoke_frontend_shell.ps1` теперь проверяет C1 + C2 путь.
+
 Команды текущего D4.5 bootstrap:
 
 ```powershell
@@ -243,7 +249,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_frontend_shell.ps1
 
 ## Current Demo Status
 
-- Active stage: `D4.5 bootstrap (V2 vertical product demo)`
-- Demo readiness: `Yellow` (capability shell live, next: C1 deep integration)
-- Next demo milestone: `D4.5 C1 validate/compile deep view` (`V2.1.S2`)
+- Active stage: `D4.5 (V2 vertical product demo, C1+C2 active)`
+- Demo readiness: `Yellow-Green` (C1 and C2 live, next: C3 pattern controls)
+- Next demo milestone: `D4.5 C3 pattern library + RAG controls` (`V2.3.S3`)
 

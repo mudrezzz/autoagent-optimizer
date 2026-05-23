@@ -8,11 +8,20 @@ import {
   fetchCapabilityCatalog,
   fetchStubCapability,
   getProject,
+  getProjectChatState,
   listProjects,
   listWorkspaces,
+  postProjectChatMessage,
   renameWorkspace,
 } from "./api";
-import type { Capability, ProjectRecord, StubPayload, WorkspaceRecord } from "./types";
+import type {
+  C2CandidateSetDraft,
+  C2ChatMessage,
+  Capability,
+  ProjectRecord,
+  StubPayload,
+  WorkspaceRecord,
+} from "./types";
 import { exportJsonToFile, makeTimestampedFileName, prettyJson } from "./utils";
 
 declare global {
@@ -35,9 +44,9 @@ const FALLBACK_CAPABILITIES: Capability[] = [
   {
     id: "c2",
     name: "Task Chat + Candidates",
-    description: "Planned slice for chat-driven candidate generation.",
-    status: "planned",
-    badge_count: 0,
+    description: "Chat-driven task brief and candidate draft generation.",
+    status: "enabled",
+    badge_count: 1,
   },
   {
     id: "c3",
@@ -100,6 +109,9 @@ type UiState = {
   activeProjectId: string;
   projectNameInput: string;
   projectDescriptionInput: string;
+  c2ChatInput: string;
+  c2Messages: C2ChatMessage[];
+  c2CandidateSetDraft: C2CandidateSetDraft | null;
   budgetPercent: number;
   budgetStage: string;
   metricWorkspaces: string;
@@ -123,6 +135,9 @@ export function App(): JSX.Element {
     activeProjectId: "",
     projectNameInput: "",
     projectDescriptionInput: "",
+    c2ChatInput: "",
+    c2Messages: [],
+    c2CandidateSetDraft: null,
     budgetPercent: 0,
     budgetStage: "idle",
     metricWorkspaces: "0",
@@ -242,6 +257,9 @@ export function App(): JSX.Element {
       activeWorkspaceId: "",
       projects: [],
       activeProjectId: "",
+      c2ChatInput: "",
+      c2Messages: [],
+      c2CandidateSetDraft: null,
       metricProjects: "0",
       metricWorkspaceStatus: "not selected",
       metricProjectStatus: "not selected",
@@ -328,6 +346,9 @@ export function App(): JSX.Element {
         jsonText: prettyJson(snapshot),
         lastPayload: snapshot,
       }));
+      if (state.activeCapabilityId === "c2" && nextProjectId) {
+        await loadC2State(nextProjectId);
+      }
     } catch (error) {
       setState((prev) => ({
         ...prev,
@@ -346,10 +367,25 @@ export function App(): JSX.Element {
       ...prev,
       activeCapabilityId: capabilityId,
       budgetPercent: capabilityId === "c1" ? prev.budgetPercent : 10,
-      budgetStage: capabilityId === "c1" ? prev.budgetStage : "planned",
+      budgetStage: capabilityId === "c1" ? prev.budgetStage : "switch capability",
     }));
 
     if (capabilityId === "c1") {
+      return;
+    }
+
+    if (capabilityId === "c2") {
+      if (!state.activeProjectId) {
+        setState((prev) => ({
+          ...prev,
+          jsonText: prettyJson({
+            status: "notice",
+            message: "Select project first, then use C2 chat to generate candidate drafts.",
+          }),
+        }));
+        return;
+      }
+      await loadC2State(state.activeProjectId);
       return;
     }
 
@@ -362,6 +398,95 @@ export function App(): JSX.Element {
     } catch (error) {
       setState((prev) => ({
         ...prev,
+        jsonText: prettyJson({ status: "error", message: String(error) }),
+      }));
+    }
+  }
+
+  // Русский комментарий: загружает состояние C2-чата для выбранного project и синхронизирует UI.
+  async function loadC2State(projectId: string): Promise<void> {
+    setState((prev) => ({ ...prev, budgetStage: "loading c2 chat", budgetPercent: 40 }));
+    try {
+      const response = await getProjectChatState(projectId);
+      const snapshot = {
+        status: "success",
+        capability_id: "c2",
+        action: "load_chat_state",
+        project_id: projectId,
+        messages_total: response.messages_total,
+        candidate_set_id: response.candidate_set_draft?.candidate_set_id ?? null,
+      };
+      setState((prev) => ({
+        ...prev,
+        c2Messages: response.messages,
+        c2CandidateSetDraft: response.candidate_set_draft,
+        budgetStage: "c2 ready",
+        budgetPercent: 100,
+        jsonText: prettyJson(snapshot),
+        lastPayload: snapshot,
+      }));
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        budgetStage: "failed",
+        budgetPercent: 100,
+        jsonText: prettyJson({ status: "error", message: String(error) }),
+      }));
+    }
+  }
+
+  // Русский комментарий: отправляет user-brief в C2 чат и при необходимости запускает генерацию candidate draft.
+  async function handleSendC2Message(generateCandidates: boolean): Promise<void> {
+    const projectId = state.activeProjectId;
+    if (!projectId) {
+      setState((prev) => ({
+        ...prev,
+        jsonText: prettyJson({ status: "error", message: "Select project before using C2 chat." }),
+      }));
+      return;
+    }
+    const message = state.c2ChatInput.trim();
+    if (!message) {
+      setState((prev) => ({
+        ...prev,
+        jsonText: prettyJson({ status: "error", message: "C2 brief message is required." }),
+      }));
+      return;
+    }
+
+    setState((prev) => ({
+      ...prev,
+      budgetStage: generateCandidates ? "generating candidates" : "sending message",
+      budgetPercent: 55,
+    }));
+    try {
+      const response = await postProjectChatMessage(projectId, message, {
+        generateCandidates,
+        maxCandidates: 3,
+      });
+      const snapshot = {
+        status: "success",
+        capability_id: "c2",
+        action: generateCandidates ? "generate_candidates" : "append_message",
+        project_id: projectId,
+        messages_total: response.messages_total,
+        candidate_set_id: response.candidate_set_draft?.candidate_set_id ?? null,
+      };
+      setState((prev) => ({
+        ...prev,
+        c2ChatInput: "",
+        c2Messages: response.messages,
+        c2CandidateSetDraft: response.candidate_set_draft ?? prev.c2CandidateSetDraft,
+        budgetPercent: 100,
+        budgetStage: generateCandidates ? "candidates generated" : "message saved",
+        jsonText: prettyJson(snapshot),
+        lastPayload: snapshot,
+      }));
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        budgetPercent: 100,
+        budgetStage: "failed",
         jsonText: prettyJson({ status: "error", message: String(error) }),
       }));
     }
@@ -523,6 +648,9 @@ export function App(): JSX.Element {
         jsonText: prettyJson(snapshot),
         lastPayload: snapshot,
       }));
+      if (state.activeCapabilityId === "c2") {
+        await loadC2State(created.project.project_id);
+      }
     } catch (error) {
       setState((prev) => ({
         ...prev,
@@ -552,6 +680,9 @@ export function App(): JSX.Element {
         jsonText: prettyJson(snapshot),
         lastPayload: snapshot,
       }));
+      if (state.activeCapabilityId === "c2") {
+        await loadC2State(projectId);
+      }
     } catch (error) {
       setState((prev) => ({
         ...prev,
@@ -584,6 +715,11 @@ export function App(): JSX.Element {
     setState((prev) => ({ ...prev, projectDescriptionInput: nextValue }));
   }
 
+  // Русский комментарий: синхронизирует текст brief-ввода для C2 чата.
+  function handleC2ChatInputChange(nextValue: string): void {
+    setState((prev) => ({ ...prev, c2ChatInput: nextValue }));
+  }
+
   // Русский комментарий: возвращает демонстрационные агрегаты карточки workspace для живого визуального заполнения.
   function buildWorkspaceCardMetrics(workspace: WorkspaceRecord, index: number): {
     agents: number;
@@ -611,6 +747,7 @@ export function App(): JSX.Element {
 
   const isWorkspaceRoute = route.name === "workspace";
   const isC1Enabled = activeCapability.id === "c1" && activeCapability.status === "enabled";
+  const isC2Enabled = activeCapability.id === "c2" && activeCapability.status === "enabled";
 
   return (
     <div className={`app${isWorkspaceRoute ? " app--workspace" : " app--hub"}`} id="app-root">
@@ -1007,6 +1144,108 @@ export function App(): JSX.Element {
                                 </button>
                               </div>
                             ))
+                          )}
+                        </div>
+                        <pre className="json-view">{state.jsonText}</pre>
+                      </div>
+                    </section>
+                  </>
+                ) : isC2Enabled ? (
+                  <>
+                    <section className="arch-list">
+                      <header className="arch-list-head">
+                        <div className="al-label">C2 task brief chat</div>
+                      </header>
+                      <div className="c1-form-row">
+                        <label className="c1-field-label" htmlFor="c2-chat-input">
+                          Brief message ({state.activeProjectId || "no project selected"})
+                        </label>
+                        <div className="c1-form-controls c1-form-stack">
+                          <textarea
+                            id="c2-chat-input"
+                            value={state.c2ChatInput}
+                            onChange={(event) => {
+                              handleC2ChatInputChange(event.target.value);
+                            }}
+                            placeholder="Describe the optimization task in plain language..."
+                            disabled={!state.activeProjectId}
+                          />
+                          <div className="c2-chat-actions">
+                            <button
+                              type="button"
+                              className="tb-btn tb-btn-ghost"
+                              onClick={() => {
+                                void handleSendC2Message(false);
+                              }}
+                              disabled={!state.activeProjectId}
+                            >
+                              Send message
+                            </button>
+                            <button
+                              type="button"
+                              className="tb-btn tb-btn-primary"
+                              onClick={() => {
+                                void handleSendC2Message(true);
+                              }}
+                              disabled={!state.activeProjectId}
+                            >
+                              Generate candidates
+                            </button>
+                          </div>
+                          <p className="c1-hint">
+                            C2 keeps project-scoped chat history and candidate draft for follow-up slices.
+                          </p>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section className="trace-view">
+                      <header className="tv-head">
+                        <div className="tv-title">
+                          <i data-lucide="messages-square" />
+                          <span>C2 chat history</span>
+                          <span className="tv-arch">{state.c2Messages.length} messages</span>
+                        </div>
+                      </header>
+                      <div className="tv-body">
+                        <div className="issues-box">
+                          {state.c2Messages.length === 0 ? (
+                            <div className="issue-row info">No chat messages yet. Send a brief to start.</div>
+                          ) : (
+                            state.c2Messages.map((message) => (
+                              <div key={message.message_id} className="issue-row info">
+                                <div className="row-main">
+                                  <b>{message.role}</b> <span className="muted">({message.created_at})</span>
+                                  <div className="row-sub">{message.content}</div>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+
+                        <div className="issues-box">
+                          <div className="c2-candidate-head">
+                            <b>Candidate draft</b>
+                            <span className="muted">
+                              {state.c2CandidateSetDraft?.candidate_set_id ?? "not generated"}
+                            </span>
+                          </div>
+                          {state.c2CandidateSetDraft ? (
+                            state.c2CandidateSetDraft.candidates.map((candidate) => (
+                              <div key={candidate.candidate_id} className="issue-row info">
+                                <div className="row-main">
+                                  <b>{candidate.title}</b>{" "}
+                                  <span className="muted">({candidate.estimated_complexity})</span>
+                                  <div className="row-sub">{candidate.summary}</div>
+                                  <div className="row-sub">
+                                    pattern: <code>{candidate.pattern_ref}</code> · dsl:{" "}
+                                    <code>{candidate.dsl_stub_ref}</code>
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="issue-row warning">Candidate draft is not generated yet.</div>
                           )}
                         </div>
                         <pre className="json-view">{state.jsonText}</pre>

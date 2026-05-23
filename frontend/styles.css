@@ -484,6 +484,20 @@ code { font-family: var(--font-mono); }
   padding: 1px 5px;
 }
 
+.c2-chat-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.c2-candidate-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
 .tv-title {
   display: inline-flex;
   align-items: center;

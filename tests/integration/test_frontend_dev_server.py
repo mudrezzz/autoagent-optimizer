@@ -83,7 +83,7 @@ def _json_get(url: str, *, headers: dict[str, str] | None = None) -> tuple[int, 
 
 @pytest.mark.integration
 def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
-    """Проверяет, что dev server отдает workbench shell, capability-каталог и C1 workspace/project API."""
+    """Проверяет, что dev server отдает shell, capability-каталог и C1+C2 API-контур."""
 
     port = _find_free_port()
     base_url = f"http://127.0.0.1:{port}"
@@ -127,6 +127,8 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
             assert payload["capabilities"][0]["id"] == "c1"
             assert payload["capabilities"][0]["name"] == "Workspace & Projects"
             assert payload["capabilities"][0]["status"] == "enabled"
+            c2 = next(item for item in payload["capabilities"] if item["id"] == "c2")
+            assert c2["status"] == "enabled"
 
         status_workspaces, workspaces_payload = _json_get(f"{base_url}/api/workspaces")
         assert status_workspaces == 200
@@ -166,6 +168,32 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert status_project == 200
         assert project_get_payload["status"] == "success"
         assert project_get_payload["project"]["project_id"] == project_id
+
+        # Русский комментарий: проверяет C2 chat state до первого сообщения.
+        status_chat_state_empty, chat_state_empty_payload = _json_get(f"{base_url}/api/projects/{project_id}/chat/state")
+        assert status_chat_state_empty == 200
+        assert chat_state_empty_payload["status"] == "success"
+        assert chat_state_empty_payload["messages_total"] == 0
+        assert chat_state_empty_payload["candidate_set_draft"] is None
+
+        status_chat_message, chat_message_payload = _json_post(
+            f"{base_url}/api/projects/{project_id}/chat/messages",
+            {
+                "message": "Нужен агент для стилизации постов в живой тон.",
+                "generate_candidates": True,
+                "max_candidates": 3,
+            },
+        )
+        assert status_chat_message == 201
+        assert chat_message_payload["status"] == "success"
+        assert chat_message_payload["messages_total"] >= 2
+        assert chat_message_payload["candidate_set_draft"] is not None
+        assert chat_message_payload["candidate_set_draft"]["total"] == 3
+
+        status_chat_state, chat_state_payload = _json_get(f"{base_url}/api/projects/{project_id}/chat/state")
+        assert status_chat_state == 200
+        assert chat_state_payload["messages_total"] >= 2
+        assert chat_state_payload["candidate_set_draft"]["project_id"] == project_id
 
         status_rename_workspace, renamed_payload = _json_post(
             f"{base_url}/api/workspaces/{workspace_id}/rename",

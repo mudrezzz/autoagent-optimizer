@@ -1,4 +1,6 @@
 ﻿import type {
+  C2ChatPostMessageResponse,
+  C2ChatStateResponse,
   C1SuccessPayload,
   CapabilityCatalogResponse,
   ErrorPayload,
@@ -137,6 +139,42 @@ export async function getProject(projectId: string): Promise<ProjectGetResponse>
   return parseJsonOrThrow<ProjectGetResponse>(response);
 }
 
+// Русский комментарий: загружает C2 chat state для выбранного project.
+export async function getProjectChatState(projectId: string): Promise<C2ChatStateResponse> {
+  const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/chat/state`);
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to load C2 chat state: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C2ChatStateResponse>(response);
+}
+
+// Русский комментарий: отправляет сообщение в C2 чат и опционально запускает генерацию candidate draft.
+export async function postProjectChatMessage(
+  projectId: string,
+  message: string,
+  options: {
+    generateCandidates: boolean;
+    maxCandidates?: number;
+  },
+): Promise<C2ChatPostMessageResponse> {
+  const maxCandidates = options.maxCandidates ?? 3;
+  const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/chat/messages`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message,
+      generate_candidates: options.generateCandidates,
+      max_candidates: maxCandidates,
+    }),
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to post C2 chat message: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C2ChatPostMessageResponse>(response);
+}
+
 // Русский комментарий: legacy debug endpoint validate+compile оставлен для обратной совместимости.
 export async function runC1ValidateCompile(
   dslFile: string,
@@ -156,7 +194,7 @@ export async function runC1ValidateCompile(
   return { ok: true, payload };
 }
 
-// Русский комментарий: загружает planned-preview payload для C2..C6.
+// Русский комментарий: загружает planned-preview payload для C3..C6.
 export async function fetchStubCapability(capabilityId: string): Promise<StubPayload> {
   const response = await fetch(`/api/${capabilityId}/sample`);
   if (!response.ok) {

@@ -19,9 +19,9 @@ CAPABILITY_CATALOG: tuple[dict[str, str | int], ...] = (
         "id": "c2",
         "name": "Task Chat + Candidates",
         "description": "Постановка задачи в чате и генерация кандидатов.",
-        "status": "planned",
+        "status": "enabled",
         "route": "/projects/chat",
-        "badge_count": 0,
+        "badge_count": 1,
     },
     {
         "id": "c3",

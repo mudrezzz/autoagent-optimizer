@@ -21,15 +21,15 @@ def test_capability_catalog_contains_six_items() -> None:
     assert capabilities[0]["route"] == "/projects"
 
 
-def test_capability_catalog_statuses_match_v2_3_s1_scope() -> None:
-    """Проверяет, что в V2.3.S1 только C1 открыт как enabled, а остальные capability остаются planned."""
+def test_capability_catalog_statuses_match_v2_3_s2_scope() -> None:
+    """Проверяет, что в V2.3.S2 capability C1 и C2 открыты как enabled."""
 
     payload = build_capability_catalog_payload()
     capabilities = payload["capabilities"]
     statuses = {item["id"]: item["status"] for item in capabilities}
 
     assert statuses["c1"] == "enabled"
-    assert statuses["c2"] == "planned"
+    assert statuses["c2"] == "enabled"
     assert statuses["c3"] == "planned"
     assert statuses["c4"] == "planned"
     assert statuses["c5"] == "planned"

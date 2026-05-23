@@ -315,6 +315,135 @@ class WorkspaceRegistryStore:
                         )
         raise KeyError(f"Project not found: {project_id}")
 
+    def list_project_chat_messages(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        project_id: str,
+    ) -> list[dict[str, Any]]:
+        """Возвращает историю chat-сообщений проекта для C2 сценария."""
+
+        with self._lock:
+            data = self._read_store()
+            project = self._find_project(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                project_id=project_id,
+            )
+            messages = project.get("chat_messages", [])
+            if not isinstance(messages, list):
+                return []
+            return [
+                {
+                    "message_id": str(item.get("message_id", "")),
+                    "role": str(item.get("role", "user")),
+                    "content": str(item.get("content", "")),
+                    "created_at": str(item.get("created_at", "")),
+                }
+                for item in messages
+                if isinstance(item, dict)
+            ]
+
+    def append_project_chat_message(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        project_id: str,
+        role: str,
+        content: str,
+    ) -> dict[str, Any]:
+        """Добавляет chat-сообщение в проект C2 и возвращает созданную запись."""
+
+        normalized_role = role.strip().lower()
+        normalized_content = content.strip()
+        if normalized_role not in {"user", "assistant", "system"}:
+            raise ValueError("Chat message role must be one of: user, assistant, system.")
+        if not normalized_content:
+            raise ValueError("Chat message content must be a non-empty string.")
+
+        with self._lock:
+            data = self._read_store()
+            project = self._find_project(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                project_id=project_id,
+            )
+            messages = project.get("chat_messages", [])
+            if not isinstance(messages, list):
+                messages = []
+
+            now = _utc_now_iso()
+            message = {
+                "message_id": f"msg_{uuid4().hex[:10]}",
+                "role": normalized_role,
+                "content": normalized_content,
+                "created_at": now,
+            }
+            messages.append(message)
+            project["chat_messages"] = messages
+            project["updated_at"] = now
+            self._write_store(data)
+            return {
+                "message_id": str(message["message_id"]),
+                "role": str(message["role"]),
+                "content": str(message["content"]),
+                "created_at": str(message["created_at"]),
+            }
+
+    def save_project_candidate_set_draft(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        project_id: str,
+        candidate_set_draft: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Сохраняет candidate_set_draft в проекте и возвращает сохраненный объект."""
+
+        if not isinstance(candidate_set_draft, dict):
+            raise ValueError("candidate_set_draft must be an object.")
+
+        with self._lock:
+            data = self._read_store()
+            project = self._find_project(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                project_id=project_id,
+            )
+            project["candidate_set_draft"] = candidate_set_draft
+            project["updated_at"] = _utc_now_iso()
+            self._write_store(data)
+            return dict(candidate_set_draft)
+
+    def get_project_candidate_set_draft(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        project_id: str,
+    ) -> dict[str, Any] | None:
+        """Возвращает сохраненный candidate_set_draft проекта либо `None`."""
+
+        with self._lock:
+            data = self._read_store()
+            project = self._find_project(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                project_id=project_id,
+            )
+            draft = project.get("candidate_set_draft")
+            if draft is None:
+                return None
+            if not isinstance(draft, dict):
+                return None
+            return dict(draft)
+
     def _read_store(self) -> dict[str, Any]:
         """Читает JSON-store и гарантирует корректный базовый контракт."""
 
@@ -368,6 +497,31 @@ class WorkspaceRegistryStore:
             ):
                 return item
         raise KeyError(f"Workspace not found: {workspace_id}")
+
+    def _find_project(
+        self,
+        *,
+        data: dict[str, Any],
+        tenant_id: str,
+        owner_user_id: str,
+        project_id: str,
+    ) -> dict[str, Any]:
+        """Ищет проект по id в tenant/user scope и возвращает mutable dict-объект."""
+
+        for workspace in data.get("workspaces", []):
+            projects = workspace.get("projects", [])
+            if not isinstance(projects, list):
+                continue
+            for project in projects:
+                if not isinstance(project, dict):
+                    continue
+                if (
+                    str(project.get("project_id")) == project_id
+                    and str(project.get("tenant_id", "")) == tenant_id
+                    and str(project.get("owner_user_id", "")) == owner_user_id
+                ):
+                    return project
+        raise KeyError(f"Project not found: {project_id}")
 
 
 def _utc_now_iso() -> str:

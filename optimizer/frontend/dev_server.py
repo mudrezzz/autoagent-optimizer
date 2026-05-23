@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from optimizer.c2 import build_candidate_draft_from_brief
 from optimizer.dsl.compiler import DslToGraphIRCompiler
 from optimizer.dsl.io import DslLoadError, DslValidationError, load_dsl_spec
 from optimizer.frontend.contracts import build_capability_catalog_payload, build_stub_capability_payload
@@ -76,7 +77,7 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
     """Создает handler-класс с замыканием на project_root и workspace_store."""
 
     class FrontendRequestHandler(SimpleHTTPRequestHandler):
-        """HTTP handler для frontend shell: static + capability API + C1 workspace/project API."""
+        """HTTP handler для frontend shell: static + capability API + C1/C2 product API."""
 
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             """Инициализирует handler и настраивает root директорию раздачи статики."""
@@ -144,6 +145,12 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
                 )
                 return
 
+            project_chat_state_match = re.fullmatch(r"/api/projects/([^/]+)/chat/state", path)
+            if project_chat_state_match is not None:
+                project_id = project_chat_state_match.group(1)
+                self._handle_get_project_chat_state(project_id=project_id)
+                return
+
             project_match = re.fullmatch(r"/api/projects/([^/]+)", path)
             if project_match is not None:
                 project_id = project_match.group(1)
@@ -177,7 +184,7 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
             super().do_GET()
 
         def do_POST(self) -> None:  # noqa: N802
-            """Обрабатывает POST-запросы API для C1 workspace/project и legacy debug endpoint."""
+            """Обрабатывает POST-запросы API для C1/C2 и legacy debug endpoint."""
 
             path = urlparse(self.path).path
             if path == "/api/workspaces":
@@ -206,6 +213,12 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
             if workspace_projects_match is not None:
                 workspace_id = workspace_projects_match.group(1)
                 self._handle_create_project(workspace_id=workspace_id)
+                return
+
+            project_chat_messages_match = re.fullmatch(r"/api/projects/([^/]+)/chat/messages", path)
+            if project_chat_messages_match is not None:
+                project_id = project_chat_messages_match.group(1)
+                self._handle_post_project_chat_message(project_id=project_id)
                 return
 
             if path == "/api/c1/validate-compile":
@@ -418,6 +431,156 @@ def _build_handler(*, project_root: Path, workspace_store: WorkspaceRegistryStor
                 return
 
             self._send_json({"status": "success", "workspace_id": workspace_id})
+
+        def _handle_get_project_chat_state(self, *, project_id: str) -> None:
+            """Возвращает состояние C2-чата и candidate draft для выбранного проекта."""
+
+            tenant_id, user_id = self._resolve_request_actor()
+            try:
+                project = workspace_store.get_project(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    project_id=project_id,
+                )
+                messages = workspace_store.list_project_chat_messages(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    project_id=project_id,
+                )
+                candidate_set_draft = workspace_store.get_project_candidate_set_draft(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    project_id=project_id,
+                )
+            except KeyError as exc:
+                self._send_json(
+                    {"status": "error", "code": "project_not_found", "message": str(exc)},
+                    status=HTTPStatus.NOT_FOUND,
+                )
+                return
+
+            self._send_json(
+                {
+                    "status": "success",
+                    "capability_id": "c2",
+                    "project_id": project_id,
+                    "project_name": project.name,
+                    "messages": messages,
+                    "messages_total": len(messages),
+                    "candidate_set_draft": candidate_set_draft,
+                }
+            )
+
+        def _handle_post_project_chat_message(self, *, project_id: str) -> None:
+            """Добавляет сообщение в C2-чат проекта и опционально генерирует candidate draft."""
+
+            tenant_id, user_id = self._resolve_request_actor()
+            try:
+                payload = self._read_json_body()
+            except ValueError as exc:
+                self._send_json({"status": "error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            message_raw = payload.get("message")
+            if not isinstance(message_raw, str) or not message_raw.strip():
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Field `message` must be a non-empty string."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            generate_candidates = bool(payload.get("generate_candidates", False))
+            max_candidates_raw = payload.get("max_candidates", 3)
+            if not isinstance(max_candidates_raw, int):
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Field `max_candidates` must be an integer."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            if max_candidates_raw < 1 or max_candidates_raw > 5:
+                self._send_json(
+                    {
+                        "status": "error",
+                        "code": "validation_error",
+                        "message": "Field `max_candidates` must be between 1 and 5.",
+                    },
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            try:
+                chat_message = workspace_store.append_project_chat_message(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    project_id=project_id,
+                    role="user",
+                    content=message_raw,
+                )
+            except KeyError as exc:
+                self._send_json(
+                    {"status": "error", "code": "project_not_found", "message": str(exc)},
+                    status=HTTPStatus.NOT_FOUND,
+                )
+                return
+            except ValueError as exc:
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": str(exc)},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            candidate_set_draft: dict[str, Any] | None = None
+            assistant_message: dict[str, Any] | None = None
+            if generate_candidates:
+                try:
+                    candidate_set_draft = build_candidate_draft_from_brief(
+                        project_id=project_id,
+                        brief=message_raw,
+                        max_candidates=max_candidates_raw,
+                    )
+                    workspace_store.save_project_candidate_set_draft(
+                        tenant_id=tenant_id,
+                        owner_user_id=user_id,
+                        project_id=project_id,
+                        candidate_set_draft=candidate_set_draft,
+                    )
+                    assistant_message = workspace_store.append_project_chat_message(
+                        tenant_id=tenant_id,
+                        owner_user_id=user_id,
+                        project_id=project_id,
+                        role="assistant",
+                        content=f"Prepared {candidate_set_draft['total']} candidate drafts from the brief.",
+                    )
+                except ValueError as exc:
+                    self._send_json(
+                        {"status": "error", "code": "validation_error", "message": str(exc)},
+                        status=HTTPStatus.BAD_REQUEST,
+                    )
+                    return
+                except KeyError as exc:
+                    self._send_json(
+                        {"status": "error", "code": "project_not_found", "message": str(exc)},
+                        status=HTTPStatus.NOT_FOUND,
+                    )
+                    return
+
+            messages = workspace_store.list_project_chat_messages(
+                tenant_id=tenant_id,
+                owner_user_id=user_id,
+                project_id=project_id,
+            )
+            self._send_json(
+                {
+                    "status": "success",
+                    "capability_id": "c2",
+                    "project_id": project_id,
+                    "message": chat_message,
+                    "assistant_message": assistant_message,
+                    "messages": messages,
+                    "messages_total": len(messages),
+                    "candidate_set_draft": candidate_set_draft,
+                },
+                status=HTTPStatus.CREATED,
+            )
 
         def _resolve_request_actor(self) -> tuple[str, str]:
             """Разрешает tenant/user контекст запроса из заголовков либо default окружения."""
