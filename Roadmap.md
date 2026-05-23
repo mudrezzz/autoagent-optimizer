@@ -207,7 +207,10 @@ Note: после `V2.3.S1` добавлен corrective slice `V2.3.S1a`, что�
    - `System_Architecture_Overview.md` (если менялась архитектура)
    - `docs/adr/*` (если было архитектурное решение)
 5. Каждый слайс фиксируется отдельным commit.
-6. Перед commit обязателен полный прогон `python -m pytest` (unit + integration + e2e).
+6. Перед commit обязателен тест-гейт по типу слайса:
+   - `Fast gate`: frontend-only микроизменения (`python -m pytest tests/unit/test_frontend_contracts.py` + `python -m pytest tests/e2e/test_frontend_shell_smoke_script.py`),
+   - `Targeted gate`: frontend + API-срез (fast gate + `python -m pytest tests/integration/test_frontend_dev_server.py` + профильные integration/e2e),
+   - `Full gate`: крупные слайсы/release (`python -m pytest`).
 7. При фронтовых изменениях в описании слайса фиксируем, какие артефакты `design_system` использованы
    (`colors_and_type.css`, `ui_kits/*`, `assets/*`, copy rules).
 8. При фронтовых изменениях также фиксируем соответствие UX North Star (`app-v3`: трехколоночный layout, run-centric header, KPI->architectures->trace, intervention rail).

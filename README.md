@@ -188,7 +188,7 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 5. РћР±РЅРѕРІР»РµРЅС‹ `Roadmap.md`, `README.md`, `System_Architecture_Overview.md` (РµСЃР»Рё Р·Р°С‚СЂРѕРЅСѓС‚Рѕ).
 6. Р”РѕР±Р°РІР»РµРЅ/РѕР±РЅРѕРІР»РµРЅ ADR РїСЂРё Р°СЂС…РёС‚РµРєС‚СѓСЂРЅС‹С… РёР·РјРµРЅРµРЅРёСЏС….
 7. РЎРґРµР»Р°РЅ РѕС‚РґРµР»СЊРЅС‹Р№ git commit СЃ РїСЂРёРІСЏР·РєРѕР№ Рє СЃР»Р°Р№СЃСѓ (РЅР°РїСЂРёРјРµСЂ `I1.S2`).
-8. Р’С‹РїРѕР»РЅРµРЅ РїРѕР»РЅС‹Р№ РїСЂРѕРіРѕРЅ Р°РІС‚РѕС‚РµСЃС‚РѕРІ (`unit + integration + e2e`).
+8. Р’С‹РїРѕР»РЅРµРЅ С‚РµСЃС‚-РіРµР№С‚ СЃРѕРіР»Р°СЃРЅРѕ С‚РёРїСѓ СЃР»Р°Р№СЃР° (fast/targeted/full, СЃРј. `Test Policy`).
 
 ## Test Policy
 
@@ -198,7 +198,20 @@ OSS-first РїР»Р°С‚С„РѕСЂРјР° РґР»СЏ Р°СЂС…Рё�
 2. `tests/integration`
 3. `tests/e2e`
 
-РџРѕР»РЅС‹Р№ РїСЂРѕРіРѕРЅ (РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ РїРѕСЃР»Рµ РєР°Р¶РґРѕРіРѕ СЃР»Р°Р№СЃР°):
+РњРѕРґРµР»СЊ РіРµР№С‚РѕРІ (РїРѕ РєР»Р°СЃСЃСѓ РёР·РјРµРЅРµРЅРёР№):
+
+1. `Fast gate` (`FE-only` микроизменения без изменения API контракта):
+   - `python -m pytest tests/unit/test_frontend_contracts.py`,
+   - `python -m pytest tests/e2e/test_frontend_shell_smoke_script.py`.
+2. `Targeted gate` (`FE + API slice` или локальное backend-изменение):
+   - все из `Fast gate`,
+   - `python -m pytest tests/integration/test_frontend_dev_server.py`,
+   - профильные e2e/интеграции для затронутого пути.
+3. `Full gate` (РєСЂСѓРїРЅС‹Р№ СЃР»Р°Р№СЃ, release-candidate, РёР·РјРµРЅРµРЅРёСЏ evaluation/runtime/champion paths):
+   - РІСЃРµ РёР· `Targeted gate`,
+   - РїРѕР»РЅС‹Р№ `python -m pytest`.
+
+РџРѕР»РЅС‹Р№ РїСЂРѕРіРѕРЅ (РґР»СЏ `Full gate`):
 
 ```powershell
 python -m pytest
@@ -211,6 +224,18 @@ python -m pytest -m unit
 python -m pytest -m integration
 python -m pytest -m e2e
 ```
+
+Frontend-only команды:
+
+```powershell
+python -m pytest tests/unit/test_frontend_contracts.py
+python -m pytest tests/e2e/test_frontend_shell_smoke_script.py
+```
+
+Р’Р°Р¶РЅРѕ РґР»СЏ Р»РѕРєР°Р»СЊРЅРѕР№ РїСЂРѕРІРµСЂРєРё UI/API:
+
+1. РїРѕСЃР»Рµ РёР·РјРµРЅРµРЅРёР№ backend-РЅРґРїРѕРёРЅС‚РѕРІ РїРµСЂРµР·Р°РїСѓСЃРєР°Р№С‚Рµ dev server;
+2. РїСЂРѕРІРµСЂСЏР№С‚Рµ, С‡С‚Рѕ frontend proxy СЃРјРѕС‚СЂРёС‚ РЅР° Р°РєС‚СѓР°Р»СЊРЅС‹Р№ backend instance, РёРЅР°С‡Рµ РІРѕР·РјРѕР¶РЅС‹ `404` РЅР° `/api/*`.
 
 Live runtime-С‚РµСЃС‚С‹ (РѕРїС†РёРѕРЅР°Р»СЊРЅРѕ, РЅРµР±Р»РѕРєРёСЂСѓСЋС‰РёРµ):
 

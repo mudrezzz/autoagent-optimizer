@@ -284,7 +284,13 @@ UI должен явно показывать:
 2. integration-тест экранного поведения;
 3. e2e smoke для основного happy-path.
 
-После каждого слайса обязателен полный прогон `python -m pytest` плюс фронтовые тесты (`vitest`, `playwright` после ввода toolchain).
+Test gates для frontend delivery:
+
+1. `Fast gate` (frontend-only): `python -m pytest tests/unit/test_frontend_contracts.py` + `python -m pytest tests/e2e/test_frontend_shell_smoke_script.py`.
+2. `Targeted gate` (frontend + API-срез): fast gate + `python -m pytest tests/integration/test_frontend_dev_server.py` + профильные backend integration/e2e тесты по затронутым endpoint.
+3. `Full gate` (крупный слайс/release): `python -m pytest` + frontend test suite.
+
+Операционное правило: после изменения backend API frontend обязан работать против перезапущенного dev server; иначе возможны ложные `404` на `/api/*` из-за старого процесса.
 
 ## Demo Contract (v0)
 

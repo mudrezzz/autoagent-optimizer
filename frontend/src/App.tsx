@@ -599,6 +599,16 @@ export function App(): JSX.Element {
     return { agents, tests, dataRows, statusLabel };
   }
 
+  // Русский комментарий: локально выбирает активную карточку workspace в Projects Hub без перехода на экран workspace.
+  function handleSelectWorkspaceCard(workspaceId: string): void {
+    setState((prev) => ({
+      ...prev,
+      activeWorkspaceId: workspaceId,
+      metricWorkspaceStatus: "selected",
+      budgetStage: "workspace highlighted",
+    }));
+  }
+
   const isWorkspaceRoute = route.name === "workspace";
   const isC1Enabled = activeCapability.id === "c1" && activeCapability.status === "enabled";
 
@@ -745,11 +755,27 @@ export function App(): JSX.Element {
                       state.workspaces.map((workspace, index) => {
                         const metrics = buildWorkspaceCardMetrics(workspace, index);
                         const isChampionCard = index === 0;
+                        const isActiveCard = state.activeWorkspaceId
+                          ? state.activeWorkspaceId === workspace.workspace_id
+                          : index === 0;
                         const isCardMenuOpen = workspaceMenuOpenId === workspace.workspace_id;
                         return (
                           <article
                             key={workspace.workspace_id}
-                            className={`workspace-arch-card${isChampionCard ? " is-champion" : ""}`}
+                            className={`workspace-arch-card${isChampionCard ? " is-champion" : ""}${
+                              isActiveCard ? " is-active" : ""
+                            }`}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => {
+                              handleSelectWorkspaceCard(workspace.workspace_id);
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                handleSelectWorkspaceCard(workspace.workspace_id);
+                              }
+                            }}
                           >
                             <div className="workspace-arch-head">
                               <div>
@@ -775,7 +801,12 @@ export function App(): JSX.Element {
                                     <i data-lucide="ellipsis" />
                                   </button>
                                   {isCardMenuOpen ? (
-                                    <div className="workspace-menu">
+                                    <div
+                                      className="workspace-menu"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                      }}
+                                    >
                                       <button
                                         type="button"
                                         className="workspace-menu-item"

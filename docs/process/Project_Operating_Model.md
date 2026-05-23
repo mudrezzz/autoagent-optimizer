@@ -18,7 +18,7 @@
 4. Обновление `System_Architecture_Overview.md`, если менялась архитектура.
 5. ADR/ARD при архитектурном решении.
 6. Отдельный git commit.
-7. Полный прогон автотестов (`unit + integration + e2e`) перед commit.
+7. Тест-гейт перед commit по типу слайса (`Fast` / `Targeted` / `Full`).
 8. Синхронное обновление демо-трека (`docs/demo/Demo_Track.md`) для затронутого функционала.
 9. Для фронтовых изменений: explicit подтверждение соответствия `design_system`.
 
@@ -66,7 +66,7 @@
 6. Документы обновлены (минимальный обязательный набор).
 7. Статус в roadmap обновлен.
 8. Сделан commit с id слайса в сообщении.
-9. В истории есть подтверждение успешного полного прогона тестов.
+9. В истории есть подтверждение успешного test-gate для текущего типа слайса.
 
 ## 6.1. Test Pyramid Policy
 
@@ -79,7 +79,11 @@
 Правило развития:
 
 1. На каждом слайсе расширять все уровни, которые затронуты изменениями.
-2. Не допускается merge/commit слайса без зеленого полного прогона `pytest`.
+2. Не допускается merge/commit слайса без зеленого test-gate, соответствующего уровню изменений.
+3. Режимы gate:
+   - `Fast gate`: frontend-only (`python -m pytest tests/unit/test_frontend_contracts.py` + `python -m pytest tests/e2e/test_frontend_shell_smoke_script.py`).
+   - `Targeted gate`: fast gate + `python -m pytest tests/integration/test_frontend_dev_server.py` + профильные backend integration/e2e тесты затронутого API/path.
+   - `Full gate`: полный `python -m pytest` (для крупных слайсов и release-кандидатов).
 
 ## 6.2. Demo Sync Policy
 

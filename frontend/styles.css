@@ -602,10 +602,25 @@ code { font-family: var(--font-mono); }
   display: flex;
   flex-direction: column;
   gap: 8px;
+  cursor: pointer;
+  transition: box-shadow 120ms ease, transform 120ms ease;
   box-shadow: var(--shadow-card);
 }
 
 .workspace-arch-card.is-champion {
+  box-shadow: 0 0 0 1px var(--accent-300), var(--shadow-card);
+}
+
+.workspace-arch-card.is-active {
+  box-shadow: 0 0 0 2px var(--accent), var(--shadow-md);
+}
+
+.workspace-arch-card:hover {
+  transform: translateY(-1px);
+}
+
+.workspace-arch-card:focus-visible {
+  outline: none;
   box-shadow: 0 0 0 2px var(--accent), var(--shadow-md);
 }
 
@@ -685,12 +700,14 @@ code { font-family: var(--font-mono); }
 .workspace-menu-trigger {
   border: 1px solid transparent;
   background: transparent;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 7px;
   color: var(--gray-500);
   display: grid;
   place-items: center;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 .workspace-menu-trigger:hover {
@@ -699,9 +716,17 @@ code { font-family: var(--font-mono); }
   color: var(--gray-700);
 }
 
-.workspace-menu-trigger i {
-  width: 13px;
-  height: 13px;
+.workspace-menu-trigger:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring);
+}
+
+.workspace-menu-trigger svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+  pointer-events: none;
 }
 
 .workspace-menu {

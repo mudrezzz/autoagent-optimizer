@@ -83,6 +83,7 @@ Input (Tenant + User + Project + Task Brief + Constraints + Data + Budget)
    - capability-oriented frontend surfaces (projects-hub + project-workspace).
    - unified scenario runner for demo/validation.
    - explicit mapping `backend capability -> user-visible control -> e2e assertion`.
+   - risk-based QA gates for delivery speed (`fast` / `targeted` / `full`) with full regression reserved for high-risk slices.
    - strict `design_system` compliance (tokens, typography, iconography, UI kits, voice).
    - UX composition rule: `Projects Hub` без правого rail; `Project Workspace` по North Star (`app-v3`).
 
