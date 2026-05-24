@@ -761,6 +761,60 @@ code { font-family: var(--font-mono); }
 }
 
 .candidate-mini-graph {
+  border: 1px dashed var(--border-muted);
+  border-radius: 10px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.candidate-mini-graph-svg {
+  width: 100%;
+  min-width: 560px;
+  height: 72px;
+  color: var(--accent-500);
+}
+
+.candidate-mini-graph-edge {
+  stroke: currentColor;
+  stroke-width: 1.4;
+  opacity: 0.78;
+}
+
+.candidate-mini-graph-node-rect {
+  fill: var(--gray-0);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.candidate-mini-graph-node.kind-llm .candidate-mini-graph-node-rect {
+  fill: color-mix(in srgb, var(--accent-50) 70%, var(--gray-0) 30%);
+  stroke: var(--accent-300);
+}
+
+.candidate-mini-graph-node.kind-validator .candidate-mini-graph-node-rect {
+  fill: color-mix(in srgb, var(--green-50) 70%, var(--gray-0) 30%);
+  stroke: var(--green-700);
+}
+
+.candidate-mini-graph-node.kind-output .candidate-mini-graph-node-rect {
+  fill: color-mix(in srgb, var(--amber-50) 70%, var(--gray-0) 30%);
+  stroke: var(--amber-800);
+}
+
+.candidate-mini-graph-node-kind {
+  font: 600 10px var(--font-sans);
+  fill: var(--gray-600);
+}
+
+.candidate-mini-graph-node-label {
+  font: 600 11px var(--font-mono);
+  fill: var(--gray-900);
+}
+
+.candidate-mini-graph-legend {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -808,11 +862,6 @@ code { font-family: var(--font-mono); }
 .mini-node-label {
   font-size: 11px;
   color: var(--gray-800);
-}
-
-.mini-node-arrow {
-  color: var(--gray-500);
-  font-size: 11px;
 }
 
 .candidate-steps-list {

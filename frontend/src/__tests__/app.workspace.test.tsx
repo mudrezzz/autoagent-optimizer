@@ -204,5 +204,6 @@ describe("Battle workspace candidates", () => {
     await waitFor(() => {
       expect(detailsButtons[0]?.getAttribute("aria-expanded")).toBe("true");
     });
+    expect(await screen.findByLabelText("candidate-mini-graph-svg")).toBeInTheDocument();
   });
 });

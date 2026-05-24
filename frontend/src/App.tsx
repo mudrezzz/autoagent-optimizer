@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import {
@@ -13,7 +13,7 @@ import {
   postArenaChatMessage,
   renameArena,
 } from "./api";
-import type { ArenaRecord, C2CandidateSetDraft, C2ChatMessage, Capability, StubPayload } from "./types";
+import type { ArenaRecord, C2CandidateDraftItem, C2CandidateSetDraft, C2ChatMessage, Capability, StubPayload } from "./types";
 import { exportJsonToFile, makeTimestampedFileName, prettyJson } from "./utils";
 
 declare global {
@@ -514,6 +514,67 @@ export function App(): JSX.Element {
     return { quality, cost, latency };
   }
 
+  // Русский комментарий: строит простую SVG-схему архитектуры кандидата для v0-визуализации в аккордеоне.
+  function renderCandidateMiniGraphSvg(candidate: C2CandidateDraftItem): JSX.Element {
+    const graphNodes = candidate.mini_graph?.nodes ?? [];
+    if (graphNodes.length === 0) {
+      return <div className="issue-row info">Mini-graph is not available for this candidate.</div>;
+    }
+
+    const edges = candidate.mini_graph?.edges ?? [];
+    const nodeWidth = 120;
+    const nodeHeight = 42;
+    const gapX = 26;
+    const paddingX = 18;
+    const paddingY = 14;
+    const viewWidth = paddingX * 2 + graphNodes.length * nodeWidth + (graphNodes.length - 1) * gapX;
+    const viewHeight = paddingY * 2 + nodeHeight;
+    const nodeIndexById = new Map(graphNodes.map((node, index) => [node.id, index]));
+
+    return (
+      <svg className="candidate-mini-graph-svg" aria-label="candidate-mini-graph-svg" viewBox={`0 0 ${viewWidth} ${viewHeight}`} role="img">
+        <defs>
+          <marker id={`arrow-${candidate.candidate_id}`} markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <path d="M0,0 L8,4 L0,8 Z" fill="currentColor" />
+          </marker>
+        </defs>
+        {edges.map((edge, edgeIndex) => {
+          const sourceIndex = nodeIndexById.get(edge.source);
+          const targetIndex = nodeIndexById.get(edge.target);
+          if (sourceIndex === undefined || targetIndex === undefined) {
+            return null;
+          }
+          const sourceX = paddingX + sourceIndex * (nodeWidth + gapX) + nodeWidth;
+          const sourceY = paddingY + nodeHeight / 2;
+          const targetX = paddingX + targetIndex * (nodeWidth + gapX);
+          const targetY = paddingY + nodeHeight / 2;
+          return (
+            <line
+              key={`edge-${edgeIndex}-${edge.source}-${edge.target}`}
+              className="candidate-mini-graph-edge"
+              x1={sourceX}
+              y1={sourceY}
+              x2={targetX}
+              y2={targetY}
+              markerEnd={`url(#arrow-${candidate.candidate_id})`}
+            />
+          );
+        })}
+        {graphNodes.map((node, index) => {
+          const x = paddingX + index * (nodeWidth + gapX);
+          const y = paddingY;
+          return (
+            <g key={node.id} className={`candidate-mini-graph-node kind-${node.kind}`} transform={`translate(${x} ${y})`}>
+              <rect className="candidate-mini-graph-node-rect" width={nodeWidth} height={nodeHeight} rx="10" ry="10" />
+              <text className="candidate-mini-graph-node-kind" x={10} y={16}>{node.kind}</text>
+              <text className="candidate-mini-graph-node-label" x={10} y={31}>{node.label}</text>
+            </g>
+          );
+        })}
+      </svg>
+    );
+  }
+
   const isBattleRoute = route.name === "battle_workspace";
   const isC2Enabled = activeCapability.id === "c2";
 
@@ -711,106 +772,106 @@ export function App(): JSX.Element {
                         </div>
                         {isC2Enabled && state.c2CandidateSetDraft ? state.c2CandidateSetDraft.candidates.map((candidate, index) => {
                           const metrics = buildCandidateMetrics(candidate.candidate_id);
+                          const graphNodes = candidate.mini_graph?.nodes ?? [];
+                          const isExpanded = state.c2ExpandedCandidateId === candidate.candidate_id;
                           return (
-                            <article
-                              key={candidate.candidate_id}
-                              className={`candidate-row${index === 0 ? " candidate-row--champion" : ""}${state.c2SelectedCandidateId === candidate.candidate_id ? " candidate-row--active" : ""}`}
-                              role="button"
-                              tabIndex={0}
-                              onClick={() => { handleSelectCandidate(candidate.candidate_id); }}
-                              onKeyDown={(event) => {
-                                if (event.key === "Enter" || event.key === " ") {
-                                  event.preventDefault();
-                                  handleSelectCandidate(candidate.candidate_id);
-                                }
-                              }}
-                            >
-                              <div className="candidate-col-title">
-                                <div className="candidate-title-line">
-                                  <b>{candidate.title}</b>
-                                  <span className={`workspace-pill${index === 0 ? " champ" : " base"}`}>
-                                    <span className="dot" />
-                                    {index === 0 ? "Champion" : "Candidate"}
-                                  </span>
+                            <Fragment key={candidate.candidate_id}>
+                              <article
+                                className={`candidate-row${index === 0 ? " candidate-row--champion" : ""}${state.c2SelectedCandidateId === candidate.candidate_id ? " candidate-row--active" : ""}`}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => { handleSelectCandidate(candidate.candidate_id); }}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter" || event.key === " ") {
+                                    event.preventDefault();
+                                    handleSelectCandidate(candidate.candidate_id);
+                                  }
+                                }}
+                              >
+                                <div className="candidate-col-title">
+                                  <div className="candidate-title-line">
+                                    <b>{candidate.title}</b>
+                                    <span className={`workspace-pill${index === 0 ? " champ" : " base"}`}>
+                                      <span className="dot" />
+                                      {index === 0 ? "Champion" : "Candidate"}
+                                    </span>
+                                  </div>
+                                  <div className="candidate-meta">{candidate.pattern_ref}</div>
+                                  <div className="row-sub">{candidate.summary}</div>
                                 </div>
-                                <div className="candidate-meta">{candidate.pattern_ref}</div>
-                                <div className="row-sub">{candidate.summary}</div>
-                              </div>
-                              <div className="candidate-col-metric">
-                                <div className="candidate-metric-value">{metrics.quality}</div>
-                                <div className="candidate-metric-label">f1@k</div>
-                              </div>
-                              <div className="candidate-col-metric">
-                                <div className="candidate-metric-value">${metrics.cost}</div>
-                                <div className="candidate-metric-label">usd</div>
-                              </div>
-                              <div className="candidate-col-metric">
-                                <div className="candidate-metric-value">{metrics.latency}s</div>
-                                <div className="candidate-metric-label">runtime</div>
-                              </div>
-                              <div className="candidate-col-action">
-                                <button
-                                  type="button"
-                                  className="candidate-details-toggle"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    handleToggleCandidateDetails(candidate.candidate_id);
-                                  }}
-                                  aria-expanded={state.c2ExpandedCandidateId === candidate.candidate_id}
-                                  aria-controls={`candidate-details-${candidate.candidate_id}`}
+                                <div className="candidate-col-metric">
+                                  <div className="candidate-metric-value">{metrics.quality}</div>
+                                  <div className="candidate-metric-label">f1@k</div>
+                                </div>
+                                <div className="candidate-col-metric">
+                                  <div className="candidate-metric-value">${metrics.cost}</div>
+                                  <div className="candidate-metric-label">usd</div>
+                                </div>
+                                <div className="candidate-col-metric">
+                                  <div className="candidate-metric-value">{metrics.latency}s</div>
+                                  <div className="candidate-metric-label">runtime</div>
+                                </div>
+                                <div className="candidate-col-action">
+                                  <button
+                                    type="button"
+                                    className="candidate-details-toggle"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      handleToggleCandidateDetails(candidate.candidate_id);
+                                    }}
+                                    aria-expanded={isExpanded}
+                                    aria-controls={`candidate-details-${candidate.candidate_id}`}
+                                  >
+                                    <span>Details</span>
+                                    <i data-lucide={isExpanded ? "chevron-up" : "chevron-down"} />
+                                  </button>
+                                </div>
+                              </article>
+                              {isExpanded ? (
+                                <section
+                                  id={`candidate-details-${candidate.candidate_id}`}
+                                  className="candidate-details-panel"
+                                  role="region"
+                                  aria-label="candidate details"
                                 >
-                                  <span>Details</span>
-                                  <i data-lucide={state.c2ExpandedCandidateId === candidate.candidate_id ? "chevron-up" : "chevron-down"} />
-                                </button>
-                              </div>
-                            </article>
+                                  <div className="candidate-details-head">
+                                    <div className="candidate-details-logo" aria-label={`logo-${candidate.candidate_id}`}>
+                                      {candidate.logo?.label ?? "AG"}
+                                    </div>
+                                    <div>
+                                      <div className="candidate-details-title">{candidate.title}</div>
+                                      <div className="candidate-details-sub">{candidate.rationale}</div>
+                                    </div>
+                                  </div>
+                                  <div className="candidate-config-grid">
+                                    <div className="candidate-config-cell"><span>roles</span><b>{candidate.config_summary?.roles_total ?? 0}</b></div>
+                                    <div className="candidate-config-cell"><span>llm calls</span><b>{candidate.config_summary?.llm_calls_max ?? 0}</b></div>
+                                    <div className="candidate-config-cell"><span>guards</span><b>{candidate.config_summary?.deterministic_guards ?? 0}</b></div>
+                                    <div className="candidate-config-cell"><span>hitl</span><b>{candidate.config_summary?.hitl_checkpoints ?? 0}</b></div>
+                                  </div>
+                                  <div className="candidate-mini-graph" aria-label="candidate-mini-graph">
+                                    {renderCandidateMiniGraphSvg(candidate)}
+                                    {graphNodes.length > 0 ? (
+                                      <div className="candidate-mini-graph-legend">
+                                        {graphNodes.map((node) => (
+                                          <div key={node.id} className="mini-graph-node">
+                                            <span className={`mini-node-kind kind-${node.kind}`}>{node.kind}</span>
+                                            <span className="mini-node-label">{node.label}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                  <div className="candidate-steps-list">
+                                    {(candidate.architecture_steps ?? []).map((step) => (
+                                      <span key={step} className="candidate-step-chip">{step}</span>
+                                    ))}
+                                  </div>
+                                </section>
+                              ) : null}
+                            </Fragment>
                           );
                         }) : <div className="issue-row warning">No candidate draft yet. Use chat action "Generate candidates".</div>}
-                        {isC2Enabled && state.c2CandidateSetDraft ? state.c2CandidateSetDraft.candidates.map((candidate) => {
-                          if (state.c2ExpandedCandidateId !== candidate.candidate_id) {
-                            return null;
-                          }
-                          const graphNodes = candidate.mini_graph?.nodes ?? [];
-                          return (
-                            <section
-                              key={`details-${candidate.candidate_id}`}
-                              id={`candidate-details-${candidate.candidate_id}`}
-                              className="candidate-details-panel"
-                              role="region"
-                              aria-label="candidate details"
-                            >
-                              <div className="candidate-details-head">
-                                <div className="candidate-details-logo" aria-label={`logo-${candidate.candidate_id}`}>
-                                  {candidate.logo?.label ?? "AG"}
-                                </div>
-                                <div>
-                                  <div className="candidate-details-title">{candidate.title}</div>
-                                  <div className="candidate-details-sub">{candidate.rationale}</div>
-                                </div>
-                              </div>
-                              <div className="candidate-config-grid">
-                                <div className="candidate-config-cell"><span>roles</span><b>{candidate.config_summary?.roles_total ?? 0}</b></div>
-                                <div className="candidate-config-cell"><span>llm calls</span><b>{candidate.config_summary?.llm_calls_max ?? 0}</b></div>
-                                <div className="candidate-config-cell"><span>guards</span><b>{candidate.config_summary?.deterministic_guards ?? 0}</b></div>
-                                <div className="candidate-config-cell"><span>hitl</span><b>{candidate.config_summary?.hitl_checkpoints ?? 0}</b></div>
-                              </div>
-                              <div className="candidate-mini-graph" aria-label="candidate-mini-graph">
-                                {graphNodes.length > 0 ? graphNodes.map((node, nodeIndex) => (
-                                  <div key={node.id} className="mini-graph-node">
-                                    <span className={`mini-node-kind kind-${node.kind}`}>{node.kind}</span>
-                                    <span className="mini-node-label">{node.label}</span>
-                                    {nodeIndex < graphNodes.length - 1 ? <span className="mini-node-arrow">{"->"}</span> : null}
-                                  </div>
-                                )) : <div className="issue-row info">Mini-graph is not available for this candidate.</div>}
-                              </div>
-                              <div className="candidate-steps-list">
-                                {(candidate.architecture_steps ?? []).map((step) => (
-                                  <span key={step} className="candidate-step-chip">{step}</span>
-                                ))}
-                              </div>
-                            </section>
-                          );
-                        }) : null}
                       </div>
                     </div>
                     <section className={`workspace-json-panel${state.c2JsonCollapsed ? " is-collapsed" : ""}`}>
