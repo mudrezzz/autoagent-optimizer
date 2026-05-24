@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 48" width="320" height="48" fill="none">
+  
+  <rect width="40" height="40" y="4" rx="9" fill="#635BFF"></rect>
+  <path d="M14 33 L20 17 L26 33 Z" stroke="white" stroke-width="1.8" stroke-linejoin="round" fill="none" opacity="0.55"></path>
+  <circle cx="14" cy="33" r="3" fill="white"></circle>
+  <circle cx="26" cy="33" r="3" fill="white"></circle>
+  <circle cx="20" cy="17" r="4.5" fill="white"></circle>
+  <circle cx="20" cy="17" r="2" fill="#635BFF"></circle>
+
+  <text x="56" y="31" font-family="Geist, Helvetica, Arial, sans-serif" font-size="20" font-weight="600" letter-spacing="-0.5" fill="#0A0A0F">AutoAgent</text>
+  <text x="174" y="31" font-family="Geist, Helvetica, Arial, sans-serif" font-size="20" font-weight="400" letter-spacing="-0.3" fill="#9B9BA4">Optimizer</text>
+</svg>

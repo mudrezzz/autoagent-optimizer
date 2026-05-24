@@ -21,6 +21,9 @@ def test_candidate_draft_builder_returns_deterministic_shape() -> None:
     assert payload["total"] == 2
     assert len(payload["candidates"]) == 2
     assert payload["candidates"][0]["candidate_id"] == "cand_direct_llm_v0"
+    assert payload["candidates"][0]["logo"]["label"] == "DL"
+    assert payload["candidates"][0]["config_summary"]["llm_calls_max"] == 1
+    assert payload["candidates"][0]["mini_graph"]["nodes"][1]["label"] == "llm.rewrite"
     assert payload["candidate_set_id"].startswith("cset_")
 
 

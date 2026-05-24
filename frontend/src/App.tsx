@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import {
@@ -66,6 +66,7 @@ type UiState = {
   c2Messages: C2ChatMessage[];
   c2CandidateSetDraft: C2CandidateSetDraft | null;
   c2SelectedCandidateId: string;
+  c2ExpandedCandidateId: string;
   c2JsonCollapsed: boolean;
   budgetPercent: number;
   budgetStage: string;
@@ -88,6 +89,7 @@ export function App(): JSX.Element {
     c2Messages: [],
     c2CandidateSetDraft: null,
     c2SelectedCandidateId: "",
+    c2ExpandedCandidateId: "",
     c2JsonCollapsed: true,
     budgetPercent: 0,
     budgetStage: "idle",
@@ -200,6 +202,7 @@ export function App(): JSX.Element {
       c2Messages: [],
       c2CandidateSetDraft: null,
       c2SelectedCandidateId: "",
+      c2ExpandedCandidateId: "",
       c2JsonCollapsed: true,
       metricArenaStatus: "not selected",
     }));
@@ -262,6 +265,7 @@ export function App(): JSX.Element {
         c2Messages: chatResponse.messages,
         c2CandidateSetDraft: chatResponse.candidate_set_draft,
         c2SelectedCandidateId: chatResponse.candidate_set_draft?.candidates[0]?.candidate_id ?? "",
+        c2ExpandedCandidateId: "",
         metricArenaStatus: "selected",
         budgetPercent: 100,
         budgetStage: "battle ready",
@@ -269,7 +273,7 @@ export function App(): JSX.Element {
         lastPayload: snapshot,
       }));
     } catch (error) {
-      setState((prev) => ({ ...prev, c2Messages: [], c2CandidateSetDraft: null, c2SelectedCandidateId: "", budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
+      setState((prev) => ({ ...prev, c2Messages: [], c2CandidateSetDraft: null, c2SelectedCandidateId: "", c2ExpandedCandidateId: "", budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
     }
   }
 
@@ -328,9 +332,12 @@ export function App(): JSX.Element {
           const nextDraft = response.candidate_set_draft ?? prev.c2CandidateSetDraft;
           const canKeepSelected = nextDraft?.candidates.some((candidate) => candidate.candidate_id === prev.c2SelectedCandidateId) ?? false;
           const nextSelectedCandidateId = canKeepSelected ? prev.c2SelectedCandidateId : (nextDraft?.candidates[0]?.candidate_id ?? "");
+          const canKeepExpanded = nextDraft?.candidates.some((candidate) => candidate.candidate_id === prev.c2ExpandedCandidateId) ?? false;
+          const nextExpandedCandidateId = canKeepExpanded ? prev.c2ExpandedCandidateId : "";
           return {
             c2CandidateSetDraft: nextDraft,
             c2SelectedCandidateId: nextSelectedCandidateId,
+            c2ExpandedCandidateId: nextExpandedCandidateId,
           };
         })(),
         c2ChatInput: "",
@@ -353,6 +360,15 @@ export function App(): JSX.Element {
   // Русский комментарий: выделяет кандидата в таблице архитектур для минимальной интерактивности workspace.
   function handleSelectCandidate(candidateId: string): void {
     setState((prev) => ({ ...prev, c2SelectedCandidateId: candidateId }));
+  }
+
+  // Русский комментарий: раскрывает/сворачивает аккордеон деталей выбранной архитектуры-кандидата.
+  function handleToggleCandidateDetails(candidateId: string): void {
+    setState((prev) => ({
+      ...prev,
+      c2SelectedCandidateId: candidateId,
+      c2ExpandedCandidateId: prev.c2ExpandedCandidateId === candidateId ? "" : candidateId,
+    }));
   }
 
   // Русский комментарий: сворачивает/разворачивает JSON-панель workspace, чтобы освободить место под список кандидатов.
@@ -691,6 +707,7 @@ export function App(): JSX.Element {
                           <span className="candidate-col-metric">quality</span>
                           <span className="candidate-col-metric">cost/case</span>
                           <span className="candidate-col-metric">p95 latency</span>
+                          <span className="candidate-col-action">details</span>
                         </div>
                         {isC2Enabled && state.c2CandidateSetDraft ? state.c2CandidateSetDraft.candidates.map((candidate, index) => {
                           const metrics = buildCandidateMetrics(candidate.candidate_id);
@@ -731,9 +748,69 @@ export function App(): JSX.Element {
                                 <div className="candidate-metric-value">{metrics.latency}s</div>
                                 <div className="candidate-metric-label">runtime</div>
                               </div>
+                              <div className="candidate-col-action">
+                                <button
+                                  type="button"
+                                  className="candidate-details-toggle"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleToggleCandidateDetails(candidate.candidate_id);
+                                  }}
+                                  aria-expanded={state.c2ExpandedCandidateId === candidate.candidate_id}
+                                  aria-controls={`candidate-details-${candidate.candidate_id}`}
+                                >
+                                  <span>Details</span>
+                                  <i data-lucide={state.c2ExpandedCandidateId === candidate.candidate_id ? "chevron-up" : "chevron-down"} />
+                                </button>
+                              </div>
                             </article>
                           );
                         }) : <div className="issue-row warning">No candidate draft yet. Use chat action "Generate candidates".</div>}
+                        {isC2Enabled && state.c2CandidateSetDraft ? state.c2CandidateSetDraft.candidates.map((candidate) => {
+                          if (state.c2ExpandedCandidateId !== candidate.candidate_id) {
+                            return null;
+                          }
+                          const graphNodes = candidate.mini_graph?.nodes ?? [];
+                          return (
+                            <section
+                              key={`details-${candidate.candidate_id}`}
+                              id={`candidate-details-${candidate.candidate_id}`}
+                              className="candidate-details-panel"
+                              role="region"
+                              aria-label="candidate details"
+                            >
+                              <div className="candidate-details-head">
+                                <div className="candidate-details-logo" aria-label={`logo-${candidate.candidate_id}`}>
+                                  {candidate.logo?.label ?? "AG"}
+                                </div>
+                                <div>
+                                  <div className="candidate-details-title">{candidate.title}</div>
+                                  <div className="candidate-details-sub">{candidate.rationale}</div>
+                                </div>
+                              </div>
+                              <div className="candidate-config-grid">
+                                <div className="candidate-config-cell"><span>roles</span><b>{candidate.config_summary?.roles_total ?? 0}</b></div>
+                                <div className="candidate-config-cell"><span>llm calls</span><b>{candidate.config_summary?.llm_calls_max ?? 0}</b></div>
+                                <div className="candidate-config-cell"><span>guards</span><b>{candidate.config_summary?.deterministic_guards ?? 0}</b></div>
+                                <div className="candidate-config-cell"><span>hitl</span><b>{candidate.config_summary?.hitl_checkpoints ?? 0}</b></div>
+                              </div>
+                              <div className="candidate-mini-graph" aria-label="candidate-mini-graph">
+                                {graphNodes.length > 0 ? graphNodes.map((node, nodeIndex) => (
+                                  <div key={node.id} className="mini-graph-node">
+                                    <span className={`mini-node-kind kind-${node.kind}`}>{node.kind}</span>
+                                    <span className="mini-node-label">{node.label}</span>
+                                    {nodeIndex < graphNodes.length - 1 ? <span className="mini-node-arrow">{"->"}</span> : null}
+                                  </div>
+                                )) : <div className="issue-row info">Mini-graph is not available for this candidate.</div>}
+                              </div>
+                              <div className="candidate-steps-list">
+                                {(candidate.architecture_steps ?? []).map((step) => (
+                                  <span key={step} className="candidate-step-chip">{step}</span>
+                                ))}
+                              </div>
+                            </section>
+                          );
+                        }) : null}
                       </div>
                     </div>
                     <section className={`workspace-json-panel${state.c2JsonCollapsed ? " is-collapsed" : ""}`}>

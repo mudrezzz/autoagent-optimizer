@@ -35,6 +35,33 @@ def build_candidate_draft_from_brief(
             "rationale": "Fast baseline for style transfer with minimal latency.",
             "dsl_stub_ref": "examples/dsl/style_direct_llm.yaml",
             "estimated_complexity": "low",
+            # Русский комментарий: logo и mini-graph используются в C2 accordion деталей на фронтенде.
+            "logo": {"key": "direct", "label": "DL"},
+            "config_summary": {
+                "roles_total": 1,
+                "llm_calls_max": 1,
+                "deterministic_guards": 1,
+                "hitl_checkpoints": 0,
+            },
+            "architecture_steps": [
+                "accept_input",
+                "rewrite_llm",
+                "style_guard",
+                "return_output",
+            ],
+            "mini_graph": {
+                "nodes": [
+                    {"id": "accept_input", "label": "input", "kind": "input"},
+                    {"id": "rewrite_llm", "label": "llm.rewrite", "kind": "llm"},
+                    {"id": "style_guard", "label": "style.guard", "kind": "validator"},
+                    {"id": "return_output", "label": "output", "kind": "output"},
+                ],
+                "edges": [
+                    {"source": "accept_input", "target": "rewrite_llm"},
+                    {"source": "rewrite_llm", "target": "style_guard"},
+                    {"source": "style_guard", "target": "return_output"},
+                ],
+            },
         },
         {
             "candidate_id": "cand_pattern_cleaner_v0",
@@ -44,6 +71,35 @@ def build_candidate_draft_from_brief(
             "rationale": "Improves removal of repetitive AI phrasing while preserving structure.",
             "dsl_stub_ref": "examples/dsl/style_pattern_cleaner.yaml",
             "estimated_complexity": "medium",
+            "logo": {"key": "cleaner", "label": "PC"},
+            "config_summary": {
+                "roles_total": 2,
+                "llm_calls_max": 2,
+                "deterministic_guards": 1,
+                "hitl_checkpoints": 0,
+            },
+            "architecture_steps": [
+                "accept_input",
+                "rewrite_draft",
+                "cleanup_pass",
+                "style_guard",
+                "return_output",
+            ],
+            "mini_graph": {
+                "nodes": [
+                    {"id": "accept_input", "label": "input", "kind": "input"},
+                    {"id": "rewrite_draft", "label": "llm.rewrite", "kind": "llm"},
+                    {"id": "cleanup_pass", "label": "llm.cleanup", "kind": "llm"},
+                    {"id": "style_guard", "label": "style.guard", "kind": "validator"},
+                    {"id": "return_output", "label": "output", "kind": "output"},
+                ],
+                "edges": [
+                    {"source": "accept_input", "target": "rewrite_draft"},
+                    {"source": "rewrite_draft", "target": "cleanup_pass"},
+                    {"source": "cleanup_pass", "target": "style_guard"},
+                    {"source": "style_guard", "target": "return_output"},
+                ],
+            },
         },
         {
             "candidate_id": "cand_hitl_reviewer_v0",
@@ -53,6 +109,38 @@ def build_candidate_draft_from_brief(
             "rationale": "Reduces style-regression risk on sensitive posts.",
             "dsl_stub_ref": "examples/dsl/style_hitl_reviewer.yaml",
             "estimated_complexity": "high",
+            "logo": {"key": "hitl", "label": "HR"},
+            "config_summary": {
+                "roles_total": 2,
+                "llm_calls_max": 1,
+                "deterministic_guards": 1,
+                "hitl_checkpoints": 1,
+            },
+            "architecture_steps": [
+                "accept_input",
+                "rewrite_llm",
+                "risk_score",
+                "hitl_review",
+                "style_guard",
+                "return_output",
+            ],
+            "mini_graph": {
+                "nodes": [
+                    {"id": "accept_input", "label": "input", "kind": "input"},
+                    {"id": "rewrite_llm", "label": "llm.rewrite", "kind": "llm"},
+                    {"id": "risk_score", "label": "policy.score", "kind": "tool"},
+                    {"id": "hitl_review", "label": "hitl.review", "kind": "hitl"},
+                    {"id": "style_guard", "label": "style.guard", "kind": "validator"},
+                    {"id": "return_output", "label": "output", "kind": "output"},
+                ],
+                "edges": [
+                    {"source": "accept_input", "target": "rewrite_llm"},
+                    {"source": "rewrite_llm", "target": "risk_score"},
+                    {"source": "risk_score", "target": "hitl_review"},
+                    {"source": "hitl_review", "target": "style_guard"},
+                    {"source": "style_guard", "target": "return_output"},
+                ],
+            },
         },
     ]
 

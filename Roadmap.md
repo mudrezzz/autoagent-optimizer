@@ -134,7 +134,7 @@ Note: после `V2.3.S1` добавлен corrective slice `V2.3.S1a`, что�
 | V2.3.S2 | C2 Battle Chat brief-to-candidates v0 | Done | arena-scoped chat state + candidate draft generation + FE/BE/demo/QA |
 | V2.3.S2b | C1/C2 Battle Domain Correction | Done | arena-first API (`/api/arenas/*`), Battles Hub naming, Battle Workspace layout (`center candidates + right chat`) |
 | V2.3.S2c | C2 UX polish: classic chat + readable candidate rows | Done | right rail converted to classic chat UX; center candidates rendered as metric rows aligned with app-v3 visual language |
-| V2.3.S2d | C2 candidate accordion details | Planned | expandable rows with architecture details, mini-diagram and architecture logo |
+| V2.3.S2d | C2 candidate accordion details | Done | expandable rows with architecture details, mini-diagram and architecture logo |
 | V2.3.S3 | C3 Pattern Library + RAG controls v0 | Planned | pattern browse/search + include/exclude + retrieval trace |
 | V2.3.S4 | Candidate assembly + internal compile readiness | Planned | candidate graph build + compile/validate gate + ready status |
 | V2.3.S5 | C4 Dataset Studio v0 | Planned | upload/manual/synthetic/clean/check flows + versioned dataset artifacts |

@@ -85,6 +85,28 @@ export type C2CandidateDraftItem = {
   rationale: string;
   dsl_stub_ref: string;
   estimated_complexity: string;
+  logo?: {
+    key: string;
+    label: string;
+  };
+  config_summary?: {
+    roles_total: number;
+    llm_calls_max: number;
+    deterministic_guards: number;
+    hitl_checkpoints: number;
+  };
+  architecture_steps?: string[];
+  mini_graph?: {
+    nodes: Array<{
+      id: string;
+      label: string;
+      kind: string;
+    }>;
+    edges: Array<{
+      source: string;
+      target: string;
+    }>;
+  };
 };
 
 // Русский комментарий: тип candidate set draft, сформированного на основе chat brief.

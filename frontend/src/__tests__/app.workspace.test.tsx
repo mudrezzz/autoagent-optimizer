@@ -1,11 +1,11 @@
-import { render, screen } from "@testing-library/react";
+п»їimport { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "../App";
 import type { ArenaRecord, C2CandidateSetDraft, Capability } from "../types";
 
-// Русский комментарий: мокируем API-слой, чтобы UI-тесты были детерминированными и не зависели от backend-сервера.
+// Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: РјРѕРєРёСЂСѓРµРј API-СЃР»РѕР№, С‡С‚РѕР±С‹ UI-С‚РµСЃС‚С‹ Р±С‹Р»Рё РґРµС‚РµСЂРјРёРЅРёСЂРѕРІР°РЅРЅС‹РјРё Рё РЅРµ Р·Р°РІРёСЃРµР»Рё РѕС‚ backend-СЃРµСЂРІРµСЂР°.
 vi.mock("../api", () => ({
   createArena: vi.fn(),
   deleteArena: vi.fn(),
@@ -32,7 +32,7 @@ import {
   renameArena,
 } from "../api";
 
-// Русский комментарий: фикстура battle-арены для режима workspace.
+// Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: С„РёРєСЃС‚СѓСЂР° battle-Р°СЂРµРЅС‹ РґР»СЏ СЂРµР¶РёРјР° workspace.
 const ARENA: ArenaRecord = {
   workspace_id: "ws_demo_1",
   name: "test1 copy",
@@ -42,14 +42,14 @@ const ARENA: ArenaRecord = {
   owner_user_id: "user_demo_1",
 };
 
-// Русский комментарий: фикстура capability-каталога, где C2 активен и доступен.
+// Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: С„РёРєСЃС‚СѓСЂР° capability-РєР°С‚Р°Р»РѕРіР°, РіРґРµ C2 Р°РєС‚РёРІРµРЅ Рё РґРѕСЃС‚СѓРїРµРЅ.
 const CAPABILITIES: Capability[] = [
   { id: "c1", name: "Battle Registry", description: "Manage battle arenas.", status: "enabled", badge_count: 1 },
   { id: "c2", name: "Task Chat + Candidates", description: "Generate candidates from chat.", status: "enabled", badge_count: 1 },
   { id: "c3", name: "Pattern Library + RAG", description: "Planned", status: "planned", badge_count: 0 },
 ];
 
-// Русский комментарий: фикстура набора кандидатов для проверки рендера, фокуса и скролл-зоны.
+// Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: С„РёРєСЃС‚СѓСЂР° РЅР°Р±РѕСЂР° РєР°РЅРґРёРґР°С‚РѕРІ РґР»СЏ РїСЂРѕРІРµСЂРєРё СЂРµРЅРґРµСЂР°, С„РѕРєСѓСЃР° Рё accordion-РґРµС‚Р°Р»РµР№.
 const CANDIDATE_SET: C2CandidateSetDraft = {
   candidate_set_id: "cset_de5694fa",
   source: "mock",
@@ -66,6 +66,22 @@ const CANDIDATE_SET: C2CandidateSetDraft = {
       rationale: "fast",
       dsl_stub_ref: "stub://direct",
       estimated_complexity: "low",
+      logo: { key: "direct", label: "DL" },
+      config_summary: { roles_total: 1, llm_calls_max: 1, deterministic_guards: 1, hitl_checkpoints: 0 },
+      architecture_steps: ["accept_input", "rewrite_llm", "style_guard", "return_output"],
+      mini_graph: {
+        nodes: [
+          { id: "accept_input", label: "input", kind: "input" },
+          { id: "rewrite_llm", label: "llm.rewrite", kind: "llm" },
+          { id: "style_guard", label: "style.guard", kind: "validator" },
+          { id: "return_output", label: "output", kind: "output" },
+        ],
+        edges: [
+          { source: "accept_input", target: "rewrite_llm" },
+          { source: "rewrite_llm", target: "style_guard" },
+          { source: "style_guard", target: "return_output" },
+        ],
+      },
     },
     {
       candidate_id: "cand_cleaner",
@@ -75,6 +91,24 @@ const CANDIDATE_SET: C2CandidateSetDraft = {
       rationale: "balanced",
       dsl_stub_ref: "stub://cleaner",
       estimated_complexity: "medium",
+      logo: { key: "cleaner", label: "PC" },
+      config_summary: { roles_total: 2, llm_calls_max: 2, deterministic_guards: 1, hitl_checkpoints: 0 },
+      architecture_steps: ["accept_input", "rewrite_draft", "cleanup_pass", "style_guard", "return_output"],
+      mini_graph: {
+        nodes: [
+          { id: "accept_input", label: "input", kind: "input" },
+          { id: "rewrite_draft", label: "llm.rewrite", kind: "llm" },
+          { id: "cleanup_pass", label: "llm.cleanup", kind: "llm" },
+          { id: "style_guard", label: "style.guard", kind: "validator" },
+          { id: "return_output", label: "output", kind: "output" },
+        ],
+        edges: [
+          { source: "accept_input", target: "rewrite_draft" },
+          { source: "rewrite_draft", target: "cleanup_pass" },
+          { source: "cleanup_pass", target: "style_guard" },
+          { source: "style_guard", target: "return_output" },
+        ],
+      },
     },
     {
       candidate_id: "cand_hitl",
@@ -88,7 +122,7 @@ const CANDIDATE_SET: C2CandidateSetDraft = {
   ],
 };
 
-// Русский комментарий: helper поднимает UI сразу в battle-workspace роуте.
+// Р СѓСЃСЃРєРёР№ РєРѕРјРјРµРЅС‚Р°СЂРёР№: helper РїРѕРґРЅРёРјР°РµС‚ UI СЃСЂР°Р·Сѓ РІ battle-workspace СЂРѕСѓС‚Рµ.
 function renderWorkspace(): void {
   window.history.pushState({}, "", `/battles/${ARENA.workspace_id}`);
   render(<App />);
@@ -154,5 +188,21 @@ describe("Battle workspace candidates", () => {
     await user.click(toggle);
     expect(toggle).toHaveAttribute("aria-expanded", "true");
     expect(await screen.findByText(/"status": "success"/i)).toBeInTheDocument();
+  });
+
+  it("expands candidate details accordion and renders mini graph", async () => {
+    const user = userEvent.setup();
+    renderWorkspace();
+
+    await waitFor(() => {
+      expect(document.querySelectorAll(".candidate-details-toggle").length).toBeGreaterThan(0);
+    });
+    const detailsButtons = Array.from(document.querySelectorAll<HTMLButtonElement>(".candidate-details-toggle"));
+    expect(detailsButtons[0]?.getAttribute("aria-expanded")).toBe("false");
+
+    await user.click(detailsButtons[0]);
+    await waitFor(() => {
+      expect(detailsButtons[0]?.getAttribute("aria-expanded")).toBe("true");
+    });
   });
 });
