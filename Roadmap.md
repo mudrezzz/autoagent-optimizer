@@ -2,30 +2,30 @@
 
 ## Status Legend
 
-- `Planned` - СЃР»Р°Р№СЃ Р·Р°РїР»Р°РЅРёСЂРѕРІР°РЅ, РЅРµ РЅР°С‡Р°С‚.
-- `In Progress` - СЃР»Р°Р№СЃ РІ СЂР°Р±РѕС‚Рµ.
-- `Done` - СЃР»Р°Р№СЃ Р·Р°РІРµСЂС€РµРЅ Рё Р·Р°РєРѕРјРјРёС‡РµРЅ.
-- `Blocked` - РµСЃС‚СЊ РІРЅРµС€РЅРёР№ Р±Р»РѕРєРµСЂ.
+- `Planned` - слайс запланирован, не начат.
+- `In Progress` - слайс в работе.
+- `Done` - слайс завершен и закоммичен.
+- `Blocked` - есть внешний блокер.
 
 ## Delivery Model
 
-Р Р°Р·СЂР°Р±РѕС‚РєР° РёРґРµС‚ РёС‚РµСЂР°С‚РёРІРЅРѕ РјР°Р»С‹РјРё СЃР»Р°Р№СЃР°РјРё СЃ РїРѕСЃС‚РѕСЏРЅРЅРѕР№ РїРѕСЃС‚Р°РІРєРѕР№ РїСЂРѕРІРµСЂСЏРµРјРѕР№ С†РµРЅРЅРѕСЃС‚Рё:
+Разработка идет итеративно малыми слайсами с постоянной поставкой проверяемой ценности:
 
 - MVP-1: Foundation + executable core loop.
 - MVP-2: Optimization depth + diagnostics.
 - MVP-3: Team-grade operations + extensibility.
 
-РџСЂРёРЅС†РёРї: СЂР°СЃС€РёСЂСЏРµРј РєРѕРЅС†РµРЅС‚СЂРёС‡РµСЃРєРёРјРё РєСЂСѓРіР°РјРё, Р° РЅРµ СЃС‚СЂРѕРёРј РґР»РёРЅРЅСѓСЋ Р»РёРЅРµР№РЅСѓСЋ С„Р°Р·Сѓ.
+Принцип: расширяем концентрическими кругами, а не строим длинную линейную фазу.
 
 ## Execution Shift (Roadmap v3)
 
-РќР°С‡РёРЅР°СЏ СЃ С‚РµРєСѓС‰РµРіРѕ РѕРєРЅР°, СЂР°Р±РѕС‚Р° РІРµРґРµС‚СЃСЏ РІРµСЂС‚РёРєР°Р»СЊРЅС‹РјРё РїСЂРѕРґСѓРєС‚РѕРІС‹РјРё СЃР»Р°Р№СЃР°РјРё:
+Начиная с текущего окна, работа ведется вертикальными продуктовыми слайсами:
 
-1. РљР°Р¶РґС‹Р№ СЃР»Р°Р№СЃ РІРєР»СЋС‡Р°РµС‚ `Backend + Frontend + Demo + QA`.
-2. Р¤СѓРЅРєС†РёРѕРЅР°Р»СЊРЅРѕСЃС‚СЊ СЂР°Р·РІРёРІР°РµС‚СЃСЏ РІС€РёСЂСЊ РїРѕ capability, Р° РЅРµ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕ РїРѕ СЃР»РѕСЏРј СЃРёСЃС‚РµРјС‹.
-3. Р›СЋР±Р°СЏ backend-РІРѕР·РјРѕР¶РЅРѕСЃС‚СЊ СЃС‡РёС‚Р°РµС‚СЃСЏ РЅРµР·Р°РІРµСЂС€РµРЅРЅРѕР№, РїРѕРєР° РЅРµ РїСЂРѕРІРµСЂСЏРµС‚СЃСЏ С‡РµСЂРµР· UI Рё e2e РїСѓС‚СЊ.
-4. Р›СЋР±РѕР№ frontend-СЃР»Р°Р№СЃ РѕР±СЏР·Р°РЅ СЃРѕР±Р»СЋРґР°С‚СЊ `design_system` РєР°Рє РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Р№ СЃС‚Р°РЅРґР°СЂС‚ РёРЅС‚РµСЂС„РµР№СЃР°.
-5. UX-РєР°СЂРєР°СЃ frontend СЃРѕР±РёСЂР°РµС‚СЃСЏ РїРѕ North Star СЂРµС„РµСЂРµРЅСЃСѓ [app-v3.png](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/design_system/screenshots/app-v3.png) Рё РїСЂР°РІРёР»Р°Рј [Frontend_Architecture_v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/specs/Frontend_Architecture_v0.md).
+1. Каждый слайс включает `Backend + Frontend + Demo + QA`.
+2. Функциональность развивается вширь по capability, а не последовательно по слоям системы.
+3. Любая backend-возможность считается незавершенной, пока не проверяется через UI и e2e путь.
+4. Любой frontend-слайс обязан соблюдать `design_system` как обязательный стандарт интерфейса.
+5. UX-каркас frontend собирается по North Star референсу [app-v3.png](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/design_system/screenshots/app-v3.png) и правилам [Frontend_Architecture_v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/specs/Frontend_Architecture_v0.md).
 
 ### Capability Matrix (single source of truth)
 
@@ -38,13 +38,13 @@
 | C5 | Optimizer Run Monitor | `BE / FE / Demo / QA` |
 | C6 | Report + Champion Export/Import | `BE / FE / Demo / QA` |
 
-Legacy note: РёСЃС‚РѕСЂРёС‡РµСЃРєРёРµ DSL-first СЃР»Р°Р№СЃС‹ (validate/compile/run/arena/evidence/champion) РѕСЃС‚Р°СЋС‚СЃСЏ С‡Р°СЃС‚СЊСЋ foundation, РЅРѕ Р±РѕР»СЊС€Рµ РЅРµ СЏРІР»СЏСЋС‚СЃСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРѕР№ capability-РјРѕРґРµР»СЊСЋ.
+Legacy note: исторические DSL-first слайсы (validate/compile/run/arena/evidence/champion) остаются частью foundation, но больше не являются пользовательской capability-моделью.
 
 ---
 
 ## MVP-1 (Core Loop)
 
-Р¦РµР»СЊ: РїРѕР»СѓС‡РёС‚СЊ СЂР°Р±РѕС‡РёР№ РїСѓС‚СЊ `DSL -> Graph IR -> LangGraph runtime -> evaluation -> evidence`.
+Цель: получить рабочий путь `DSL -> Graph IR -> LangGraph runtime -> evaluation -> evidence`.
 
 ### Iteration I0 - Governance & Baseline
 
@@ -99,7 +99,7 @@ Legacy note: РёСЃС‚РѕСЂРёС‡РµСЃРєРёРµ DSL-first СЃР
 
 ## MVP-2 (Evaluation Fabric, Optimization & Components)
 
-Р¦РµР»СЊ: СЃРґРµР»Р°С‚СЊ РѕС†РµРЅРєСѓ РєРѕРЅС„РёРіСѓСЂРёСЂСѓРµРјРѕР№ РїРѕРґ Р·Р°РґР°С‡Сѓ, РґРѕР±Р°РІРёС‚СЊ MetricOps/HITL РєРѕРЅС‚СѓСЂ Рё СѓРіР»СѓР±РёС‚СЊ РѕРїС‚РёРјРёР·Р°С†РёСЋ.
+Цель: сделать оценку конфигурируемой под задачу, добавить MetricOps/HITL контур и углубить оптимизацию.
 
 ### Iteration V2.1 - Legacy Capability Shell Foundation
 
@@ -124,15 +124,17 @@ Legacy note: РёСЃС‚РѕСЂРёС‡РµСЃРєРёРµ DSL-first СЃР
 
 ### Iteration V2.3 - Product Realignment Vertical Slices (Primary)
 
-Note: РїРѕСЃР»Рµ `V2.3.S1` РґРѕР±Р°РІР»РµРЅ corrective slice `V2.3.S1a`, С‡С‚РѕР±С‹ Р·Р°С„РёРєСЃРёСЂРѕРІР°С‚СЊ SaaS IA:
-`Projects Hub` (СЃРїРёСЃРѕРє РїСЂРѕРµРєС‚РѕРІ РєР»РёРµРЅС‚Р°) РѕС‚РґРµР»СЊРЅРѕ РѕС‚ `Project Workspace` (СЂР°Р±РѕС‡РёР№ СЌРєСЂР°РЅ РїСЂРѕРµРєС‚Р°).
+Note: после `V2.3.S1` добавлен corrective slice `V2.3.S1a`, чтобы зафиксировать SaaS IA:
+`Battles Hub` (список battle-проектов клиента) отдельно от `Battle Workspace` (рабочий экран battle-проекта).
 
 | Slice | Description | Status | Output |
 |---|---|---|---|
 | V2.3.S1 | C1 Workspace & Project Registry vertical slice | Done | workspace list/create/open + project list/create/open + FE/BE/e2e |
-| V2.3.S1a | SaaS IA split: Projects Hub vs Project Workspace | Done | separate screens, sticky app-shell behavior, no right rail on Projects Hub, capability menu only inside Project Workspace |
-| V2.3.S2 | C2 Project Chat brief-to-candidates v0 | Done | project-scoped chat state + candidate draft generation + FE/BE/demo/QA |
+| V2.3.S1a | SaaS IA split: Battles Hub vs Battle Workspace | Done | separate screens, sticky app-shell behavior, no right rail on Battles Hub, capability menu only inside Battle Workspace |
+| V2.3.S2 | C2 Battle Chat brief-to-candidates v0 | Done | arena-scoped chat state + candidate draft generation + FE/BE/demo/QA |
 | V2.3.S2b | C1/C2 Battle Domain Correction | Done | arena-first API (`/api/arenas/*`), Battles Hub naming, Battle Workspace layout (`center candidates + right chat`) |
+| V2.3.S2c | C2 UX polish: classic chat + readable candidate rows | Done | right rail converted to classic chat UX; center candidates rendered as metric rows aligned with app-v3 visual language |
+| V2.3.S2d | C2 candidate accordion details | Planned | expandable rows with architecture details, mini-diagram and architecture logo |
 | V2.3.S3 | C3 Pattern Library + RAG controls v0 | Planned | pattern browse/search + include/exclude + retrieval trace |
 | V2.3.S4 | Candidate assembly + internal compile readiness | Planned | candidate graph build + compile/validate gate + ready status |
 | V2.3.S5 | C4 Dataset Studio v0 | Planned | upload/manual/synthetic/clean/check flows + versioned dataset artifacts |
@@ -172,7 +174,7 @@ Note: РїРѕСЃР»Рµ `V2.3.S1` РґРѕР±Р°РІР»РµРЅ corrective
 
 ## MVP-3 (Operational Maturity)
 
-Р¦РµР»СЊ: СЃРґРµР»Р°С‚СЊ СЃРёСЃС‚РµРјСѓ СѓРґРѕР±РЅРѕР№ РґР»СЏ РєРѕРјР°РЅРґРЅРѕР№ Рё РґР»РёС‚РµР»СЊРЅРѕР№ СЌРєСЃРїР»СѓР°С‚Р°С†РёРё.
+Цель: сделать систему удобной для командной и длительной эксплуатации.
 
 ### Iteration I8 - Team Readiness
 
@@ -194,37 +196,37 @@ Note: РїРѕСЃР»Рµ `V2.3.S1` РґРѕР±Р°РІР»РµРЅ corrective
 
 ## Working Agreement Per Iteration
 
-1. РџР»Р°РЅРёСЂСѓРµРј С‚РѕР»СЊРєРѕ Р±Р»РёР¶Р°Р№С€РёРµ 1-2 РёС‚РµСЂР°С†РёРё РґРµС‚Р°Р»СЊРЅРѕ.
-2. РљР°Р¶РґС‹Р№ СЃР»Р°Р№СЃ РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ СЂРµР°Р»РёСЃС‚РёС‡РЅРѕ Р·Р°РІРµСЂС€РµРЅ Р·Р° 0.5-2 РґРЅСЏ.
-3. РЎР»Р°Р№СЃ Р·Р°РєСЂС‹РІР°РµС‚СЃСЏ С‚РѕР»СЊРєРѕ РїСЂРё РІС‹РїРѕР»РЅРµРЅРёРё РІРµСЂС‚РёРєР°Р»СЊРЅРѕРіРѕ DoD:
-   - backend РёР·РјРµРЅРµРЅРёРµ,
-   - frontend РїСЂРѕРІРµСЂСЏРµРјС‹Р№ surface,
-   - frontend СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓРµС‚ `design_system` (tokens/components/voice),
-   - demo-СЃС†РµРЅР°СЂРёР№,
-   - С‚РµСЃС‚С‹ (unit/integration/e2e) РЅР° Р·Р°С‚СЂРѕРЅСѓС‚С‹Р№ РїСѓС‚СЊ.
-4. РџРѕСЃР»Рµ РєР°Р¶РґРѕРіРѕ СЃР»Р°Р№СЃР° СЃСЂР°Р·Сѓ РѕР±РЅРѕРІР»СЏРµРј:
+1. Планируем только ближайшие 1-2 итерации детально.
+2. Каждый слайс должен быть реалистично завершен за 0.5-2 дня.
+3. Слайс закрывается только при выполнении вертикального DoD:
+   - backend изменение,
+   - frontend проверяемый surface,
+   - frontend соответствует `design_system` (tokens/components/voice),
+   - demo-сценарий,
+   - тесты (unit/integration/e2e) на затронутый путь.
+4. После каждого слайса сразу обновляем:
    - `Roadmap.md`
    - `README.md`
-   - `System_Architecture_Overview.md` (РµСЃР»Рё РјРµРЅСЏР»Р°СЃСЊ Р°СЂС…РёС‚РµРєС‚СѓСЂР°)
-   - `docs/adr/*` (РµСЃР»Рё Р±С‹Р»Рѕ Р°СЂС…РёС‚РµРєС‚СѓСЂРЅРѕРµ СЂРµС€РµРЅРёРµ)
-5. РљР°Р¶РґС‹Р№ СЃР»Р°Р№СЃ С„РёРєСЃРёСЂСѓРµС‚СЃСЏ РѕС‚РґРµР»СЊРЅС‹Рј commit.
-6. РџРµСЂРµРґ commit РѕР±СЏР·Р°С‚РµР»РµРЅ С‚РµСЃС‚-РіРµР№С‚ РїРѕ С‚РёРїСѓ СЃР»Р°Р№СЃР°:
-   - `Fast gate`: frontend-only РјРёРєСЂРѕРёР·РјРµРЅРµРЅРёСЏ (`python -m pytest tests/unit/test_frontend_contracts.py` + `python -m pytest tests/e2e/test_frontend_shell_smoke_script.py`),
-   - `Targeted gate`: frontend + API-СЃСЂРµР· (fast gate + `python -m pytest tests/integration/test_frontend_dev_server.py` + РїСЂРѕС„РёР»СЊРЅС‹Рµ integration/e2e),
-   - `Full gate`: РєСЂСѓРїРЅС‹Рµ СЃР»Р°Р№СЃС‹/release (`python -m pytest`).
-7. РџСЂРё С„СЂРѕРЅС‚РѕРІС‹С… РёР·РјРµРЅРµРЅРёСЏС… РІ РѕРїРёСЃР°РЅРёРё СЃР»Р°Р№СЃР° С„РёРєСЃРёСЂСѓРµРј, РєР°РєРёРµ Р°СЂС‚РµС„Р°РєС‚С‹ `design_system` РёСЃРїРѕР»СЊР·РѕРІР°РЅС‹
+   - `System_Architecture_Overview.md` (если менялась архитектура)
+   - `docs/adr/*` (если было архитектурное решение)
+5. Каждый слайс фиксируется отдельным commit.
+6. Перед commit обязателен тест-гейт по типу слайса:
+   - `Fast gate`: frontend-only микроизменения (`python -m pytest tests/unit/test_frontend_contracts.py` + `python -m pytest tests/e2e/test_frontend_shell_smoke_script.py`),
+   - `Targeted gate`: frontend + API-срез (fast gate + `python -m pytest tests/integration/test_frontend_dev_server.py` + профильные integration/e2e),
+   - `Full gate`: крупные слайсы/release (`python -m pytest`).
+7. При фронтовых изменениях в описании слайса фиксируем, какие артефакты `design_system` использованы
    (`colors_and_type.css`, `ui_kits/*`, `assets/*`, copy rules).
-8. РџСЂРё С„СЂРѕРЅС‚РѕРІС‹С… РёР·РјРµРЅРµРЅРёСЏС… С‚Р°РєР¶Рµ С„РёРєСЃРёСЂСѓРµРј СЃРѕРѕС‚РІРµС‚СЃС‚РІРёРµ UX North Star (`app-v3`: С‚СЂРµС…РєРѕР»РѕРЅРѕС‡РЅС‹Р№ layout, run-centric header, KPI->architectures->trace, intervention rail).
+8. При фронтовых изменениях также фиксируем соответствие UX North Star (`app-v3`: трехколоночный layout, run-centric header, KPI->architectures->trace, intervention rail).
 
 ## Backlog Source
 
-Р”РµС‚Р°Р»РёР·РёСЂРѕРІР°РЅРЅС‹Р№ РёСЃРїРѕР»РЅРёРјС‹Р№ backlog:
+Детализированный исполнимый backlog:
 
 - [docs/backlog/Executable_Slice_Backlog.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/backlog/Executable_Slice_Backlog.md)
 
 ## Demo Track
 
-РЎРёРЅС…СЂРѕРЅРЅС‹Р№ РґРµРјРѕ-С‚СЂРµРє РїСЂРѕРµРєС‚Р°:
+Синхронный демо-трек проекта:
 
 - [docs/demo/Demo_Track.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/demo/Demo_Track.md)
 

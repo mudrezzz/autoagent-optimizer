@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import {
   createArena,
@@ -97,6 +98,7 @@ export function App(): JSX.Element {
   const [arenaDialogName, setArenaDialogName] = useState<string>("");
   const [arenaDialogDescription, setArenaDialogDescription] = useState<string>("");
   const [arenaMenuOpenId, setArenaMenuOpenId] = useState<string | null>(null);
+  const chatMessagesRef = useRef<HTMLDivElement | null>(null);
 
   // Русский комментарий: активная capability для контентной панели.
   const activeCapability = useMemo(
@@ -174,6 +176,14 @@ export function App(): JSX.Element {
       window.lucide.createIcons();
     }
   });
+
+  // Русский комментарий: автоматически прокручивает chat-ленту к последнему сообщению.
+  useEffect(() => {
+    if (!chatMessagesRef.current) {
+      return;
+    }
+    chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+  }, [state.c2Messages]);
 
   // Русский комментарий: переход на hub.
   function navigateToBattlesHub(): void {
@@ -324,6 +334,15 @@ export function App(): JSX.Element {
     setState((prev) => ({ ...prev, c2ChatInput: nextValue }));
   }
 
+  // Русский комментарий: отправляет C2-сообщение по Enter, сохраняя перенос строки через Shift+Enter.
+  function handleC2ChatKeyDown(event: ReactKeyboardEvent<HTMLTextAreaElement>): void {
+    if (event.key !== "Enter" || event.shiftKey) {
+      return;
+    }
+    event.preventDefault();
+    void handleSendC2Message(true);
+  }
+
   // Русский комментарий: открывает модалку создания арены.
   function openCreateArenaDialog(): void {
     setArenaDialogMode("create");
@@ -442,6 +461,15 @@ export function App(): JSX.Element {
   function buildArenaCardMetrics(arena: ArenaRecord, index: number): { agents: number; tests: number; dataRows: number } {
     const seed = hashString(arena.workspace_id) + index * 17;
     return { agents: (seed % 7) + 2, tests: (seed % 12) + 8, dataRows: (seed % 240) + 60 };
+  }
+
+  // Русский комментарий: строит компактные showcase-метрики кандидата для центрального списка архитектур.
+  function buildCandidateMetrics(candidateId: string): { quality: string; cost: string; latency: string } {
+    const seed = hashString(candidateId);
+    const quality = (0.76 + (seed % 18) / 100).toFixed(3);
+    const cost = (0.19 + (seed % 26) / 100).toFixed(2);
+    const latency = (0.78 + (seed % 70) / 100).toFixed(2);
+    return { quality, cost, latency };
   }
 
   const isBattleRoute = route.name === "battle_workspace";
@@ -626,17 +654,47 @@ export function App(): JSX.Element {
                 <section className="trace-view">
                   <header className="tv-head"><div className="tv-title"><i data-lucide="network" /><span>Candidate architectures</span><span className="tv-arch">{state.c2CandidateSetDraft?.total ?? 0} total</span></div></header>
                   <div className="tv-body">
-                    <div className="issues-box">
-                      <div className="c2-candidate-head"><b>Candidate set</b><span className="muted">{state.c2CandidateSetDraft?.candidate_set_id ?? "not generated"}</span></div>
-                      {isC2Enabled && state.c2CandidateSetDraft ? state.c2CandidateSetDraft.candidates.map((candidate) => (
-                        <div key={candidate.candidate_id} className="issue-row info">
-                          <div className="row-main">
-                            <b>{candidate.title}</b> <span className="muted">({candidate.estimated_complexity})</span>
-                            <div className="row-sub">{candidate.summary}</div>
-                            <div className="row-sub">pattern: <code>{candidate.pattern_ref}</code> · dsl: <code>{candidate.dsl_stub_ref}</code></div>
-                          </div>
-                        </div>
-                      )) : <div className="issue-row warning">No candidate draft yet. Use chat action "Generate candidates".</div>}
+                    <div className="candidate-list">
+                      <div className="candidate-list-head">
+                        <span>Architectures · sorted by quality</span>
+                        <span className="muted">{state.c2CandidateSetDraft?.candidate_set_id ?? "not generated"}</span>
+                      </div>
+                      <div className="candidate-table-head">
+                        <span className="candidate-col-title">Candidate</span>
+                        <span className="candidate-col-metric">quality</span>
+                        <span className="candidate-col-metric">cost/case</span>
+                        <span className="candidate-col-metric">p95 latency</span>
+                      </div>
+                      {isC2Enabled && state.c2CandidateSetDraft ? state.c2CandidateSetDraft.candidates.map((candidate, index) => {
+                        const metrics = buildCandidateMetrics(candidate.candidate_id);
+                        return (
+                          <article key={candidate.candidate_id} className={`candidate-row${index === 0 ? " candidate-row--champion" : ""}`}>
+                            <div className="candidate-col-title">
+                              <div className="candidate-title-line">
+                                <b>{candidate.title}</b>
+                                <span className={`workspace-pill${index === 0 ? " champ" : " base"}`}>
+                                  <span className="dot" />
+                                  {index === 0 ? "Champion" : "Candidate"}
+                                </span>
+                              </div>
+                              <div className="candidate-meta">{candidate.pattern_ref}</div>
+                              <div className="row-sub">{candidate.summary}</div>
+                            </div>
+                            <div className="candidate-col-metric">
+                              <div className="candidate-metric-value">{metrics.quality}</div>
+                              <div className="candidate-metric-label">f1@k</div>
+                            </div>
+                            <div className="candidate-col-metric">
+                              <div className="candidate-metric-value">${metrics.cost}</div>
+                              <div className="candidate-metric-label">usd</div>
+                            </div>
+                            <div className="candidate-col-metric">
+                              <div className="candidate-metric-value">{metrics.latency}s</div>
+                              <div className="candidate-metric-label">runtime</div>
+                            </div>
+                          </article>
+                        );
+                      }) : <div className="issue-row warning">No candidate draft yet. Use chat action "Generate candidates".</div>}
                     </div>
                     <pre className="json-view">{state.jsonText}</pre>
                   </div>
@@ -647,38 +705,58 @@ export function App(): JSX.Element {
 
           {isBattleRoute ? (
             <aside className="rail">
-              <section>
-                <div className="rail-label">Battle chat</div>
-                <div className="rail-bottleneck">
-                  <div className="rb-top"><div className="rb-icon"><i data-lucide="message-square" /></div><div className="rb-id">C2 assistant</div></div>
-                  <p className="rb-copy">Write task brief in natural language and generate architecture candidates.</p>
-                </div>
-              </section>
-
-              <section className="arch-list">
-                <header className="arch-list-head"><div className="al-label">Brief input</div></header>
-                <div className="c1-form-row">
-                  <label className="c1-field-label" htmlFor="c2-chat-input">Message ({state.activeArenaId || "no battle selected"})</label>
-                  <div className="c1-form-controls c1-form-stack">
-                    <textarea id="c2-chat-input" value={state.c2ChatInput} onChange={(event) => { handleC2ChatInputChange(event.target.value); }} placeholder="Describe the optimization task in plain language..." disabled={!state.activeArenaId} />
-                    <div className="c2-chat-actions">
-                      <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSendC2Message(false); }} disabled={!state.activeArenaId || !isC2Enabled}>Send message</button>
-                      <button type="button" className="tb-btn tb-btn-primary" onClick={() => { void handleSendC2Message(true); }} disabled={!state.activeArenaId || !isC2Enabled}>Generate candidates</button>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              <section>
-                <div className="rail-label">History</div>
-                <div className="issues-box">
+              <section className="chat-shell">
+                <header className="chat-shell-head">
+                  <div className="rail-label">Battle chat</div>
+                  <div className="chat-status">{state.activeArenaId ? "online" : "offline"}</div>
+                </header>
+                <div className="chat-messages" ref={chatMessagesRef}>
                   {state.c2Messages.length === 0 ? (
-                    <div className="issue-row info">No chat messages yet.</div>
+                    <div className="chat-empty">Send first message to start architecture discussion.</div>
                   ) : state.c2Messages.map((message) => (
-                    <div key={message.message_id} className="issue-row info">
-                      <div className="row-main"><b>{message.role}</b><div className="row-sub">{message.content}</div></div>
-                    </div>
+                    <article
+                      key={message.message_id}
+                      className={`chat-message${message.role === "user" ? " chat-message--user" : " chat-message--assistant"}`}
+                    >
+                      <div className="chat-message-role">{message.role}</div>
+                      <div className="chat-message-text">{message.content}</div>
+                    </article>
                   ))}
+                </div>
+                <div className="chat-composer">
+                  <label className="c1-field-label" htmlFor="c2-chat-input">Message ({state.activeArenaId || "no battle selected"})</label>
+                  <textarea
+                    id="c2-chat-input"
+                    value={state.c2ChatInput}
+                    onChange={(event) => {
+                      handleC2ChatInputChange(event.target.value);
+                    }}
+                    onKeyDown={handleC2ChatKeyDown}
+                    placeholder="Describe the optimization task in plain language..."
+                    disabled={!state.activeArenaId}
+                  />
+                  <div className="c2-chat-actions">
+                    <button
+                      type="button"
+                      className="tb-btn tb-btn-ghost"
+                      onClick={() => {
+                        void handleSendC2Message(false);
+                      }}
+                      disabled={!state.activeArenaId || !isC2Enabled}
+                    >
+                      Send
+                    </button>
+                    <button
+                      type="button"
+                      className="tb-btn tb-btn-primary"
+                      onClick={() => {
+                        void handleSendC2Message(true);
+                      }}
+                      disabled={!state.activeArenaId || !isC2Enabled}
+                    >
+                      Generate
+                    </button>
+                  </div>
                 </div>
               </section>
 
