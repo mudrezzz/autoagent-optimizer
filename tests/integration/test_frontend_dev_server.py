@@ -124,6 +124,8 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
             assert payload["capabilities"][0]["status"] == "enabled"
             c2 = next(item for item in payload["capabilities"] if item["id"] == "c2")
             assert c2["status"] == "enabled"
+            c3 = next(item for item in payload["capabilities"] if item["id"] == "c3")
+            assert c3["status"] == "enabled"
 
         status_arenas, arenas_payload = _json_get(f"{base_url}/api/arenas")
         assert status_arenas == 200
@@ -153,6 +155,28 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert chat_state_empty_payload["messages_total"] == 0
         assert chat_state_empty_payload["candidate_set_draft"] is None
 
+        status_c3_selection, c3_selection_payload = _json_get(f"{base_url}/api/arenas/{arena_id}/patterns/selection")
+        assert status_c3_selection == 200
+        assert c3_selection_payload["status"] == "success"
+        assert c3_selection_payload["selection"]["include_pattern_ids"] == []
+        assert c3_selection_payload["selection"]["exclude_pattern_ids"] == []
+
+        status_c3_search, c3_search_payload = _json_get(f"{base_url}/api/arenas/{arena_id}/patterns/search?q=rewrite&limit=5")
+        assert status_c3_search == 200
+        assert c3_search_payload["status"] == "success"
+        assert c3_search_payload["returned"] >= 1
+
+        status_c3_update, c3_update_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/patterns/selection",
+            {
+                "include_pattern_ids": ["style.pattern_cleaner"],
+                "exclude_pattern_ids": ["style.hitl_reviewer"],
+            },
+        )
+        assert status_c3_update == 200
+        assert c3_update_payload["selection"]["include_pattern_ids"] == ["style.pattern_cleaner"]
+        assert c3_update_payload["selection"]["exclude_pattern_ids"] == ["style.hitl_reviewer"]
+
         status_chat_message, chat_message_payload = _json_post(
             f"{base_url}/api/arenas/{arena_id}/chat/messages",
             {
@@ -165,7 +189,8 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert chat_message_payload["status"] == "success"
         assert chat_message_payload["messages_total"] >= 2
         assert chat_message_payload["candidate_set_draft"] is not None
-        assert chat_message_payload["candidate_set_draft"]["total"] == 3
+        assert chat_message_payload["candidate_set_draft"]["total"] == 1
+        assert chat_message_payload["candidate_set_draft"]["source_patterns"] == ["style.pattern_cleaner"]
 
         status_chat_state, chat_state_payload = _json_get(f"{base_url}/api/arenas/{arena_id}/chat/state")
         assert status_chat_state == 200

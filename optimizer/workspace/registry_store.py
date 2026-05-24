@@ -89,6 +89,7 @@ class WorkspaceRegistryStore:
                 "projects": [],
                 "chat_messages": [],
                 "candidate_set_draft": None,
+                "pattern_selection": _build_default_pattern_selection(),
             }
             data["workspaces"].append(workspace)
             self._write_store(data)
@@ -174,6 +175,7 @@ class WorkspaceRegistryStore:
                 "projects": [],
                 "chat_messages": [],
                 "candidate_set_draft": None,
+                "pattern_selection": _build_default_pattern_selection(),
             }
             data["workspaces"].append(workspace_copy)
             self._write_store(data)
@@ -532,6 +534,59 @@ class WorkspaceRegistryStore:
                 return None
             return dict(draft)
 
+    def get_arena_pattern_selection(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+    ) -> dict[str, Any]:
+        """Возвращает include/exclude выборку паттернов C3 для арены."""
+
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            selection = workspace.get("pattern_selection")
+            normalized = _normalize_pattern_selection(selection)
+            workspace["pattern_selection"] = normalized
+            self._write_store(data)
+            return dict(normalized)
+
+    def save_arena_pattern_selection(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        include_pattern_ids: list[str],
+        exclude_pattern_ids: list[str],
+    ) -> dict[str, Any]:
+        """Сохраняет include/exclude выборку паттернов C3 для арены."""
+
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            normalized = _normalize_pattern_selection(
+                {
+                    "include_pattern_ids": include_pattern_ids,
+                    "exclude_pattern_ids": exclude_pattern_ids,
+                    "updated_at": _utc_now_iso(),
+                }
+            )
+            workspace["pattern_selection"] = normalized
+            self._write_store(data)
+            return dict(normalized)
+
     def _read_store(self) -> dict[str, Any]:
         """Читает JSON-store и гарантирует корректный базовый контракт."""
 
@@ -700,3 +755,55 @@ def _serialize_message(raw_message: dict[str, Any]) -> dict[str, Any]:
         "content": str(raw_message.get("content", "")),
         "created_at": str(raw_message.get("created_at", "")),
     }
+
+
+def _build_default_pattern_selection() -> dict[str, Any]:
+    """Строит default include/exclude выборку паттернов."""
+
+    return {
+        "include_pattern_ids": [],
+        "exclude_pattern_ids": [],
+        "updated_at": _utc_now_iso(),
+    }
+
+
+def _normalize_pattern_selection(raw_selection: Any) -> dict[str, Any]:
+    """Нормализует pattern selection payload с валидацией пересечений include/exclude."""
+
+    if not isinstance(raw_selection, dict):
+        return _build_default_pattern_selection()
+
+    include_raw = raw_selection.get("include_pattern_ids", [])
+    exclude_raw = raw_selection.get("exclude_pattern_ids", [])
+    updated_at_raw = raw_selection.get("updated_at", "")
+
+    include_ids = _normalize_pattern_id_list(include_raw)
+    exclude_ids = _normalize_pattern_id_list(exclude_raw)
+    overlap = set(include_ids).intersection(exclude_ids)
+    if overlap:
+        raise ValueError("Pattern include/exclude lists must not overlap.")
+
+    updated_at = str(updated_at_raw).strip() or _utc_now_iso()
+    return {
+        "include_pattern_ids": include_ids,
+        "exclude_pattern_ids": exclude_ids,
+        "updated_at": updated_at,
+    }
+
+
+def _normalize_pattern_id_list(raw_value: Any) -> list[str]:
+    """Нормализует список pattern id в уникальный стабильный массив строк."""
+
+    if not isinstance(raw_value, list):
+        raise ValueError("Pattern id list must be an array.")
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for item in raw_value:
+        if not isinstance(item, str):
+            raise ValueError("Pattern id list must contain strings only.")
+        value = item.strip()
+        if not value or value in seen:
+            continue
+        seen.add(value)
+        normalized.append(value)
+    return normalized

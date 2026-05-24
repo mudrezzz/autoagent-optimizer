@@ -154,3 +154,62 @@ def test_store_persists_c2_chat_messages_and_candidate_draft_in_arena_scope(tmp_
             owner_user_id="user_b",
             arena_id=arena.workspace_id,
         )
+
+
+def test_store_persists_c3_pattern_selection_in_arena_scope(tmp_path: Path) -> None:
+    """Проверяет сохранение include/exclude C3 pattern selection в arena scope."""
+
+    store = WorkspaceRegistryStore(store_file=tmp_path / "registry.json")
+    arena = store.create_arena(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        name="patterns-lab",
+        description="",
+    )
+
+    initial_selection = store.get_arena_pattern_selection(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+    )
+    assert initial_selection["include_pattern_ids"] == []
+    assert initial_selection["exclude_pattern_ids"] == []
+
+    updated_selection = store.save_arena_pattern_selection(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+        include_pattern_ids=["style.pattern_cleaner", "style.direct_llm"],
+        exclude_pattern_ids=["style.hitl_reviewer"],
+    )
+    assert updated_selection["include_pattern_ids"] == ["style.pattern_cleaner", "style.direct_llm"]
+    assert updated_selection["exclude_pattern_ids"] == ["style.hitl_reviewer"]
+
+    loaded_selection = store.get_arena_pattern_selection(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+    )
+    assert loaded_selection["include_pattern_ids"] == ["style.pattern_cleaner", "style.direct_llm"]
+    assert loaded_selection["exclude_pattern_ids"] == ["style.hitl_reviewer"]
+
+
+def test_store_rejects_c3_selection_with_overlap(tmp_path: Path) -> None:
+    """Проверяет валидацию include/exclude пересечения для C3 selection."""
+
+    store = WorkspaceRegistryStore(store_file=tmp_path / "registry.json")
+    arena = store.create_arena(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        name="patterns-lab",
+        description="",
+    )
+
+    with pytest.raises(ValueError):
+        store.save_arena_pattern_selection(
+            tenant_id="tenant_a",
+            owner_user_id="user_a",
+            arena_id=arena.workspace_id,
+            include_pattern_ids=["style.pattern_cleaner"],
+            exclude_pattern_ids=["style.pattern_cleaner"],
+        )

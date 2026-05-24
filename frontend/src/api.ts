@@ -3,6 +3,8 @@
   ArenaGetResponse,
   ArenasListResponse,
   ArenaMutationResponse,
+  C3PatternSearchResponse,
+  C3PatternSelectionResponse,
   C2ChatPostMessageResponse,
   C2ChatStateResponse,
   C1SuccessPayload,
@@ -141,6 +143,51 @@ export async function postArenaChatMessage(
     throw new Error(payload.message || `Failed to post C2 chat message: HTTP ${response.status}`);
   }
   return parseJsonOrThrow<C2ChatPostMessageResponse>(response);
+}
+
+// Русский комментарий: читает include/exclude выборку C3 паттернов для арены.
+export async function fetchArenaPatternSelection(arenaId: string): Promise<C3PatternSelectionResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/patterns/selection`);
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to load C3 pattern selection: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C3PatternSelectionResponse>(response);
+}
+
+// Русский комментарий: сохраняет include/exclude выборку C3 паттернов для арены.
+export async function saveArenaPatternSelection(
+  arenaId: string,
+  includePatternIds: string[],
+  excludePatternIds: string[],
+): Promise<C3PatternSelectionResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/patterns/selection`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      include_pattern_ids: includePatternIds,
+      exclude_pattern_ids: excludePatternIds,
+    }),
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to save C3 pattern selection: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C3PatternSelectionResponse>(response);
+}
+
+// Русский комментарий: выполняет поиск паттернов C3 с retrieval trace.
+export async function searchArenaPatterns(arenaId: string, query: string, limit = 12): Promise<C3PatternSearchResponse> {
+  const params = new URLSearchParams({
+    q: query,
+    limit: String(limit),
+  });
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/patterns/search?${params.toString()}`);
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to search C3 patterns: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C3PatternSearchResponse>(response);
 }
 
 // Русский комментарий: legacy debug endpoint validate+compile оставлен для обратной совместимости.

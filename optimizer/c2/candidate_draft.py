@@ -11,6 +11,8 @@ def build_candidate_draft_from_brief(
     project_id: str | None = None,
     brief: str,
     max_candidates: int = 3,
+    preferred_pattern_refs: list[str] | tuple[str, ...] | None = None,
+    excluded_pattern_refs: list[str] | tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
     """Строит детерминированный candidate draft из текстового brief без LLM-зависимости."""
 
@@ -144,7 +146,21 @@ def build_candidate_draft_from_brief(
         },
     ]
 
-    selected_candidates = base_candidates[:max_candidates]
+    include_set = {item.strip() for item in (preferred_pattern_refs or []) if item.strip()}
+    exclude_set = {item.strip() for item in (excluded_pattern_refs or []) if item.strip()}
+    filtered_candidates: list[dict[str, Any]] = []
+    for candidate in base_candidates:
+        pattern_ref = str(candidate.get("pattern_ref", ""))
+        if pattern_ref in exclude_set:
+            continue
+        if include_set and pattern_ref not in include_set:
+            continue
+        filtered_candidates.append(candidate)
+
+    if not filtered_candidates:
+        raise ValueError("No candidate templates available after pattern filters.")
+
+    selected_candidates = filtered_candidates[:max_candidates]
     payload: dict[str, Any] = {
         "candidate_set_id": f"cset_{_stable_suffix(scope_id=scope_id, brief=normalized_brief)}",
         "source": "c2_brief_to_candidates_v0",
@@ -153,6 +169,11 @@ def build_candidate_draft_from_brief(
         "arena_id": scope_id,
         "candidates": selected_candidates,
         "total": len(selected_candidates),
+        "source_patterns": [str(candidate["pattern_ref"]) for candidate in selected_candidates],
+        "applied_pattern_filters": {
+            "include_pattern_refs": sorted(include_set),
+            "exclude_pattern_refs": sorted(exclude_set),
+        },
     }
     # Русский комментарий: legacy-поле сохраняем для совместимости старых отчетов/тестов.
     if project_id is not None:

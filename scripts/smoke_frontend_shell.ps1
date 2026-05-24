@@ -1,4 +1,4 @@
-﻿# Smoke runner for frontend capability shell (V2.3.S2 / C1+C2 vertical slice).
+﻿# Smoke runner for frontend capability shell (V2.3.S3 / C1+C2+C3 vertical slice).
 param()
 
 $ErrorActionPreference = "Stop"
@@ -63,14 +63,18 @@ try {
 
   $c1 = $capabilities.capabilities | Where-Object { $_.id -eq "c1" }
   if ($null -eq $c1 -or $c1.status -ne "enabled") {
-    throw "C1 capability must be enabled in V2.3.S2."
+    throw "C1 capability must be enabled in V2.3.S3."
   }
   if ($c1.name -ne "Battle Registry") {
     throw "C1 capability name must match product capability model."
   }
   $c2 = $capabilities.capabilities | Where-Object { $_.id -eq "c2" }
   if ($null -eq $c2 -or $c2.status -ne "enabled") {
-    throw "C2 capability must be enabled in V2.3.S2."
+    throw "C2 capability must be enabled in V2.3.S3."
+  }
+  $c3 = $capabilities.capabilities | Where-Object { $_.id -eq "c3" }
+  if ($null -eq $c3 -or $c3.status -ne "enabled") {
+    throw "C3 capability must be enabled in V2.3.S3."
   }
 
   Write-Host "[SMOKE] run C1 battle flow"
@@ -103,6 +107,24 @@ try {
   $chatState = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId/chat/state" -Method Get -TimeoutSec 8
   if ($chatState.status -ne "success" -or $chatState.messages_total -lt 2) {
     throw "C2 chat state endpoint returned unexpected payload."
+  }
+
+  Write-Host "[SMOKE] run C3 pattern flow"
+  $selectionGet = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId/patterns/selection" -Method Get -TimeoutSec 8
+  if ($selectionGet.status -ne "success") {
+    throw "C3 selection endpoint returned non-success status."
+  }
+  $selectionPayload = @{
+    include_pattern_ids = @("style.pattern_cleaner")
+    exclude_pattern_ids = @("style.hitl_reviewer")
+  } | ConvertTo-Json -Compress
+  $selectionPost = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId/patterns/selection" -Method Post -Body $selectionPayload -ContentType "application/json" -TimeoutSec 8
+  if ($selectionPost.status -ne "success") {
+    throw "C3 update selection endpoint returned non-success status."
+  }
+  $patternSearch = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId/patterns/search?q=rewrite&limit=5" -Method Get -TimeoutSec 8
+  if ($patternSearch.status -ne "success" -or $patternSearch.returned -lt 1) {
+    throw "C3 pattern search endpoint returned unexpected payload."
   }
 
   Write-Host "[SMOKE] frontend capability shell completed successfully."

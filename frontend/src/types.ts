@@ -143,6 +143,46 @@ export type C2ChatPostMessageResponse = {
   candidate_set_draft: C2CandidateSetDraft | null;
 };
 
+// Русский комментарий: элемент C3 pattern search выдачи для библиотеки паттернов.
+export type C3PatternItem = {
+  pattern_id: string;
+  title: string;
+  summary: string;
+  tags: string[];
+  complexity: string;
+  relevance: number;
+  selection_state: "include" | "exclude" | "neutral" | string;
+  retrieval_trace: string[];
+};
+
+// Русский комментарий: состояние include/exclude выбора паттернов в C3.
+export type C3PatternSelection = {
+  include_pattern_ids: string[];
+  exclude_pattern_ids: string[];
+  updated_at: string;
+};
+
+// Русский комментарий: ответ чтения C3 pattern selection.
+export type C3PatternSelectionResponse = {
+  status: "success";
+  capability_id: "c3";
+  arena_id: string;
+  selection: C3PatternSelection;
+};
+
+// Русский комментарий: ответ поиска C3 паттернов с retrieval trace.
+export type C3PatternSearchResponse = {
+  status: "success";
+  capability_id: "c3";
+  arena_id: string;
+  query: string;
+  query_tokens: string[];
+  total_candidates: number;
+  returned: number;
+  selection: C3PatternSelection;
+  patterns: C3PatternItem[];
+};
+
 // Русский комментарий: тип issue в compile report legacy debug endpoint.
 export type CompileIssue = {
   severity: "warning" | "error" | string;

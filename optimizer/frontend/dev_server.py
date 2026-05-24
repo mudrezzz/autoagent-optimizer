@@ -11,9 +11,10 @@ from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from optimizer.c2 import build_candidate_draft_from_brief
+from optimizer.c3 import search_pattern_library
 from optimizer.dsl.compiler import DslToGraphIRCompiler
 from optimizer.dsl.io import DslLoadError, DslValidationError, load_dsl_spec
 from optimizer.frontend.contracts import build_capability_catalog_payload, build_stub_capability_payload
@@ -87,7 +88,9 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
         def do_GET(self) -> None:  # noqa: N802
             """Обрабатывает GET-запросы API и static-файлов."""
 
-            path = urlparse(self.path).path
+            parsed_url = urlparse(self.path)
+            path = parsed_url.path
+            query_params = parse_qs(parsed_url.query)
             tenant_id, user_id = self._resolve_request_actor()
             if path == "/api/health":
                 self._send_json({"status": "ok", "service": "frontend_dev_server"})
@@ -116,6 +119,23 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
             if arena_chat_state_match is not None:
                 arena_id = arena_chat_state_match.group(1)
                 self._handle_get_arena_chat_state(tenant_id=tenant_id, user_id=user_id, arena_id=arena_id)
+                return
+
+            arena_pattern_selection_match = re.fullmatch(r"/api/arenas/([^/]+)/patterns/selection", path)
+            if arena_pattern_selection_match is not None:
+                arena_id = arena_pattern_selection_match.group(1)
+                self._handle_get_arena_pattern_selection(tenant_id=tenant_id, user_id=user_id, arena_id=arena_id)
+                return
+
+            arena_pattern_search_match = re.fullmatch(r"/api/arenas/([^/]+)/patterns/search", path)
+            if arena_pattern_search_match is not None:
+                arena_id = arena_pattern_search_match.group(1)
+                self._handle_search_arena_patterns(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    arena_id=arena_id,
+                    query_params=query_params,
+                )
                 return
 
             # Русский комментарий: оставляем legacy project-роут как alias к arena id для плавной миграции.
@@ -182,6 +202,15 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
             arena_chat_match = re.fullmatch(r"/api/arenas/([^/]+)/chat/messages", path)
             if arena_chat_match is not None:
                 self._handle_post_arena_chat_message(tenant_id=tenant_id, user_id=user_id, arena_id=arena_chat_match.group(1))
+                return
+
+            arena_pattern_selection_match = re.fullmatch(r"/api/arenas/([^/]+)/patterns/selection", path)
+            if arena_pattern_selection_match is not None:
+                self._handle_post_arena_pattern_selection(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    arena_id=arena_pattern_selection_match.group(1),
+                )
                 return
 
             # Русский комментарий: legacy project-роут как alias к arena id для плавной миграции.
@@ -426,6 +455,93 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
                 }
             )
 
+        def _handle_get_arena_pattern_selection(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Возвращает include/exclude выборку паттернов C3 для текущей арены."""
+
+            try:
+                selection = registry_store.get_arena_pattern_selection(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                )
+            except KeyError as exc:
+                self._send_json(
+                    {"status": "error", "code": "arena_not_found", "message": str(exc)},
+                    status=HTTPStatus.NOT_FOUND,
+                )
+                return
+            except ValueError as exc:
+                self._send_json(
+                    {"status": "error", "code": "selection_corrupted", "message": str(exc)},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            self._send_json(
+                {
+                    "status": "success",
+                    "capability_id": "c3",
+                    "arena_id": arena_id,
+                    "selection": selection,
+                }
+            )
+
+        def _handle_search_arena_patterns(
+            self,
+            *,
+            tenant_id: str,
+            user_id: str,
+            arena_id: str,
+            query_params: dict[str, list[str]],
+        ) -> None:
+            """Выполняет поиск паттернов C3 с retrieval trace в контексте текущей selection."""
+
+            query = str((query_params.get("q", [""])[0] or "")).strip()
+            limit_raw = str((query_params.get("limit", ["12"])[0] or "12")).strip()
+            try:
+                limit = int(limit_raw)
+            except ValueError:
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Query param `limit` must be an integer."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            try:
+                selection = registry_store.get_arena_pattern_selection(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                )
+                search_payload = search_pattern_library(
+                    query=query,
+                    limit=limit,
+                    include_pattern_ids=selection.get("include_pattern_ids", []),
+                    exclude_pattern_ids=selection.get("exclude_pattern_ids", []),
+                )
+            except KeyError as exc:
+                self._send_json(
+                    {"status": "error", "code": "arena_not_found", "message": str(exc)},
+                    status=HTTPStatus.NOT_FOUND,
+                )
+                return
+            except ValueError as exc:
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": str(exc)},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            self._send_json(
+                {
+                    "status": "success",
+                    "capability_id": "c3",
+                    "arena_id": arena_id,
+                    "selection": selection,
+                    **search_payload,
+                }
+            )
+
         def _handle_post_arena_chat_message(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
             """Добавляет сообщение в C2-чат арены и опционально генерирует candidate draft."""
 
@@ -487,10 +603,17 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
             assistant_message: dict[str, Any] | None = None
             if generate_candidates:
                 try:
+                    selection = registry_store.get_arena_pattern_selection(
+                        tenant_id=tenant_id,
+                        owner_user_id=user_id,
+                        arena_id=arena_id,
+                    )
                     candidate_set_draft = build_candidate_draft_from_brief(
                         arena_id=arena_id,
                         brief=message_raw,
                         max_candidates=max_candidates_raw,
+                        preferred_pattern_refs=selection.get("include_pattern_ids", []),
+                        excluded_pattern_refs=selection.get("exclude_pattern_ids", []),
                     )
                     registry_store.save_arena_candidate_set_draft(
                         tenant_id=tenant_id,
@@ -535,6 +658,58 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
                     "candidate_set_draft": candidate_set_draft,
                 },
                 status=HTTPStatus.CREATED,
+            )
+
+        def _handle_post_arena_pattern_selection(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Обновляет include/exclude выборку паттернов C3 для арены."""
+
+            try:
+                payload = self._read_json_body()
+            except ValueError as exc:
+                self._send_json({"status": "error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            include_pattern_ids = payload.get("include_pattern_ids", [])
+            exclude_pattern_ids = payload.get("exclude_pattern_ids", [])
+            if not isinstance(include_pattern_ids, list) or not isinstance(exclude_pattern_ids, list):
+                self._send_json(
+                    {
+                        "status": "error",
+                        "code": "validation_error",
+                        "message": "Fields `include_pattern_ids` and `exclude_pattern_ids` must be arrays.",
+                    },
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            try:
+                selection = registry_store.save_arena_pattern_selection(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                    include_pattern_ids=include_pattern_ids,
+                    exclude_pattern_ids=exclude_pattern_ids,
+                )
+            except KeyError as exc:
+                self._send_json(
+                    {"status": "error", "code": "arena_not_found", "message": str(exc)},
+                    status=HTTPStatus.NOT_FOUND,
+                )
+                return
+            except ValueError as exc:
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": str(exc)},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            self._send_json(
+                {
+                    "status": "success",
+                    "capability_id": "c3",
+                    "arena_id": arena_id,
+                    "selection": selection,
+                }
             )
 
         def _resolve_request_actor(self) -> tuple[str, str]:

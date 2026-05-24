@@ -11,12 +11,15 @@ vi.mock("../api", () => ({
   deleteArena: vi.fn(),
   duplicateArena: vi.fn(),
   fetchCapabilityCatalog: vi.fn(),
+  fetchArenaPatternSelection: vi.fn(),
   fetchStubCapability: vi.fn(),
   getArena: vi.fn(),
   getArenaChatState: vi.fn(),
   listArenas: vi.fn(),
   postArenaChatMessage: vi.fn(),
   renameArena: vi.fn(),
+  saveArenaPatternSelection: vi.fn(),
+  searchArenaPatterns: vi.fn(),
 }));
 
 import {
@@ -24,12 +27,15 @@ import {
   deleteArena,
   duplicateArena,
   fetchCapabilityCatalog,
+  fetchArenaPatternSelection,
   fetchStubCapability,
   getArena,
   getArenaChatState,
   listArenas,
   postArenaChatMessage,
   renameArena,
+  saveArenaPatternSelection,
+  searchArenaPatterns,
 } from "../api";
 
 // Русский комментарий: фикстура battle-арены для режима workspace.
@@ -154,6 +160,52 @@ describe("Battle workspace candidates", () => {
       messages_total: 0,
       candidate_set_draft: CANDIDATE_SET,
     });
+    vi.mocked(fetchArenaPatternSelection).mockResolvedValue({
+      status: "success",
+      capability_id: "c3",
+      arena_id: ARENA.workspace_id,
+      selection: {
+        include_pattern_ids: [],
+        exclude_pattern_ids: [],
+        updated_at: "2026-05-24T00:00:00+00:00",
+      },
+    });
+    vi.mocked(searchArenaPatterns).mockResolvedValue({
+      status: "success",
+      capability_id: "c3",
+      arena_id: ARENA.workspace_id,
+      query: "",
+      query_tokens: [],
+      total_candidates: 2,
+      returned: 2,
+      selection: {
+        include_pattern_ids: [],
+        exclude_pattern_ids: [],
+        updated_at: "2026-05-24T00:00:00+00:00",
+      },
+      patterns: [
+        {
+          pattern_id: "style.direct_llm",
+          title: "Direct LLM Rewrite",
+          summary: "Fast baseline.",
+          tags: ["rewrite"],
+          complexity: "low",
+          relevance: 0.4,
+          selection_state: "neutral",
+          retrieval_trace: ["query:empty"],
+        },
+        {
+          pattern_id: "style.pattern_cleaner",
+          title: "Pattern Cleaner",
+          summary: "Cleanup pass.",
+          tags: ["cleanup"],
+          complexity: "medium",
+          relevance: 0.33,
+          selection_state: "neutral",
+          retrieval_trace: ["query:empty"],
+        },
+      ],
+    });
 
     vi.mocked(postArenaChatMessage).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(createArena).mockRejectedValue(new Error("not used in this test"));
@@ -161,6 +213,7 @@ describe("Battle workspace candidates", () => {
     vi.mocked(duplicateArena).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(deleteArena).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(fetchStubCapability).mockRejectedValue(new Error("not used in this test"));
+    vi.mocked(saveArenaPatternSelection).mockRejectedValue(new Error("not used in this test"));
   });
 
   it("renders candidates list and allows selecting candidate row", async () => {
@@ -205,5 +258,17 @@ describe("Battle workspace candidates", () => {
       expect(detailsButtons[0]?.getAttribute("aria-expanded")).toBe("true");
     });
     expect(await screen.findByLabelText("candidate-mini-graph-svg")).toBeInTheDocument();
+  });
+
+  it("switches to C3 and renders pattern library search results", async () => {
+    const user = userEvent.setup();
+    renderWorkspace();
+
+    const c3Button = await screen.findByRole("button", { name: /Pattern Library \+ RAG/i });
+    await user.click(c3Button);
+
+    expect(await screen.findByText("Pattern library + retrieval")).toBeInTheDocument();
+    expect(await screen.findByText("Direct LLM Rewrite")).toBeInTheDocument();
+    expect(await screen.findByText("Pattern Cleaner")).toBeInTheDocument();
   });
 });

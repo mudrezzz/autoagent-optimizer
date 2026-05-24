@@ -5,6 +5,7 @@ import {
   createArena,
   deleteArena,
   duplicateArena,
+  fetchArenaPatternSelection,
   fetchCapabilityCatalog,
   fetchStubCapability,
   getArena,
@@ -12,8 +13,18 @@ import {
   listArenas,
   postArenaChatMessage,
   renameArena,
+  saveArenaPatternSelection,
+  searchArenaPatterns,
 } from "./api";
-import type { ArenaRecord, C2CandidateDraftItem, C2CandidateSetDraft, C2ChatMessage, Capability, StubPayload } from "./types";
+import type {
+  ArenaRecord,
+  C2CandidateDraftItem,
+  C2CandidateSetDraft,
+  C2ChatMessage,
+  C3PatternItem,
+  Capability,
+  StubPayload,
+} from "./types";
 import { exportJsonToFile, makeTimestampedFileName, prettyJson } from "./utils";
 
 declare global {
@@ -34,7 +45,7 @@ const FALLBACK_CAPABILITIES: Capability[] = [
     status: "enabled",
     badge_count: 1,
   },
-  { id: "c3", name: "Pattern Library + RAG", description: "Planned slice for pattern retrieval and controls.", status: "planned", badge_count: 0 },
+  { id: "c3", name: "Pattern Library + RAG", description: "Pattern retrieval controls for candidate generation.", status: "enabled", badge_count: 1 },
   { id: "c4", name: "Dataset & Metrics Studio", description: "Planned slice for datasets and evaluators.", status: "planned", badge_count: 0 },
   { id: "c5", name: "Optimizer Run Monitor", description: "Planned slice for run timeline and metrics monitor.", status: "planned", badge_count: 0 },
   { id: "c6", name: "Report + Champion Export/Import", description: "Planned slice for reports and native loop.", status: "planned", badge_count: 0 },
@@ -68,6 +79,12 @@ type UiState = {
   c2SelectedCandidateId: string;
   c2ExpandedCandidateId: string;
   c2JsonCollapsed: boolean;
+  c3PatternQuery: string;
+  c3Patterns: C3PatternItem[];
+  c3IncludePatternIds: string[];
+  c3ExcludePatternIds: string[];
+  c3SelectionUpdatedAt: string;
+  c3SearchMeta: string;
   budgetPercent: number;
   budgetStage: string;
   metricArenas: string;
@@ -91,6 +108,12 @@ export function App(): JSX.Element {
     c2SelectedCandidateId: "",
     c2ExpandedCandidateId: "",
     c2JsonCollapsed: true,
+    c3PatternQuery: "",
+    c3Patterns: [],
+    c3IncludePatternIds: [],
+    c3ExcludePatternIds: [],
+    c3SelectionUpdatedAt: "",
+    c3SearchMeta: "No C3 search yet.",
     budgetPercent: 0,
     budgetStage: "idle",
     metricArenas: "0",
@@ -204,6 +227,12 @@ export function App(): JSX.Element {
       c2SelectedCandidateId: "",
       c2ExpandedCandidateId: "",
       c2JsonCollapsed: true,
+      c3PatternQuery: "",
+      c3Patterns: [],
+      c3IncludePatternIds: [],
+      c3ExcludePatternIds: [],
+      c3SelectionUpdatedAt: "",
+      c3SearchMeta: "No C3 search yet.",
       metricArenaStatus: "not selected",
     }));
   }
@@ -272,8 +301,111 @@ export function App(): JSX.Element {
         jsonText: prettyJson(snapshot),
         lastPayload: snapshot,
       }));
+      await loadC3PatternState(arenaId, "", false);
     } catch (error) {
-      setState((prev) => ({ ...prev, c2Messages: [], c2CandidateSetDraft: null, c2SelectedCandidateId: "", c2ExpandedCandidateId: "", budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
+      setState((prev) => ({
+        ...prev,
+        c2Messages: [],
+        c2CandidateSetDraft: null,
+        c2SelectedCandidateId: "",
+        c2ExpandedCandidateId: "",
+        c3Patterns: [],
+        c3IncludePatternIds: [],
+        c3ExcludePatternIds: [],
+        c3SelectionUpdatedAt: "",
+        c3SearchMeta: "No C3 search yet.",
+        budgetPercent: 100,
+        budgetStage: "failed",
+        jsonText: prettyJson({ status: "error", message: String(error) }),
+      }));
+    }
+  }
+
+  // Русский комментарий: загружает C3 pattern selection и результаты поиска для выбранной арены.
+  async function loadC3PatternState(arenaId: string, query: string, writeSnapshot = true): Promise<void> {
+    const normalizedQuery = query.trim();
+    const selectionResponse = await fetchArenaPatternSelection(arenaId);
+    const searchResponse = await searchArenaPatterns(arenaId, normalizedQuery, 12);
+    const snapshot = {
+      status: "success",
+      capability_id: "c3",
+      action: "search_patterns",
+      arena_id: arenaId,
+      query: searchResponse.query,
+      returned: searchResponse.returned,
+      include_total: searchResponse.selection.include_pattern_ids.length,
+      exclude_total: searchResponse.selection.exclude_pattern_ids.length,
+    };
+    setState((prev) => ({
+      ...prev,
+      c3PatternQuery: normalizedQuery,
+      c3Patterns: searchResponse.patterns,
+      c3IncludePatternIds: selectionResponse.selection.include_pattern_ids,
+      c3ExcludePatternIds: selectionResponse.selection.exclude_pattern_ids,
+      c3SelectionUpdatedAt: selectionResponse.selection.updated_at,
+      c3SearchMeta: `results ${searchResponse.returned}/${searchResponse.total_candidates} · query "${searchResponse.query}"`,
+      jsonText: writeSnapshot ? prettyJson(snapshot) : prev.jsonText,
+      lastPayload: writeSnapshot ? snapshot : prev.lastPayload,
+      budgetStage: writeSnapshot ? "c3 patterns loaded" : prev.budgetStage,
+      budgetPercent: writeSnapshot ? 100 : prev.budgetPercent,
+    }));
+  }
+
+  // Русский комментарий: применяет include/exclude действие для конкретного паттерна и перезагружает поисковую выдачу.
+  async function handleC3PatternSelectionAction(patternId: string, mode: "include" | "exclude" | "neutral"): Promise<void> {
+    if (!state.activeArenaId) {
+      return;
+    }
+    const includeSet = new Set(state.c3IncludePatternIds);
+    const excludeSet = new Set(state.c3ExcludePatternIds);
+    includeSet.delete(patternId);
+    excludeSet.delete(patternId);
+    if (mode === "include") {
+      includeSet.add(patternId);
+    } else if (mode === "exclude") {
+      excludeSet.add(patternId);
+    }
+    const includePatternIds = Array.from(includeSet);
+    const excludePatternIds = Array.from(excludeSet);
+    setState((prev) => ({ ...prev, budgetStage: "saving c3 selection", budgetPercent: 55 }));
+    try {
+      const saveResponse = await saveArenaPatternSelection(state.activeArenaId, includePatternIds, excludePatternIds);
+      const searchResponse = await searchArenaPatterns(state.activeArenaId, state.c3PatternQuery, 12);
+      const snapshot = {
+        status: "success",
+        capability_id: "c3",
+        action: "update_pattern_selection",
+        arena_id: state.activeArenaId,
+        selection: saveResponse.selection,
+        returned: searchResponse.returned,
+      };
+      setState((prev) => ({
+        ...prev,
+        c3Patterns: searchResponse.patterns,
+        c3IncludePatternIds: saveResponse.selection.include_pattern_ids,
+        c3ExcludePatternIds: saveResponse.selection.exclude_pattern_ids,
+        c3SelectionUpdatedAt: saveResponse.selection.updated_at,
+        c3SearchMeta: `results ${searchResponse.returned}/${searchResponse.total_candidates} · query "${searchResponse.query}"`,
+        jsonText: prettyJson(snapshot),
+        lastPayload: snapshot,
+        budgetPercent: 100,
+        budgetStage: "c3 selection saved",
+      }));
+    } catch (error) {
+      setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
+    }
+  }
+
+  // Русский комментарий: выполняет поиск C3 паттернов по текущей строке запроса.
+  async function handleC3Search(): Promise<void> {
+    if (!state.activeArenaId) {
+      return;
+    }
+    setState((prev) => ({ ...prev, budgetStage: "searching c3 patterns", budgetPercent: 50 }));
+    try {
+      await loadC3PatternState(state.activeArenaId, state.c3PatternQuery, true);
+    } catch (error) {
+      setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
     }
   }
 
@@ -293,6 +425,19 @@ export function App(): JSX.Element {
       await loadArenaContext(state.activeArenaId);
       return;
     }
+
+    if (capabilityId === "c3") {
+      if (!state.activeArenaId) {
+        setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "notice", message: "Select battle first, then use C3 patterns." }) }));
+        return;
+      }
+      try {
+        await loadC3PatternState(state.activeArenaId, state.c3PatternQuery, true);
+      } catch (error) {
+        setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
+      }
+      return;
+    }
     try {
       const payload: StubPayload = await fetchStubCapability(capabilityId);
       setState((prev) => ({ ...prev, jsonText: prettyJson(payload) }));
@@ -306,6 +451,10 @@ export function App(): JSX.Element {
     const arenaId = state.activeArenaId;
     if (!arenaId) {
       setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "error", message: "Open battle before using C2 chat." }) }));
+      return;
+    }
+    if (state.activeCapabilityId !== "c2") {
+      setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "notice", message: "Switch to C2 before sending chat messages." }) }));
       return;
     }
     const message = state.c2ChatInput.trim();
@@ -754,143 +903,238 @@ export function App(): JSX.Element {
                   <article className="ms-cell"><div className="ms-lbl">Capability</div><div className="ms-row"><div className="ms-val">{activeCapability.id.toUpperCase()}</div></div><div className="ms-cap">{activeCapability.name}</div></article>
                 </section>
 
-                <section className="trace-view trace-view--workspace">
-                  <header className="tv-head"><div className="tv-title"><i data-lucide="network" /><span>Candidate architectures</span><span className="tv-arch">{state.c2CandidateSetDraft?.total ?? 0} total</span></div></header>
-                  <div className="tv-body tv-body--workspace">
-                    <div className="candidate-list">
-                      <div className="candidate-list-head">
-                        <span>Architectures · sorted by quality</span>
-                        <span className="muted">{state.c2CandidateSetDraft?.candidate_set_id ?? "not generated"}</span>
+                {activeCapability.id === "c3" ? (
+                  <section className="trace-view trace-view--workspace">
+                    <header className="tv-head">
+                      <div className="tv-title">
+                        <i data-lucide="library" />
+                        <span>Pattern library + retrieval</span>
+                        <span className="tv-arch">{state.c3Patterns.length} shown</span>
                       </div>
-                      <div className="candidate-list-scroll">
-                        <div className="candidate-table-head">
-                          <span className="candidate-col-title">Candidate</span>
-                          <span className="candidate-col-metric">quality</span>
-                          <span className="candidate-col-metric">cost/case</span>
-                          <span className="candidate-col-metric">p95 latency</span>
-                          <span className="candidate-col-action">details</span>
+                    </header>
+                    <div className="tv-body tv-body--workspace">
+                      <section className="c3-panel">
+                        <div className="c3-toolbar">
+                          <input
+                            id="c3-pattern-query"
+                            type="text"
+                            value={state.c3PatternQuery}
+                            onChange={(event) => {
+                              setState((prev) => ({ ...prev, c3PatternQuery: event.target.value }));
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                event.preventDefault();
+                                void handleC3Search();
+                              }
+                            }}
+                            placeholder="Search patterns: rewrite, safety, rag..."
+                            disabled={!state.activeArenaId}
+                          />
+                          <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleC3Search(); }} disabled={!state.activeArenaId}>
+                            Search
+                          </button>
+                          <div className="c3-meta">
+                            <span>include {state.c3IncludePatternIds.length}</span>
+                            <span>exclude {state.c3ExcludePatternIds.length}</span>
+                            <span>{state.c3SearchMeta}</span>
+                          </div>
                         </div>
-                        {isC2Enabled && state.c2CandidateSetDraft ? state.c2CandidateSetDraft.candidates.map((candidate, index) => {
-                          const metrics = buildCandidateMetrics(candidate.candidate_id);
-                          const graphNodes = candidate.mini_graph?.nodes ?? [];
-                          const isExpanded = state.c2ExpandedCandidateId === candidate.candidate_id;
-                          return (
-                            <Fragment key={candidate.candidate_id}>
-                              <article
-                                className={`candidate-row${index === 0 ? " candidate-row--champion" : ""}${state.c2SelectedCandidateId === candidate.candidate_id ? " candidate-row--active" : ""}`}
-                                role="button"
-                                tabIndex={0}
-                                onClick={() => { handleSelectCandidate(candidate.candidate_id); }}
-                                onKeyDown={(event) => {
-                                  if (event.key === "Enter" || event.key === " ") {
-                                    event.preventDefault();
-                                    handleSelectCandidate(candidate.candidate_id);
-                                  }
-                                }}
-                              >
-                                <div className="candidate-col-title">
-                                  <div className="candidate-title-line">
-                                    <b>{candidate.title}</b>
-                                    <span className={`workspace-pill${index === 0 ? " champ" : " base"}`}>
-                                      <span className="dot" />
-                                      {index === 0 ? "Champion" : "Candidate"}
-                                    </span>
-                                  </div>
-                                  <div className="candidate-meta">{candidate.pattern_ref}</div>
-                                  <div className="row-sub">{candidate.summary}</div>
-                                </div>
-                                <div className="candidate-col-metric">
-                                  <div className="candidate-metric-value">{metrics.quality}</div>
-                                  <div className="candidate-metric-label">f1@k</div>
-                                </div>
-                                <div className="candidate-col-metric">
-                                  <div className="candidate-metric-value">${metrics.cost}</div>
-                                  <div className="candidate-metric-label">usd</div>
-                                </div>
-                                <div className="candidate-col-metric">
-                                  <div className="candidate-metric-value">{metrics.latency}s</div>
-                                  <div className="candidate-metric-label">runtime</div>
-                                </div>
-                                <div className="candidate-col-action">
-                                  <button
-                                    type="button"
-                                    className="candidate-details-toggle"
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      handleToggleCandidateDetails(candidate.candidate_id);
-                                    }}
-                                    aria-expanded={isExpanded}
-                                    aria-controls={`candidate-details-${candidate.candidate_id}`}
-                                  >
-                                    <span>Details</span>
-                                    <i data-lucide={isExpanded ? "chevron-up" : "chevron-down"} />
-                                  </button>
-                                </div>
-                              </article>
-                              {isExpanded ? (
-                                <section
-                                  id={`candidate-details-${candidate.candidate_id}`}
-                                  className="candidate-details-panel"
-                                  role="region"
-                                  aria-label="candidate details"
-                                >
-                                  <div className="candidate-details-head">
-                                    <div className="candidate-details-logo" aria-label={`logo-${candidate.candidate_id}`}>
-                                      {candidate.logo?.label ?? "AG"}
-                                    </div>
-                                    <div>
-                                      <div className="candidate-details-title">{candidate.title}</div>
-                                      <div className="candidate-details-sub">{candidate.rationale}</div>
-                                    </div>
-                                  </div>
-                                  <div className="candidate-config-grid">
-                                    <div className="candidate-config-cell"><span>roles</span><b>{candidate.config_summary?.roles_total ?? 0}</b></div>
-                                    <div className="candidate-config-cell"><span>llm calls</span><b>{candidate.config_summary?.llm_calls_max ?? 0}</b></div>
-                                    <div className="candidate-config-cell"><span>guards</span><b>{candidate.config_summary?.deterministic_guards ?? 0}</b></div>
-                                    <div className="candidate-config-cell"><span>hitl</span><b>{candidate.config_summary?.hitl_checkpoints ?? 0}</b></div>
-                                  </div>
-                                  <div className="candidate-mini-graph" aria-label="candidate-mini-graph">
-                                    {renderCandidateMiniGraphSvg(candidate)}
-                                    {graphNodes.length > 0 ? (
-                                      <div className="candidate-mini-graph-legend">
-                                        {graphNodes.map((node) => (
-                                          <div key={node.id} className="mini-graph-node">
-                                            <span className={`mini-node-kind kind-${node.kind}`}>{node.kind}</span>
-                                            <span className="mini-node-label">{node.label}</span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    ) : null}
-                                  </div>
-                                  <div className="candidate-steps-list">
-                                    {(candidate.architecture_steps ?? []).map((step) => (
-                                      <span key={step} className="candidate-step-chip">{step}</span>
+                        <div className="c3-list">
+                          {state.c3Patterns.length === 0 ? (
+                            <div className="issue-row info">No patterns yet. Run search or open C3 in selected arena.</div>
+                          ) : state.c3Patterns.map((pattern) => {
+                            const includeActive = state.c3IncludePatternIds.includes(pattern.pattern_id);
+                            const excludeActive = state.c3ExcludePatternIds.includes(pattern.pattern_id);
+                            return (
+                              <article key={pattern.pattern_id} className={`c3-pattern-row${includeActive ? " is-include" : ""}${excludeActive ? " is-exclude" : ""}`}>
+                                <div className="c3-pattern-main">
+                                  <div className="c3-pattern-title">{pattern.title}</div>
+                                  <div className="c3-pattern-id">{pattern.pattern_id}</div>
+                                  <div className="c3-pattern-summary">{pattern.summary}</div>
+                                  <div className="c3-pattern-tags">
+                                    {pattern.tags.map((tag) => (
+                                      <span key={`${pattern.pattern_id}:${tag}`} className="c3-tag">{tag}</span>
                                     ))}
                                   </div>
-                                </section>
-                              ) : null}
-                            </Fragment>
-                          );
-                        }) : <div className="issue-row warning">No candidate draft yet. Use chat action "Generate candidates".</div>}
-                      </div>
+                                </div>
+                                <div className="c3-pattern-side">
+                                  <div className="c3-pattern-score">{pattern.relevance.toFixed(3)}</div>
+                                  <div className="c3-pattern-score-label">retrieval score</div>
+                                  <div className="c3-pattern-trace">{pattern.retrieval_trace.join(" · ")}</div>
+                                  <div className="c3-pattern-actions">
+                                    <button type="button" className={`tb-btn tb-btn-ghost${includeActive ? " is-active" : ""}`} onClick={() => { void handleC3PatternSelectionAction(pattern.pattern_id, includeActive ? "neutral" : "include"); }}>
+                                      Include
+                                    </button>
+                                    <button type="button" className={`tb-btn tb-btn-ghost${excludeActive ? " is-active" : ""}`} onClick={() => { void handleC3PatternSelectionAction(pattern.pattern_id, excludeActive ? "neutral" : "exclude"); }}>
+                                      Exclude
+                                    </button>
+                                    <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleC3PatternSelectionAction(pattern.pattern_id, "neutral"); }}>
+                                      Clear
+                                    </button>
+                                  </div>
+                                </div>
+                              </article>
+                            );
+                          })}
+                        </div>
+                      </section>
+                      <section className={`workspace-json-panel${state.c2JsonCollapsed ? " is-collapsed" : ""}`}>
+                        <button
+                          type="button"
+                          className="workspace-json-toggle"
+                          onClick={handleToggleWorkspaceJson}
+                          aria-expanded={!state.c2JsonCollapsed}
+                          aria-controls="workspace-json-panel-body"
+                        >
+                          <span>Runtime snapshot</span>
+                          <i data-lucide={state.c2JsonCollapsed ? "chevron-down" : "chevron-up"} />
+                        </button>
+                        {!state.c2JsonCollapsed ? (
+                          <pre id="workspace-json-panel-body" className="json-view json-view--workspace">{state.jsonText}</pre>
+                        ) : null}
+                      </section>
                     </div>
-                    <section className={`workspace-json-panel${state.c2JsonCollapsed ? " is-collapsed" : ""}`}>
-                      <button
-                        type="button"
-                        className="workspace-json-toggle"
-                        onClick={handleToggleWorkspaceJson}
-                        aria-expanded={!state.c2JsonCollapsed}
-                        aria-controls="workspace-json-panel-body"
-                      >
-                        <span>Runtime snapshot</span>
-                        <i data-lucide={state.c2JsonCollapsed ? "chevron-down" : "chevron-up"} />
-                      </button>
-                      {!state.c2JsonCollapsed ? (
-                        <pre id="workspace-json-panel-body" className="json-view json-view--workspace">{state.jsonText}</pre>
-                      ) : null}
-                    </section>
-                  </div>
-                </section>
+                  </section>
+                ) : (
+                  <section className="trace-view trace-view--workspace">
+                    <header className="tv-head"><div className="tv-title"><i data-lucide="network" /><span>Candidate architectures</span><span className="tv-arch">{state.c2CandidateSetDraft?.total ?? 0} total</span></div></header>
+                    <div className="tv-body tv-body--workspace">
+                      <div className="candidate-list">
+                        <div className="candidate-list-head">
+                          <span>Architectures · sorted by quality</span>
+                          <span className="muted">{state.c2CandidateSetDraft?.candidate_set_id ?? "not generated"}</span>
+                        </div>
+                        <div className="candidate-list-scroll">
+                          <div className="candidate-table-head">
+                            <span className="candidate-col-title">Candidate</span>
+                            <span className="candidate-col-metric">quality</span>
+                            <span className="candidate-col-metric">cost/case</span>
+                            <span className="candidate-col-metric">p95 latency</span>
+                            <span className="candidate-col-action">details</span>
+                          </div>
+                          {isC2Enabled && state.c2CandidateSetDraft ? state.c2CandidateSetDraft.candidates.map((candidate, index) => {
+                            const metrics = buildCandidateMetrics(candidate.candidate_id);
+                            const graphNodes = candidate.mini_graph?.nodes ?? [];
+                            const isExpanded = state.c2ExpandedCandidateId === candidate.candidate_id;
+                            return (
+                              <Fragment key={candidate.candidate_id}>
+                                <article
+                                  className={`candidate-row${index === 0 ? " candidate-row--champion" : ""}${state.c2SelectedCandidateId === candidate.candidate_id ? " candidate-row--active" : ""}`}
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={() => { handleSelectCandidate(candidate.candidate_id); }}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter" || event.key === " ") {
+                                      event.preventDefault();
+                                      handleSelectCandidate(candidate.candidate_id);
+                                    }
+                                  }}
+                                >
+                                  <div className="candidate-col-title">
+                                    <div className="candidate-title-line">
+                                      <b>{candidate.title}</b>
+                                      <span className={`workspace-pill${index === 0 ? " champ" : " base"}`}>
+                                        <span className="dot" />
+                                        {index === 0 ? "Champion" : "Candidate"}
+                                      </span>
+                                    </div>
+                                    <div className="candidate-meta">{candidate.pattern_ref}</div>
+                                    <div className="row-sub">{candidate.summary}</div>
+                                  </div>
+                                  <div className="candidate-col-metric">
+                                    <div className="candidate-metric-value">{metrics.quality}</div>
+                                    <div className="candidate-metric-label">f1@k</div>
+                                  </div>
+                                  <div className="candidate-col-metric">
+                                    <div className="candidate-metric-value">${metrics.cost}</div>
+                                    <div className="candidate-metric-label">usd</div>
+                                  </div>
+                                  <div className="candidate-col-metric">
+                                    <div className="candidate-metric-value">{metrics.latency}s</div>
+                                    <div className="candidate-metric-label">runtime</div>
+                                  </div>
+                                  <div className="candidate-col-action">
+                                    <button
+                                      type="button"
+                                      className="candidate-details-toggle"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        handleToggleCandidateDetails(candidate.candidate_id);
+                                      }}
+                                      aria-expanded={isExpanded}
+                                      aria-controls={`candidate-details-${candidate.candidate_id}`}
+                                    >
+                                      <span>Details</span>
+                                      <i data-lucide={isExpanded ? "chevron-up" : "chevron-down"} />
+                                    </button>
+                                  </div>
+                                </article>
+                                {isExpanded ? (
+                                  <section
+                                    id={`candidate-details-${candidate.candidate_id}`}
+                                    className="candidate-details-panel"
+                                    role="region"
+                                    aria-label="candidate details"
+                                  >
+                                    <div className="candidate-details-head">
+                                      <div className="candidate-details-logo" aria-label={`logo-${candidate.candidate_id}`}>
+                                        {candidate.logo?.label ?? "AG"}
+                                      </div>
+                                      <div>
+                                        <div className="candidate-details-title">{candidate.title}</div>
+                                        <div className="candidate-details-sub">{candidate.rationale}</div>
+                                      </div>
+                                    </div>
+                                    <div className="candidate-config-grid">
+                                      <div className="candidate-config-cell"><span>roles</span><b>{candidate.config_summary?.roles_total ?? 0}</b></div>
+                                      <div className="candidate-config-cell"><span>llm calls</span><b>{candidate.config_summary?.llm_calls_max ?? 0}</b></div>
+                                      <div className="candidate-config-cell"><span>guards</span><b>{candidate.config_summary?.deterministic_guards ?? 0}</b></div>
+                                      <div className="candidate-config-cell"><span>hitl</span><b>{candidate.config_summary?.hitl_checkpoints ?? 0}</b></div>
+                                    </div>
+                                    <div className="candidate-mini-graph" aria-label="candidate-mini-graph">
+                                      {renderCandidateMiniGraphSvg(candidate)}
+                                      {graphNodes.length > 0 ? (
+                                        <div className="candidate-mini-graph-legend">
+                                          {graphNodes.map((node) => (
+                                            <div key={node.id} className="mini-graph-node">
+                                              <span className={`mini-node-kind kind-${node.kind}`}>{node.kind}</span>
+                                              <span className="mini-node-label">{node.label}</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      ) : null}
+                                    </div>
+                                    <div className="candidate-steps-list">
+                                      {(candidate.architecture_steps ?? []).map((step) => (
+                                        <span key={step} className="candidate-step-chip">{step}</span>
+                                      ))}
+                                    </div>
+                                  </section>
+                                ) : null}
+                              </Fragment>
+                            );
+                          }) : <div className="issue-row warning">No candidate draft yet. Use chat action "Generate candidates".</div>}
+                        </div>
+                      </div>
+                      <section className={`workspace-json-panel${state.c2JsonCollapsed ? " is-collapsed" : ""}`}>
+                        <button
+                          type="button"
+                          className="workspace-json-toggle"
+                          onClick={handleToggleWorkspaceJson}
+                          aria-expanded={!state.c2JsonCollapsed}
+                          aria-controls="workspace-json-panel-body"
+                        >
+                          <span>Runtime snapshot</span>
+                          <i data-lucide={state.c2JsonCollapsed ? "chevron-down" : "chevron-up"} />
+                        </button>
+                        {!state.c2JsonCollapsed ? (
+                          <pre id="workspace-json-panel-body" className="json-view json-view--workspace">{state.jsonText}</pre>
+                        ) : null}
+                      </section>
+                    </div>
+                  </section>
+                )}
               </>
             )}
           </main>
@@ -925,7 +1169,7 @@ export function App(): JSX.Element {
                     }}
                     onKeyDown={handleC2ChatKeyDown}
                     placeholder="Describe the optimization task in plain language..."
-                    disabled={!state.activeArenaId}
+                    disabled={!state.activeArenaId || !isC2Enabled}
                   />
                   <div className="c2-chat-actions">
                     <button

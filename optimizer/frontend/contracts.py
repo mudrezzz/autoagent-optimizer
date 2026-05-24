@@ -27,9 +27,9 @@ CAPABILITY_CATALOG: tuple[dict[str, str | int], ...] = (
         "id": "c3",
         "name": "Pattern Library + RAG",
         "description": "Поиск и выбор архитектурных паттернов для кандидатов.",
-        "status": "planned",
+        "status": "enabled",
         "route": "/patterns",
-        "badge_count": 0,
+        "badge_count": 1,
     },
     {
         "id": "c4",
