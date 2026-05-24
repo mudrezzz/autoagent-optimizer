@@ -24,4 +24,11 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
   },
+  test: {
+    // Русский комментарий: UI-компонентные тесты запускаем в jsdom, чтобы проверять DOM-состояние и интерактив.
+    environment: "jsdom",
+    globals: true,
+    setupFiles: "./src/test/setup.ts",
+    css: true,
+  },
 });

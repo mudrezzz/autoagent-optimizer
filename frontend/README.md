@@ -84,6 +84,29 @@ python -m optimizer.frontend.dev_server --host 127.0.0.1 --port 4173
 http://127.0.0.1:4173/
 ```
 
+## Frontend тесты
+
+Для раннего обнаружения UI-регрессий (пропавшие кандидаты, сломанный фокус, проблемы сворачивания JSON-панели) добавлены компонентные тесты на `Vitest + React Testing Library`.
+
+Запуск всех frontend unit/component тестов:
+
+```powershell
+cd .\frontend
+npm run test
+```
+
+Запуск в watch-режиме:
+
+```powershell
+cd .\frontend
+npm run test:watch
+```
+
+Текущий тест-кейс `src/__tests__/app.workspace.test.tsx` проверяет:
+
+1. Рендер и интерактив кандидатов в battle workspace.
+2. Сворачивание/разворачивание блока `Runtime snapshot` (JSON) без потери списка кандидатов.
+
 ## Design System
 
 Frontend строго следует:

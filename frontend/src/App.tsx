@@ -65,6 +65,8 @@ type UiState = {
   c2ChatInput: string;
   c2Messages: C2ChatMessage[];
   c2CandidateSetDraft: C2CandidateSetDraft | null;
+  c2SelectedCandidateId: string;
+  c2JsonCollapsed: boolean;
   budgetPercent: number;
   budgetStage: string;
   metricArenas: string;
@@ -85,6 +87,8 @@ export function App(): JSX.Element {
     c2ChatInput: "",
     c2Messages: [],
     c2CandidateSetDraft: null,
+    c2SelectedCandidateId: "",
+    c2JsonCollapsed: true,
     budgetPercent: 0,
     budgetStage: "idle",
     metricArenas: "0",
@@ -195,6 +199,8 @@ export function App(): JSX.Element {
       c2ChatInput: "",
       c2Messages: [],
       c2CandidateSetDraft: null,
+      c2SelectedCandidateId: "",
+      c2JsonCollapsed: true,
       metricArenaStatus: "not selected",
     }));
   }
@@ -255,6 +261,7 @@ export function App(): JSX.Element {
         activeArenaId: arenaId,
         c2Messages: chatResponse.messages,
         c2CandidateSetDraft: chatResponse.candidate_set_draft,
+        c2SelectedCandidateId: chatResponse.candidate_set_draft?.candidates[0]?.candidate_id ?? "",
         metricArenaStatus: "selected",
         budgetPercent: 100,
         budgetStage: "battle ready",
@@ -262,7 +269,7 @@ export function App(): JSX.Element {
         lastPayload: snapshot,
       }));
     } catch (error) {
-      setState((prev) => ({ ...prev, c2Messages: [], c2CandidateSetDraft: null, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
+      setState((prev) => ({ ...prev, c2Messages: [], c2CandidateSetDraft: null, c2SelectedCandidateId: "", budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
     }
   }
 
@@ -315,10 +322,19 @@ export function App(): JSX.Element {
         candidate_set_id: response.candidate_set_draft?.candidate_set_id ?? null,
       };
       setState((prev) => ({
+        // Русский комментарий: сохраняем выбранного кандидата, если он остался в новом draft, иначе выбираем первый.
         ...prev,
+        ...(() => {
+          const nextDraft = response.candidate_set_draft ?? prev.c2CandidateSetDraft;
+          const canKeepSelected = nextDraft?.candidates.some((candidate) => candidate.candidate_id === prev.c2SelectedCandidateId) ?? false;
+          const nextSelectedCandidateId = canKeepSelected ? prev.c2SelectedCandidateId : (nextDraft?.candidates[0]?.candidate_id ?? "");
+          return {
+            c2CandidateSetDraft: nextDraft,
+            c2SelectedCandidateId: nextSelectedCandidateId,
+          };
+        })(),
         c2ChatInput: "",
         c2Messages: response.messages,
-        c2CandidateSetDraft: response.candidate_set_draft ?? prev.c2CandidateSetDraft,
         budgetStage: "c2 updated",
         budgetPercent: 100,
         jsonText: prettyJson(snapshot),
@@ -332,6 +348,16 @@ export function App(): JSX.Element {
   // Русский комментарий: обработчик текста C2 input.
   function handleC2ChatInputChange(nextValue: string): void {
     setState((prev) => ({ ...prev, c2ChatInput: nextValue }));
+  }
+
+  // Русский комментарий: выделяет кандидата в таблице архитектур для минимальной интерактивности workspace.
+  function handleSelectCandidate(candidateId: string): void {
+    setState((prev) => ({ ...prev, c2SelectedCandidateId: candidateId }));
+  }
+
+  // Русский комментарий: сворачивает/разворачивает JSON-панель workspace, чтобы освободить место под список кандидатов.
+  function handleToggleWorkspaceJson(): void {
+    setState((prev) => ({ ...prev, c2JsonCollapsed: !prev.c2JsonCollapsed }));
   }
 
   // Русский комментарий: отправляет C2-сообщение по Enter, сохраняя перенос строки через Shift+Enter.
@@ -479,7 +505,7 @@ export function App(): JSX.Element {
     <div className={`app${isBattleRoute ? " app--workspace" : " app--hub"}`} id="app-root">
       <aside className="app-sidebar">
         <div className="app-sidebar-brand">
-          <img src="/design_system/assets/logo.svg" alt="AutoAgent Optimizer" />
+          <img src="/assets/logo-lockup.svg" alt="AutoAgent Optimizer" />
         </div>
         <div className="app-sidebar-section">
           <div className="app-side-label">Workspace</div>
@@ -561,7 +587,7 @@ export function App(): JSX.Element {
         </header>
 
         <div className={`app-content${isBattleRoute ? "" : " app-content--single"}`}>
-          <main className="app-center">
+          <main className={`app-center${isBattleRoute ? " app-center--workspace" : ""}`}>
             {!isBattleRoute ? (
               <>
                 <section className="content-head">
@@ -651,52 +677,80 @@ export function App(): JSX.Element {
                   <article className="ms-cell"><div className="ms-lbl">Capability</div><div className="ms-row"><div className="ms-val">{activeCapability.id.toUpperCase()}</div></div><div className="ms-cap">{activeCapability.name}</div></article>
                 </section>
 
-                <section className="trace-view">
+                <section className="trace-view trace-view--workspace">
                   <header className="tv-head"><div className="tv-title"><i data-lucide="network" /><span>Candidate architectures</span><span className="tv-arch">{state.c2CandidateSetDraft?.total ?? 0} total</span></div></header>
-                  <div className="tv-body">
+                  <div className="tv-body tv-body--workspace">
                     <div className="candidate-list">
                       <div className="candidate-list-head">
                         <span>Architectures · sorted by quality</span>
                         <span className="muted">{state.c2CandidateSetDraft?.candidate_set_id ?? "not generated"}</span>
                       </div>
-                      <div className="candidate-table-head">
-                        <span className="candidate-col-title">Candidate</span>
-                        <span className="candidate-col-metric">quality</span>
-                        <span className="candidate-col-metric">cost/case</span>
-                        <span className="candidate-col-metric">p95 latency</span>
-                      </div>
-                      {isC2Enabled && state.c2CandidateSetDraft ? state.c2CandidateSetDraft.candidates.map((candidate, index) => {
-                        const metrics = buildCandidateMetrics(candidate.candidate_id);
-                        return (
-                          <article key={candidate.candidate_id} className={`candidate-row${index === 0 ? " candidate-row--champion" : ""}`}>
-                            <div className="candidate-col-title">
-                              <div className="candidate-title-line">
-                                <b>{candidate.title}</b>
-                                <span className={`workspace-pill${index === 0 ? " champ" : " base"}`}>
-                                  <span className="dot" />
-                                  {index === 0 ? "Champion" : "Candidate"}
-                                </span>
+                      <div className="candidate-list-scroll">
+                        <div className="candidate-table-head">
+                          <span className="candidate-col-title">Candidate</span>
+                          <span className="candidate-col-metric">quality</span>
+                          <span className="candidate-col-metric">cost/case</span>
+                          <span className="candidate-col-metric">p95 latency</span>
+                        </div>
+                        {isC2Enabled && state.c2CandidateSetDraft ? state.c2CandidateSetDraft.candidates.map((candidate, index) => {
+                          const metrics = buildCandidateMetrics(candidate.candidate_id);
+                          return (
+                            <article
+                              key={candidate.candidate_id}
+                              className={`candidate-row${index === 0 ? " candidate-row--champion" : ""}${state.c2SelectedCandidateId === candidate.candidate_id ? " candidate-row--active" : ""}`}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => { handleSelectCandidate(candidate.candidate_id); }}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter" || event.key === " ") {
+                                  event.preventDefault();
+                                  handleSelectCandidate(candidate.candidate_id);
+                                }
+                              }}
+                            >
+                              <div className="candidate-col-title">
+                                <div className="candidate-title-line">
+                                  <b>{candidate.title}</b>
+                                  <span className={`workspace-pill${index === 0 ? " champ" : " base"}`}>
+                                    <span className="dot" />
+                                    {index === 0 ? "Champion" : "Candidate"}
+                                  </span>
+                                </div>
+                                <div className="candidate-meta">{candidate.pattern_ref}</div>
+                                <div className="row-sub">{candidate.summary}</div>
                               </div>
-                              <div className="candidate-meta">{candidate.pattern_ref}</div>
-                              <div className="row-sub">{candidate.summary}</div>
-                            </div>
-                            <div className="candidate-col-metric">
-                              <div className="candidate-metric-value">{metrics.quality}</div>
-                              <div className="candidate-metric-label">f1@k</div>
-                            </div>
-                            <div className="candidate-col-metric">
-                              <div className="candidate-metric-value">${metrics.cost}</div>
-                              <div className="candidate-metric-label">usd</div>
-                            </div>
-                            <div className="candidate-col-metric">
-                              <div className="candidate-metric-value">{metrics.latency}s</div>
-                              <div className="candidate-metric-label">runtime</div>
-                            </div>
-                          </article>
-                        );
-                      }) : <div className="issue-row warning">No candidate draft yet. Use chat action "Generate candidates".</div>}
+                              <div className="candidate-col-metric">
+                                <div className="candidate-metric-value">{metrics.quality}</div>
+                                <div className="candidate-metric-label">f1@k</div>
+                              </div>
+                              <div className="candidate-col-metric">
+                                <div className="candidate-metric-value">${metrics.cost}</div>
+                                <div className="candidate-metric-label">usd</div>
+                              </div>
+                              <div className="candidate-col-metric">
+                                <div className="candidate-metric-value">{metrics.latency}s</div>
+                                <div className="candidate-metric-label">runtime</div>
+                              </div>
+                            </article>
+                          );
+                        }) : <div className="issue-row warning">No candidate draft yet. Use chat action "Generate candidates".</div>}
+                      </div>
                     </div>
-                    <pre className="json-view">{state.jsonText}</pre>
+                    <section className={`workspace-json-panel${state.c2JsonCollapsed ? " is-collapsed" : ""}`}>
+                      <button
+                        type="button"
+                        className="workspace-json-toggle"
+                        onClick={handleToggleWorkspaceJson}
+                        aria-expanded={!state.c2JsonCollapsed}
+                        aria-controls="workspace-json-panel-body"
+                      >
+                        <span>Runtime snapshot</span>
+                        <i data-lucide={state.c2JsonCollapsed ? "chevron-down" : "chevron-up"} />
+                      </button>
+                      {!state.c2JsonCollapsed ? (
+                        <pre id="workspace-json-panel-body" className="json-view json-view--workspace">{state.jsonText}</pre>
+                      ) : null}
+                    </section>
                   </div>
                 </section>
               </>
@@ -760,13 +814,6 @@ export function App(): JSX.Element {
                 </div>
               </section>
 
-              <section>
-                <button type="button" className="rail-export" onClick={handleExportPayload}>
-                  <i data-lucide="file-down" />
-                  Export evidence bundle
-                </button>
-                <div className="rail-export-meta">{state.exportMeta}</div>
-              </section>
             </aside>
           ) : null}
         </div>
