@@ -6,8 +6,8 @@ OSS-first платформа для архитектурного поиска, w
 
 - `Phase`: MVP-2 transition (product realignment + evaluation fabric)
 - `Iteration`: Roadmap v3 - vertical product slices
-- `Overall`: In Progress (V2.3.S1 + V2.3.S1a + V2.3.S2 + V2.3.S2b + V2.3.S2c done, product capabilities C1-C6 in rollout)
-- `Next Slice`: V2.3.S2d C2 candidate accordion details
+- `Overall`: In Progress (V2.3.S1 + V2.3.S1a + V2.3.S2 + V2.3.S2b + V2.3.S2c + V2.3.S2d + V2.3.S3 + V2.3.S4 done, product capabilities C1-C6 in rollout)
+- `Next Slice`: V2.3.S5 C4 Dataset Studio v0
 
 Подробный статус:
 
@@ -84,7 +84,7 @@ OSS-first платформа для архитектурного поиска, w
 - `frontend` - app-v3-aligned React/TypeScript workbench, evolving toward product capabilities C1..C6 (battles/chat/patterns/datasets/runs/champion).
 - `optimizer/frontend/dev_server.py` - lightweight frontend dev server (serves `frontend/dist` build + capability API endpoints).
 - `optimizer/workspace` - JSON-backed battle/arena registry store for C1 product capability.
-- `optimizer/c2` - deterministic C2 brief-to-candidates generator and project-chat draft utilities.
+- `optimizer/c2` - deterministic C2 brief-to-candidates generator, compile-readiness gate and arena-chat draft utilities.
 - `components` - deterministic demo-компоненты для пайплайнов (включая AI-pattern инструменты).
 - `validators` - python-валидаторы demo-сценариев (включая style output guard).
 - `docs/specs/Evaluation_Profile_v0.md` - концепт profile-driven оценки (task-specific metrics + pluggable evaluators).

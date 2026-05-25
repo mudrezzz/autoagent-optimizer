@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-from optimizer.c2 import build_candidate_draft_from_brief
+from optimizer.c2 import build_candidate_draft_from_brief, run_compile_readiness_gate_for_candidate_set
 from optimizer.c3 import search_pattern_library
 from optimizer.dsl.compiler import DslToGraphIRCompiler
 from optimizer.dsl.io import DslLoadError, DslValidationError, load_dsl_spec
@@ -202,6 +202,15 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
             arena_chat_match = re.fullmatch(r"/api/arenas/([^/]+)/chat/messages", path)
             if arena_chat_match is not None:
                 self._handle_post_arena_chat_message(tenant_id=tenant_id, user_id=user_id, arena_id=arena_chat_match.group(1))
+                return
+
+            arena_compile_match = re.fullmatch(r"/api/arenas/([^/]+)/candidates/assemble-compile", path)
+            if arena_compile_match is not None:
+                self._handle_post_arena_candidates_assemble_compile(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    arena_id=arena_compile_match.group(1),
+                )
                 return
 
             arena_pattern_selection_match = re.fullmatch(r"/api/arenas/([^/]+)/patterns/selection", path)
@@ -658,6 +667,82 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
                     "candidate_set_draft": candidate_set_draft,
                 },
                 status=HTTPStatus.CREATED,
+            )
+
+        def _handle_post_arena_candidates_assemble_compile(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Запускает внутренний compile-readiness gate для набора C2 кандидатов."""
+
+            try:
+                candidate_set_draft = registry_store.get_arena_candidate_set_draft(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                )
+            except KeyError as exc:
+                self._send_json(
+                    {"status": "error", "code": "arena_not_found", "message": str(exc)},
+                    status=HTTPStatus.NOT_FOUND,
+                )
+                return
+
+            if candidate_set_draft is None:
+                self._send_json(
+                    {
+                        "status": "error",
+                        "code": "candidate_draft_missing",
+                        "message": "Candidate draft is empty. Generate candidates first.",
+                    },
+                    status=HTTPStatus.CONFLICT,
+                )
+                return
+
+            try:
+                compiled_draft = run_compile_readiness_gate_for_candidate_set(
+                    candidate_set_draft=candidate_set_draft,
+                    project_root=project_root,
+                )
+                registry_store.save_arena_candidate_set_draft(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                    candidate_set_draft=compiled_draft,
+                )
+                compile_gate = compiled_draft.get("compile_gate", {})
+                assistant_message = registry_store.append_arena_chat_message(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                    role="assistant",
+                    content=(
+                        "Compile gate completed: "
+                        f"{compile_gate.get('ready_candidates', 0)}/{compile_gate.get('total_candidates', 0)} ready, "
+                        f"{compile_gate.get('failed_candidates', 0)} failed."
+                    ),
+                )
+            except ValueError as exc:
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": str(exc)},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            messages = registry_store.list_arena_chat_messages(
+                tenant_id=tenant_id,
+                owner_user_id=user_id,
+                arena_id=arena_id,
+            )
+            self._send_json(
+                {
+                    "status": "success",
+                    "capability_id": "c2",
+                    "action": "assemble_compile_candidates",
+                    "arena_id": arena_id,
+                    "assistant_message": assistant_message,
+                    "messages": messages,
+                    "messages_total": len(messages),
+                    "candidate_set_draft": compiled_draft,
+                    "compile_gate": compiled_draft.get("compile_gate", {}),
+                }
             )
 
         def _handle_post_arena_pattern_selection(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:

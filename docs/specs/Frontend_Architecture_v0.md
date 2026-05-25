@@ -227,6 +227,21 @@ Frontend не "угадывает" готовность, а читает capabil
 2. затем обновляются TS-типы и контрактные тесты;
 3. только после этого расширяется UI.
 
+## C2 Compile Readiness Gate (V2.3.S4)
+
+Реализованный контракт C2 compile gate:
+
+1. `POST /api/arenas/{arena_id}/candidates/assemble-compile` запускает внутреннюю сборку/компиляцию всех кандидатов текущего draft-набора.
+2. `candidate_set_draft.compile_gate` возвращает агрегированный статус (`draft|ready|failed`) и счетчики `ready/failed/total`.
+3. `candidate.compile_readiness` возвращает детальный статус кандидата:
+4. `status`, `dsl_file`, `compile_summary`, `issues`, `graph_ir_summary`, `compiled_at`.
+
+UX-ожидание:
+
+1. в C2-списке кандидатов виден compile-статус набора и каждого кандидата;
+2. в аккордеоне кандидата видны summary + compile issues;
+3. compile gate запускается отдельным действием пользователя (`Assemble + Compile`).
+
 ## Comparative Metrics vs Diagnostic Signals in UI
 
 UI отображает два разных слоя:

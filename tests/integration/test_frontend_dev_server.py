@@ -196,6 +196,19 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert status_chat_state == 200
         assert chat_state_payload["messages_total"] >= 2
         assert chat_state_payload["candidate_set_draft"]["arena_id"] == arena_id
+        assert chat_state_payload["candidate_set_draft"]["compile_gate"]["status"] == "draft"
+
+        status_compile_gate, compile_gate_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/candidates/assemble-compile",
+            {},
+        )
+        assert status_compile_gate == 200
+        assert compile_gate_payload["status"] == "success"
+        assert compile_gate_payload["action"] == "assemble_compile_candidates"
+        assert compile_gate_payload["compile_gate"]["status"] in {"ready", "failed"}
+        assert compile_gate_payload["compile_gate"]["compiled_candidates"] == compile_gate_payload["compile_gate"]["total_candidates"]
+        assert compile_gate_payload["candidate_set_draft"]["compile_gate"]["status"] == compile_gate_payload["compile_gate"]["status"]
+        assert compile_gate_payload["messages_total"] >= 3
 
         status_rename_arena, renamed_payload = _json_post(
             f"{base_url}/api/arenas/{arena_id}/rename",

@@ -2,6 +2,7 @@
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import {
+  assembleCompileArenaCandidates,
   createArena,
   deleteArena,
   duplicateArena,
@@ -516,6 +517,41 @@ export function App(): JSX.Element {
   // Русский комментарий: обработчик текста C2 input.
   function handleC2ChatInputChange(nextValue: string): void {
     setState((prev) => ({ ...prev, c2ChatInput: nextValue }));
+  }
+
+  // Русский комментарий: запускает C2 compile-readiness gate и обновляет candidate draft в workspace.
+  async function handleAssembleCompileCandidates(): Promise<void> {
+    if (!state.activeArenaId) {
+      setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "error", message: "Open battle before compile gate." }) }));
+      return;
+    }
+    if (!state.c2CandidateSetDraft) {
+      setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "error", message: "Generate candidates before compile gate." }) }));
+      return;
+    }
+
+    setState((prev) => ({ ...prev, budgetStage: "assembling + compiling candidates", budgetPercent: 70 }));
+    try {
+      const response = await assembleCompileArenaCandidates(state.activeArenaId);
+      const snapshot = {
+        status: "success",
+        capability_id: "c2",
+        action: "assemble_compile_candidates",
+        arena_id: response.arena_id,
+        compile_gate: response.compile_gate,
+      };
+      setState((prev) => ({
+        ...prev,
+        c2CandidateSetDraft: response.candidate_set_draft,
+        c2Messages: response.messages,
+        budgetPercent: 100,
+        budgetStage: "compile gate completed",
+        jsonText: prettyJson(snapshot),
+        lastPayload: snapshot,
+      }));
+    } catch (error) {
+      setState((prev) => ({ ...prev, budgetStage: "failed", budgetPercent: 100, jsonText: prettyJson({ status: "error", message: String(error) }) }));
+    }
   }
 
   // Русский комментарий: выделяет кандидата в таблице архитектур для минимальной интерактивности workspace.
@@ -1139,7 +1175,22 @@ export function App(): JSX.Element {
                       <div className="candidate-list">
                         <div className="candidate-list-head">
                           <span>Architectures · sorted by quality</span>
-                          <span className="muted">{state.c2CandidateSetDraft?.candidate_set_id ?? "not generated"}</span>
+                          <div className="candidate-list-head-right">
+                            <span className={`candidate-compile-chip status-${state.c2CandidateSetDraft?.compile_gate?.status ?? "draft"}`}>
+                              compile: {state.c2CandidateSetDraft?.compile_gate?.status ?? "draft"}
+                            </span>
+                            <span className="muted">{state.c2CandidateSetDraft?.candidate_set_id ?? "not generated"}</span>
+                            <button
+                              type="button"
+                              className="tb-btn tb-btn-ghost candidate-compile-action"
+                              onClick={() => {
+                                void handleAssembleCompileCandidates();
+                              }}
+                              disabled={!isC2Enabled || !state.activeArenaId || !state.c2CandidateSetDraft}
+                            >
+                              Assemble + Compile
+                            </button>
+                          </div>
                         </div>
                         <div className="candidate-list-scroll">
                           <div className="candidate-table-head">
@@ -1177,6 +1228,12 @@ export function App(): JSX.Element {
                                     </div>
                                     <div className="candidate-meta">{candidate.pattern_ref}</div>
                                     <div className="row-sub">{candidate.summary}</div>
+                                    <div className="candidate-status-line">
+                                      <span className={`candidate-compile-chip status-${candidate.compile_readiness?.status ?? "draft"}`}>
+                                        {candidate.compile_readiness?.status ?? "draft"}
+                                      </span>
+                                      <span className="candidate-meta">{candidate.compile_readiness?.dsl_file ?? candidate.dsl_stub_ref}</span>
+                                    </div>
                                   </div>
                                   <div className="candidate-col-metric">
                                     <div className="candidate-metric-value">{metrics.quality}</div>
@@ -1240,6 +1297,23 @@ export function App(): JSX.Element {
                                           ))}
                                         </div>
                                       ) : null}
+                                    </div>
+                                    <div className="compile-summary-grid">
+                                      <div className="summary-cell"><div className="summary-key">status</div><div className="summary-value">{candidate.compile_readiness?.compile_summary?.status ?? candidate.compile_readiness?.status ?? "draft"}</div></div>
+                                      <div className="summary-cell"><div className="summary-key">nodes</div><div className="summary-value">{candidate.compile_readiness?.compile_summary?.node_mappings ?? 0}</div></div>
+                                      <div className="summary-cell"><div className="summary-key">warnings</div><div className="summary-value">{candidate.compile_readiness?.compile_summary?.warnings ?? 0}</div></div>
+                                      <div className="summary-cell"><div className="summary-key">errors</div><div className="summary-value">{candidate.compile_readiness?.compile_summary?.errors ?? 0}</div></div>
+                                    </div>
+                                    <div className="issues-box">
+                                      {(candidate.compile_readiness?.issues ?? []).length === 0 ? (
+                                        <div className="issue-row info">No compile issues.</div>
+                                      ) : (
+                                        (candidate.compile_readiness?.issues ?? []).map((issue, issueIndex) => (
+                                          <div key={`${candidate.candidate_id}:issue:${issueIndex}`} className={`issue-row ${issue.severity === "error" ? "error" : "warning"}`}>
+                                            {issue.message}
+                                          </div>
+                                        ))
+                                      )}
                                     </div>
                                     <div className="candidate-steps-list">
                                       {(candidate.architecture_steps ?? []).map((step) => (

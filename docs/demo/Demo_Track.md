@@ -250,6 +250,6 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke_frontend_shell.ps1
 ## Current Demo Status
 
 - Active stage: `D4.5 (V2 vertical product demo, C1+C2 active)`
-- Demo readiness: `Yellow-Green` (C1 and C2 live, next: C3 pattern controls)
-- Next demo milestone: `D4.5 C3 pattern library + RAG controls` (`V2.3.S3`)
+- Demo readiness: `Green` (C1 + C2 + C3 + C2 compile-readiness gate are live)
+- Next demo milestone: `D5 C4 dataset studio bootstrap` (`V2.3.S5`)
 

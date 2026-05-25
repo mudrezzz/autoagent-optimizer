@@ -578,6 +578,51 @@ code { font-family: var(--font-mono); }
   background: var(--gray-50);
 }
 
+.candidate-list-head-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.candidate-compile-action {
+  min-height: 28px;
+  font-size: 11px;
+  padding: 5px 8px;
+}
+
+.candidate-compile-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--gray-700);
+  background: var(--gray-25);
+}
+
+.candidate-compile-chip.status-ready {
+  border-color: var(--green-700);
+  color: var(--green-700);
+  background: var(--green-50);
+}
+
+.candidate-compile-chip.status-failed {
+  border-color: var(--red-600);
+  color: var(--red-700);
+  background: var(--red-50);
+}
+
+.candidate-status-line {
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .candidate-table-head {
   display: grid;
   grid-template-columns: 1.8fr 0.6fr 0.6fr 0.6fr 0.42fr;
@@ -805,11 +850,11 @@ code { font-family: var(--font-mono); }
 }
 
 .candidate-mini-graph-node.kind-llm .candidate-mini-graph-node-kind {
-  fill: rgba(255, 255, 255, 0.78);
+  fill: var(--gray-600);
 }
 
 .candidate-mini-graph-node.kind-llm .candidate-mini-graph-node-label {
-  fill: var(--fg-on-dark);
+  fill: var(--gray-900);
 }
 
 .candidate-mini-graph-node.kind-validator .candidate-mini-graph-node-rect {

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any
 
 
@@ -160,7 +161,20 @@ def build_candidate_draft_from_brief(
     if not filtered_candidates:
         raise ValueError("No candidate templates available after pattern filters.")
 
-    selected_candidates = filtered_candidates[:max_candidates]
+    # Русский комментарий: deep-copy нужен, чтобы compile-readiness мутации не затрагивали базовые шаблоны.
+    selected_candidates = [deepcopy(candidate) for candidate in filtered_candidates[:max_candidates]]
+    for candidate in selected_candidates:
+        # Русский комментарий: стартовый статус кандидата до запуска compile gate.
+        candidate["compile_readiness"] = {
+            "status": "draft",
+            "dsl_file": str(candidate.get("dsl_stub_ref", "")),
+            "compile_summary": None,
+            "issues": [],
+            "graph_ir_summary": {"available": False},
+            "compiled_at": None,
+        }
+
+    total_selected = len(selected_candidates)
     payload: dict[str, Any] = {
         "candidate_set_id": f"cset_{_stable_suffix(scope_id=scope_id, brief=normalized_brief)}",
         "source": "c2_brief_to_candidates_v0",
@@ -168,11 +182,20 @@ def build_candidate_draft_from_brief(
         "generation_mode": "templated_deterministic",
         "arena_id": scope_id,
         "candidates": selected_candidates,
-        "total": len(selected_candidates),
+        "total": total_selected,
         "source_patterns": [str(candidate["pattern_ref"]) for candidate in selected_candidates],
         "applied_pattern_filters": {
             "include_pattern_refs": sorted(include_set),
             "exclude_pattern_refs": sorted(exclude_set),
+        },
+        # Русский комментарий: агрегированный readiness-статус набора до первого запуска compile gate.
+        "compile_gate": {
+            "status": "draft",
+            "compiled_candidates": 0,
+            "ready_candidates": 0,
+            "failed_candidates": 0,
+            "total_candidates": total_selected,
+            "processed_at": None,
         },
     }
     # Русский комментарий: legacy-поле сохраняем для совместимости старых отчетов/тестов.

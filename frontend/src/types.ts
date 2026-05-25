@@ -107,6 +107,43 @@ export type C2CandidateDraftItem = {
       target: string;
     }>;
   };
+  compile_readiness?: C2CandidateCompileReadiness;
+};
+
+// Русский комментарий: compile-readiness отчет по конкретному кандидату после C2 compile gate.
+export type C2CandidateCompileReadiness = {
+  status: "draft" | "ready" | "failed" | string;
+  dsl_file: string;
+  compile_summary: {
+    status: string;
+    source: string;
+    node_mappings: number;
+    warnings: number;
+    errors: number;
+  } | null;
+  issues: Array<{
+    severity: string;
+    message: string;
+    context?: Record<string, unknown>;
+  }>;
+  graph_ir_summary: {
+    available: boolean;
+    entry_node?: string | null;
+    nodes_total?: number;
+    edges_total?: number;
+    terminal_nodes?: string[];
+  };
+  compiled_at: string | null;
+};
+
+// Русский комментарий: compile gate агрегат по candidate set для состояния готовности.
+export type C2CompileGateSummary = {
+  status: "draft" | "ready" | "failed" | string;
+  compiled_candidates: number;
+  ready_candidates: number;
+  failed_candidates: number;
+  total_candidates: number;
+  processed_at: string | null;
 };
 
 // Русский комментарий: тип candidate set draft, сформированного на основе chat brief.
@@ -118,6 +155,7 @@ export type C2CandidateSetDraft = {
   arena_id: string;
   candidates: C2CandidateDraftItem[];
   total: number;
+  compile_gate?: C2CompileGateSummary;
 };
 
 // Русский комментарий: ответ чтения текущего C2 chat state для арены.
@@ -141,6 +179,19 @@ export type C2ChatPostMessageResponse = {
   messages: C2ChatMessage[];
   messages_total: number;
   candidate_set_draft: C2CandidateSetDraft | null;
+};
+
+// Русский комментарий: ответ C2 compile gate endpoint (assemble+compile кандидатов).
+export type C2AssembleCompileResponse = {
+  status: "success";
+  capability_id: "c2";
+  action: "assemble_compile_candidates";
+  arena_id: string;
+  assistant_message: C2ChatMessage | null;
+  messages: C2ChatMessage[];
+  messages_total: number;
+  candidate_set_draft: C2CandidateSetDraft;
+  compile_gate: C2CompileGateSummary;
 };
 
 // Русский комментарий: элемент C3 pattern search выдачи для библиотеки паттернов.

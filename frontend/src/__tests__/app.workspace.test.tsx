@@ -7,6 +7,7 @@ import type { ArenaRecord, C2CandidateSetDraft, Capability } from "../types";
 
 // Русский комментарий: мокируем API-слой, чтобы UI-тесты были детерминированными и не зависели от backend-сервера.
 vi.mock("../api", () => ({
+  assembleCompileArenaCandidates: vi.fn(),
   createArena: vi.fn(),
   deleteArena: vi.fn(),
   duplicateArena: vi.fn(),
@@ -23,6 +24,7 @@ vi.mock("../api", () => ({
 }));
 
 import {
+  assembleCompileArenaCandidates,
   createArena,
   deleteArena,
   duplicateArena,
@@ -242,6 +244,7 @@ describe("Battle workspace candidates", () => {
     });
 
     vi.mocked(postArenaChatMessage).mockRejectedValue(new Error("not used in this test"));
+    vi.mocked(assembleCompileArenaCandidates).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(createArena).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(renameArena).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(duplicateArena).mockRejectedValue(new Error("not used in this test"));
@@ -292,6 +295,67 @@ describe("Battle workspace candidates", () => {
       expect(detailsButtons[0]?.getAttribute("aria-expanded")).toBe("true");
     });
     expect(await screen.findByLabelText("candidate-mini-graph-svg")).toBeInTheDocument();
+  });
+
+  it("runs assemble+compile action and updates compile status", async () => {
+    const user = userEvent.setup();
+    vi.mocked(assembleCompileArenaCandidates).mockResolvedValue({
+      status: "success",
+      capability_id: "c2",
+      action: "assemble_compile_candidates",
+      arena_id: ARENA.workspace_id,
+      assistant_message: null,
+      messages: [],
+      messages_total: 0,
+      compile_gate: {
+        status: "ready",
+        compiled_candidates: 3,
+        ready_candidates: 3,
+        failed_candidates: 0,
+        total_candidates: 3,
+        processed_at: "2026-05-25T10:00:00+00:00",
+      },
+      candidate_set_draft: {
+        ...CANDIDATE_SET,
+        compile_gate: {
+          status: "ready",
+          compiled_candidates: 3,
+          ready_candidates: 3,
+          failed_candidates: 0,
+          total_candidates: 3,
+          processed_at: "2026-05-25T10:00:00+00:00",
+        },
+        candidates: CANDIDATE_SET.candidates.map((candidate) => ({
+          ...candidate,
+          compile_readiness: {
+            status: "ready",
+            dsl_file: candidate.dsl_stub_ref,
+            compile_summary: {
+              status: "success",
+              source: candidate.dsl_stub_ref,
+              node_mappings: 4,
+              warnings: 0,
+              errors: 0,
+            },
+            issues: [],
+            graph_ir_summary: {
+              available: true,
+              entry_node: "input",
+              nodes_total: 4,
+              edges_total: 3,
+              terminal_nodes: ["output"],
+            },
+            compiled_at: "2026-05-25T10:00:00+00:00",
+          },
+        })),
+      },
+    });
+
+    renderWorkspace();
+    const compileButton = await screen.findByRole("button", { name: /Assemble \+ Compile/i });
+    await user.click(compileButton);
+    expect(await screen.findByText("compile: ready")).toBeInTheDocument();
+    expect(vi.mocked(assembleCompileArenaCandidates)).toHaveBeenCalledWith(ARENA.workspace_id);
   });
 
   it("switches to C3 and renders pattern library search results", async () => {

@@ -5,6 +5,7 @@
   ArenaMutationResponse,
   C3PatternSearchResponse,
   C3PatternSelectionResponse,
+  C2AssembleCompileResponse,
   C2ChatPostMessageResponse,
   C2ChatStateResponse,
   C1SuccessPayload,
@@ -143,6 +144,20 @@ export async function postArenaChatMessage(
     throw new Error(payload.message || `Failed to post C2 chat message: HTTP ${response.status}`);
   }
   return parseJsonOrThrow<C2ChatPostMessageResponse>(response);
+}
+
+// Русский комментарий: запускает C2 compile-readiness gate для уже сгенерированных кандидатов арены.
+export async function assembleCompileArenaCandidates(arenaId: string): Promise<C2AssembleCompileResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/candidates/assemble-compile`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to assemble/compile candidates: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C2AssembleCompileResponse>(response);
 }
 
 // Русский комментарий: читает include/exclude выборку C3 паттернов для арены.
