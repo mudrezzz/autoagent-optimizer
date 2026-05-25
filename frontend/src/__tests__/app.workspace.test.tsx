@@ -193,6 +193,22 @@ describe("Battle workspace candidates", () => {
           relevance: 0.4,
           selection_state: "neutral",
           retrieval_trace: ["query:empty"],
+          logo: { key: "direct", label: "DL" },
+          config_summary: { roles_total: 1, llm_calls_max: 1, deterministic_guards: 1, hitl_checkpoints: 0 },
+          agent_template: {
+            nodes: [
+              { id: "input", label: "input", kind: "input" },
+              { id: "rewrite", label: "llm.rewrite", kind: "llm" },
+              { id: "guard", label: "style.guard", kind: "validator" },
+              { id: "output", label: "output", kind: "output" },
+            ],
+            edges: [
+              { source: "input", target: "rewrite" },
+              { source: "rewrite", target: "guard" },
+              { source: "guard", target: "output" },
+            ],
+            rationale_steps: ["accept_input", "rewrite_llm", "style_guard", "return_output"],
+          },
         },
         {
           pattern_id: "style.pattern_cleaner",
@@ -203,6 +219,24 @@ describe("Battle workspace candidates", () => {
           relevance: 0.33,
           selection_state: "neutral",
           retrieval_trace: ["query:empty"],
+          logo: { key: "cleaner", label: "PC" },
+          config_summary: { roles_total: 2, llm_calls_max: 2, deterministic_guards: 1, hitl_checkpoints: 0 },
+          agent_template: {
+            nodes: [
+              { id: "input", label: "input", kind: "input" },
+              { id: "draft", label: "llm.rewrite", kind: "llm" },
+              { id: "cleanup", label: "llm.cleanup", kind: "llm" },
+              { id: "guard", label: "style.guard", kind: "validator" },
+              { id: "output", label: "output", kind: "output" },
+            ],
+            edges: [
+              { source: "input", target: "draft" },
+              { source: "draft", target: "cleanup" },
+              { source: "cleanup", target: "guard" },
+              { source: "guard", target: "output" },
+            ],
+            rationale_steps: ["accept_input", "rewrite_draft", "cleanup_pass", "style_guard", "return_output"],
+          },
         },
       ],
     });
@@ -270,5 +304,18 @@ describe("Battle workspace candidates", () => {
     expect(await screen.findByText("Pattern library + retrieval")).toBeInTheDocument();
     expect(await screen.findByText("Direct LLM Rewrite")).toBeInTheDocument();
     expect(await screen.findByText("Pattern Cleaner")).toBeInTheDocument();
+  });
+
+  it("expands C3 pattern details accordion and renders template graph", async () => {
+    const user = userEvent.setup();
+    renderWorkspace();
+
+    const c3Button = await screen.findByRole("button", { name: /Pattern Library \+ RAG/i });
+    await user.click(c3Button);
+
+    const detailsButtons = await screen.findAllByRole("button", { name: "Details" });
+    await user.click(detailsButtons[0]);
+    expect(await screen.findByLabelText("c3-pattern-mini-graph-svg")).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: "c3 pattern details" })).toBeInTheDocument();
   });
 });

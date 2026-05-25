@@ -85,6 +85,7 @@ type UiState = {
   c3ExcludePatternIds: string[];
   c3SelectionUpdatedAt: string;
   c3SearchMeta: string;
+  c3ExpandedPatternId: string;
   budgetPercent: number;
   budgetStage: string;
   metricArenas: string;
@@ -114,6 +115,7 @@ export function App(): JSX.Element {
     c3ExcludePatternIds: [],
     c3SelectionUpdatedAt: "",
     c3SearchMeta: "No C3 search yet.",
+    c3ExpandedPatternId: "",
     budgetPercent: 0,
     budgetStage: "idle",
     metricArenas: "0",
@@ -233,6 +235,7 @@ export function App(): JSX.Element {
       c3ExcludePatternIds: [],
       c3SelectionUpdatedAt: "",
       c3SearchMeta: "No C3 search yet.",
+      c3ExpandedPatternId: "",
       metricArenaStatus: "not selected",
     }));
   }
@@ -314,6 +317,7 @@ export function App(): JSX.Element {
         c3ExcludePatternIds: [],
         c3SelectionUpdatedAt: "",
         c3SearchMeta: "No C3 search yet.",
+        c3ExpandedPatternId: "",
         budgetPercent: 100,
         budgetStage: "failed",
         jsonText: prettyJson({ status: "error", message: String(error) }),
@@ -344,6 +348,10 @@ export function App(): JSX.Element {
       c3ExcludePatternIds: selectionResponse.selection.exclude_pattern_ids,
       c3SelectionUpdatedAt: selectionResponse.selection.updated_at,
       c3SearchMeta: `results ${searchResponse.returned}/${searchResponse.total_candidates} · query "${searchResponse.query}"`,
+      c3ExpandedPatternId:
+        prev.c3ExpandedPatternId && searchResponse.patterns.some((pattern) => pattern.pattern_id === prev.c3ExpandedPatternId)
+          ? prev.c3ExpandedPatternId
+          : "",
       jsonText: writeSnapshot ? prettyJson(snapshot) : prev.jsonText,
       lastPayload: writeSnapshot ? snapshot : prev.lastPayload,
       budgetStage: writeSnapshot ? "c3 patterns loaded" : prev.budgetStage,
@@ -386,6 +394,10 @@ export function App(): JSX.Element {
         c3ExcludePatternIds: saveResponse.selection.exclude_pattern_ids,
         c3SelectionUpdatedAt: saveResponse.selection.updated_at,
         c3SearchMeta: `results ${searchResponse.returned}/${searchResponse.total_candidates} · query "${searchResponse.query}"`,
+        c3ExpandedPatternId:
+          prev.c3ExpandedPatternId && searchResponse.patterns.some((pattern) => pattern.pattern_id === prev.c3ExpandedPatternId)
+            ? prev.c3ExpandedPatternId
+            : "",
         jsonText: prettyJson(snapshot),
         lastPayload: snapshot,
         budgetPercent: 100,
@@ -724,6 +736,75 @@ export function App(): JSX.Element {
     );
   }
 
+  // Русский комментарий: раскрывает/сворачивает аккордеон деталей паттерна C3.
+  function handleToggleC3PatternDetails(patternId: string): void {
+    setState((prev) => ({
+      ...prev,
+      c3ExpandedPatternId: prev.c3ExpandedPatternId === patternId ? "" : patternId,
+    }));
+  }
+
+  // Русский комментарий: рисует SVG-lite схему типового агента для C3 паттерна.
+  function renderPatternMiniGraphSvg(pattern: C3PatternItem): JSX.Element {
+    const graphNodes = pattern.agent_template?.nodes ?? [];
+    if (graphNodes.length === 0) {
+      return <div className="issue-row info">Template graph is not available for this pattern.</div>;
+    }
+
+    const edges = pattern.agent_template?.edges ?? [];
+    const nodeWidth = 120;
+    const nodeHeight = 42;
+    const gapX = 26;
+    const paddingX = 18;
+    const paddingY = 14;
+    const viewWidth = paddingX * 2 + graphNodes.length * nodeWidth + (graphNodes.length - 1) * gapX;
+    const viewHeight = paddingY * 2 + nodeHeight;
+    const nodeIndexById = new Map(graphNodes.map((node, index) => [node.id, index]));
+
+    return (
+      <svg className="candidate-mini-graph-svg" aria-label="c3-pattern-mini-graph-svg" viewBox={`0 0 ${viewWidth} ${viewHeight}`} role="img">
+        <defs>
+          <marker id={`c3-arrow-${pattern.pattern_id}`} markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <path d="M0,0 L8,4 L0,8 Z" fill="currentColor" />
+          </marker>
+        </defs>
+        {edges.map((edge, edgeIndex) => {
+          const sourceIndex = nodeIndexById.get(edge.source);
+          const targetIndex = nodeIndexById.get(edge.target);
+          if (sourceIndex === undefined || targetIndex === undefined) {
+            return null;
+          }
+          const sourceX = paddingX + sourceIndex * (nodeWidth + gapX) + nodeWidth;
+          const sourceY = paddingY + nodeHeight / 2;
+          const targetX = paddingX + targetIndex * (nodeWidth + gapX);
+          const targetY = paddingY + nodeHeight / 2;
+          return (
+            <line
+              key={`c3-edge-${edgeIndex}-${edge.source}-${edge.target}`}
+              className="candidate-mini-graph-edge"
+              x1={sourceX}
+              y1={sourceY}
+              x2={targetX}
+              y2={targetY}
+              markerEnd={`url(#c3-arrow-${pattern.pattern_id})`}
+            />
+          );
+        })}
+        {graphNodes.map((node, index) => {
+          const x = paddingX + index * (nodeWidth + gapX);
+          const y = paddingY;
+          return (
+            <g key={node.id} className={`candidate-mini-graph-node kind-${node.kind}`} transform={`translate(${x} ${y})`}>
+              <rect className="candidate-mini-graph-node-rect" width={nodeWidth} height={nodeHeight} rx="10" ry="10" />
+              <text className="candidate-mini-graph-node-kind" x={10} y={16}>{node.kind}</text>
+              <text className="candidate-mini-graph-node-label" x={10} y={31}>{node.label}</text>
+            </g>
+          );
+        })}
+      </svg>
+    );
+  }
+
   const isBattleRoute = route.name === "battle_workspace";
   const isC2Enabled = activeCapability.id === "c2";
 
@@ -946,35 +1027,90 @@ export function App(): JSX.Element {
                           ) : state.c3Patterns.map((pattern) => {
                             const includeActive = state.c3IncludePatternIds.includes(pattern.pattern_id);
                             const excludeActive = state.c3ExcludePatternIds.includes(pattern.pattern_id);
+                            const isExpanded = state.c3ExpandedPatternId === pattern.pattern_id;
                             return (
-                              <article key={pattern.pattern_id} className={`c3-pattern-row${includeActive ? " is-include" : ""}${excludeActive ? " is-exclude" : ""}`}>
-                                <div className="c3-pattern-main">
-                                  <div className="c3-pattern-title">{pattern.title}</div>
-                                  <div className="c3-pattern-id">{pattern.pattern_id}</div>
-                                  <div className="c3-pattern-summary">{pattern.summary}</div>
-                                  <div className="c3-pattern-tags">
-                                    {pattern.tags.map((tag) => (
-                                      <span key={`${pattern.pattern_id}:${tag}`} className="c3-tag">{tag}</span>
-                                    ))}
+                              <Fragment key={pattern.pattern_id}>
+                                <article className={`c3-pattern-row${includeActive ? " is-include" : ""}${excludeActive ? " is-exclude" : ""}`}>
+                                  <div className="c3-pattern-main">
+                                    <div className="c3-pattern-title">
+                                      <span>{pattern.title}</span>
+                                      <span className="workspace-pill base">
+                                        <span className="dot" />
+                                        {pattern.complexity}
+                                      </span>
+                                    </div>
+                                    <div className="c3-pattern-id">{pattern.pattern_id}</div>
+                                    <div className="c3-pattern-summary">{pattern.summary}</div>
+                                    <div className="c3-pattern-tags">
+                                      {pattern.tags.map((tag) => (
+                                        <span key={`${pattern.pattern_id}:${tag}`} className="c3-tag">{tag}</span>
+                                      ))}
+                                    </div>
                                   </div>
-                                </div>
-                                <div className="c3-pattern-side">
-                                  <div className="c3-pattern-score">{pattern.relevance.toFixed(3)}</div>
-                                  <div className="c3-pattern-score-label">retrieval score</div>
-                                  <div className="c3-pattern-trace">{pattern.retrieval_trace.join(" · ")}</div>
-                                  <div className="c3-pattern-actions">
-                                    <button type="button" className={`tb-btn tb-btn-ghost${includeActive ? " is-active" : ""}`} onClick={() => { void handleC3PatternSelectionAction(pattern.pattern_id, includeActive ? "neutral" : "include"); }}>
-                                      Include
-                                    </button>
-                                    <button type="button" className={`tb-btn tb-btn-ghost${excludeActive ? " is-active" : ""}`} onClick={() => { void handleC3PatternSelectionAction(pattern.pattern_id, excludeActive ? "neutral" : "exclude"); }}>
-                                      Exclude
-                                    </button>
-                                    <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleC3PatternSelectionAction(pattern.pattern_id, "neutral"); }}>
-                                      Clear
-                                    </button>
+                                  <div className="c3-pattern-side">
+                                    <div className="c3-pattern-score">{pattern.relevance.toFixed(3)}</div>
+                                    <div className="c3-pattern-score-label">retrieval score</div>
+                                    <div className="c3-pattern-trace">{pattern.retrieval_trace.join(" · ")}</div>
+                                    <div className="c3-pattern-actions">
+                                      <button type="button" className={`tb-btn tb-btn-ghost${includeActive ? " is-active" : ""}`} onClick={() => { void handleC3PatternSelectionAction(pattern.pattern_id, includeActive ? "neutral" : "include"); }}>
+                                        Include
+                                      </button>
+                                      <button type="button" className={`tb-btn tb-btn-ghost${excludeActive ? " is-active" : ""}`} onClick={() => { void handleC3PatternSelectionAction(pattern.pattern_id, excludeActive ? "neutral" : "exclude"); }}>
+                                        Exclude
+                                      </button>
+                                      <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleC3PatternSelectionAction(pattern.pattern_id, "neutral"); }}>
+                                        Clear
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="tb-btn tb-btn-ghost"
+                                        onClick={() => {
+                                          handleToggleC3PatternDetails(pattern.pattern_id);
+                                        }}
+                                        aria-expanded={isExpanded}
+                                        aria-controls={`c3-pattern-details-${pattern.pattern_id}`}
+                                      >
+                                        Details
+                                      </button>
+                                    </div>
                                   </div>
-                                </div>
-                              </article>
+                                </article>
+                                {isExpanded ? (
+                                  <section id={`c3-pattern-details-${pattern.pattern_id}`} className="c3-pattern-details-panel" role="region" aria-label="c3 pattern details">
+                                    <div className="candidate-details-head">
+                                      <div className="candidate-details-logo" aria-label={`c3-logo-${pattern.pattern_id}`}>
+                                        {pattern.logo?.label ?? "PT"}
+                                      </div>
+                                      <div>
+                                        <div className="candidate-details-title">{pattern.title}</div>
+                                        <div className="candidate-details-sub">Template schema and diagnostics for pattern selection.</div>
+                                      </div>
+                                    </div>
+                                    <div className="candidate-config-grid">
+                                      <div className="candidate-config-cell"><span>roles</span><b>{pattern.config_summary?.roles_total ?? 0}</b></div>
+                                      <div className="candidate-config-cell"><span>llm calls</span><b>{pattern.config_summary?.llm_calls_max ?? 0}</b></div>
+                                      <div className="candidate-config-cell"><span>guards</span><b>{pattern.config_summary?.deterministic_guards ?? 0}</b></div>
+                                      <div className="candidate-config-cell"><span>hitl</span><b>{pattern.config_summary?.hitl_checkpoints ?? 0}</b></div>
+                                    </div>
+                                    <div className="candidate-mini-graph" aria-label="c3-pattern-mini-graph">
+                                      {renderPatternMiniGraphSvg(pattern)}
+                                    </div>
+                                    <div className="c3-trace-block">
+                                      <div className="c3-trace-title">Retrieval trace</div>
+                                      <div className="c3-trace-list">
+                                        {pattern.retrieval_trace.map((traceItem) => (
+                                          <span key={`${pattern.pattern_id}:${traceItem}`} className="candidate-step-chip">{traceItem}</span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                    <div className="candidate-steps-list">
+                                      {(pattern.agent_template?.rationale_steps ?? []).map((step) => (
+                                        <span key={`${pattern.pattern_id}:${step}`} className="candidate-step-chip">{step}</span>
+                                      ))}
+                                    </div>
+                                  </section>
+                                ) : null}
+                              </Fragment>
                             );
                           })}
                         </div>

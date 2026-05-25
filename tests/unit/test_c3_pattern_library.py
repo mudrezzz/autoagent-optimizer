@@ -23,6 +23,11 @@ def test_search_pattern_library_returns_ranked_payload() -> None:
     assert top["pattern_id"] == "style.pattern_cleaner"
     assert top["selection_state"] == "include"
     assert any(item.startswith("token:cleanup:") for item in top["retrieval_trace"])
+    assert top["logo"]["label"] == "PC"
+    assert top["config_summary"]["llm_calls_max"] == 2
+    assert top["agent_template"]["nodes"][1]["label"] == "llm.rewrite"
+    assert top["agent_template"]["edges"][0]["source"] == "input"
+    assert "cleanup_pass" in top["agent_template"]["rationale_steps"]
 
 
 def test_search_pattern_library_respects_exclude_and_limit() -> None:

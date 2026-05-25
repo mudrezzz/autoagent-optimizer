@@ -153,6 +153,28 @@ export type C3PatternItem = {
   relevance: number;
   selection_state: "include" | "exclude" | "neutral" | string;
   retrieval_trace: string[];
+  logo?: {
+    key: string;
+    label: string;
+  };
+  config_summary?: {
+    roles_total: number;
+    llm_calls_max: number;
+    deterministic_guards: number;
+    hitl_checkpoints: number;
+  };
+  agent_template?: {
+    nodes: Array<{
+      id: string;
+      label: string;
+      kind: string;
+    }>;
+    edges: Array<{
+      source: string;
+      target: string;
+    }>;
+    rationale_steps: string[];
+  };
 };
 
 // Русский комментарий: состояние include/exclude выбора паттернов в C3.
