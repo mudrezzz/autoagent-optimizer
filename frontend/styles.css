@@ -1,6 +1,16 @@
 ﻿/* Русский комментарий: базовый app-v3-подобный каркас для capability-driven workbench. */
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; height: 100%; }
+/* Русский комментарий: алиасы токенов для обратной совместимости старых стилей и корректного контраста. */
+:root {
+  --accent-25: var(--gray-25);
+  --accent-50: var(--indigo-50);
+  --accent-300: var(--indigo-300);
+  --accent-400: var(--indigo-400);
+  --accent-500: var(--indigo-500);
+  --green-300: var(--green-500);
+  --amber-300: var(--amber-500);
+}
 body {
   background: var(--gray-50);
   color: var(--fg);
@@ -792,6 +802,14 @@ code { font-family: var(--font-mono); }
 .candidate-mini-graph-node.kind-llm .candidate-mini-graph-node-rect {
   fill: color-mix(in srgb, var(--accent-50) 70%, var(--gray-0) 30%);
   stroke: var(--accent-300);
+}
+
+.candidate-mini-graph-node.kind-llm .candidate-mini-graph-node-kind {
+  fill: rgba(255, 255, 255, 0.78);
+}
+
+.candidate-mini-graph-node.kind-llm .candidate-mini-graph-node-label {
+  fill: var(--fg-on-dark);
 }
 
 .candidate-mini-graph-node.kind-validator .candidate-mini-graph-node-rect {
