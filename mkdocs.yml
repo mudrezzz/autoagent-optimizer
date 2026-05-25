@@ -1,0 +1,39 @@
+﻿site_name: AutoAgent Optimizer Wiki
+site_description: User and developer documentation for AutoAgent Optimizer.
+site_url: https://mudrezzz.github.io/autoagent-optimizer/
+repo_url: https://github.com/mudrezzz/autoagent-optimizer
+repo_name: mudrezzz/autoagent-optimizer
+edit_uri: edit/master/docs/wiki/
+
+docs_dir: docs/wiki
+site_dir: site
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - tables
+  - pymdownx.superfences
+  - pymdownx.details
+
+theme:
+  name: material
+  language: ru
+  features:
+    - navigation.instant
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - User Guides:
+      - Overview: user_guides/overview.md
+      - C2 Candidate Selection: user_guides/c2-select-for-tests.md
+  - Developer Guides:
+      - Backend: developer/backend.md
+      - Frontend: developer/frontend.md
+  - Releases:
+      - V2.3.S4: releases/v2.3.s4.md
+  - Governance:
+      - ADR to Wiki Policy: governance/adr-to-wiki-policy.md

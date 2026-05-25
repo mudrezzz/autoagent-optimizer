@@ -21,6 +21,7 @@
 7. Тест-гейт перед commit по типу слайса (`Fast` / `Targeted` / `Full`).
 8. Синхронное обновление демо-трека (`docs/demo/Demo_Track.md`) для затронутого функционала.
 9. Для фронтовых изменений: explicit подтверждение соответствия `design_system`.
+10. Обновление wiki (`docs/wiki/*`) как обязательный артефакт слайса (user + developer + release note).
 
 ## 3. ADR Discipline
 
@@ -67,6 +68,9 @@
 7. Статус в roadmap обновлен.
 8. Сделан commit с id слайса в сообщении.
 9. В истории есть подтверждение успешного test-gate для текущего типа слайса.
+10. Для слайсов с пользовательскими изменениями есть обновленная wiki-страница:
+   - `docs/wiki/releases/<slice-id>.md`
+   - релевантные `docs/wiki/user_guides/*` и/или `docs/wiki/developer/*`.
 
 ## 6.1. Test Pyramid Policy
 

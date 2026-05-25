@@ -85,6 +85,7 @@ Input (Tenant + User + Battle + Task Brief + Constraints + Data + Budget)
    - explicit mapping `backend capability -> user-visible control -> e2e assertion`.
    - risk-based QA gates for delivery speed (`fast` / `targeted` / `full`) with full regression reserved for high-risk slices.
    - strict `design_system` compliance (tokens, typography, iconography, UI kits, voice).
+   - docs-as-code wiki in current repository (`docs/wiki`) published via GitHub Pages and updated per vertical slice.
    - UX composition rule: `Battles Hub` без правого rail; `Battle Workspace` по North Star (`app-v3`).
 
 ## External Dependency Strategy

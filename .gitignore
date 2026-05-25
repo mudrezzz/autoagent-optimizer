@@ -11,3 +11,4 @@ venv/
 tmp/
 .env
 frontend/node_modules/
+site/

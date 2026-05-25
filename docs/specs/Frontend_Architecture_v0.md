@@ -326,6 +326,7 @@ Frontend развивается вертикально, синхронно с ba
 1. в каждом слайсе фиксируется, какие capability стали `enabled`;
 2. UI для остальных capability остается видимым (`planned`);
 3. Roadmap обновляется по модели `BE + FE + Demo + QA` в одном слайсе.
+4. Для каждого закрытого frontend-слайса обновляется wiki (`docs/wiki/user_guides/*`, `docs/wiki/developer/*`, `docs/wiki/releases/*`).
 
 ## Missing Elements (Gap Analysis)
 

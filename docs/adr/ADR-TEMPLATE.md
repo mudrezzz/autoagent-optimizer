@@ -5,6 +5,7 @@
 - Slice: I?.S?
 - Decision Makers: <names/roles>
 - Supersedes: <ADR-id or N/A>
+- User Docs Page: <docs/wiki/... markdown path or N/A with reason>
 
 ## Context
 

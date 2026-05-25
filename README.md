@@ -18,6 +18,7 @@ OSS-first платформа для архитектурного поиска, w
 - [Project Operating Model](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/process/Project_Operating_Model.md)
 - [Executable Slice Backlog](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/backlog/Executable_Slice_Backlog.md)
 - [Demo Track](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/demo/Demo_Track.md)
+- [Wiki Source](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/wiki/index.md)
 
 ## Project Rules
 
@@ -31,6 +32,30 @@ OSS-first платформа для архитектурного поиска, w
 8.   backend-     frontend    .
 9.  frontend   `design_system` (tokens, , , voice)    .
 10. UX- frontend   North Star  [app-v3.png](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/design_system/screenshots/app-v3.png)    [Frontend_Architecture_v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/specs/Frontend_Architecture_v0.md).
+11. Для каждого слайса обязательно обновляем wiki (`docs/wiki`) и фиксируем страницу в ADR через поле `User Docs Page`.
+
+## GitHub Wiki (Pages)
+
+Wiki публикуется из текущего репозитория через GitHub Pages (MkDocs).
+
+Локальный запуск:
+
+```bash
+python -m pip install -r requirements-docs.txt
+mkdocs serve
+```
+
+Build-проверка:
+
+```bash
+mkdocs build --strict
+```
+
+Публикация в GitHub:
+
+1. В репозитории откройте `Settings -> Pages`.
+2. Убедитесь, что source управляется через `GitHub Actions`.
+3. После push в `master` workflow `docs-pages` публикует сайт.
 
 ## Design System Compliance
 

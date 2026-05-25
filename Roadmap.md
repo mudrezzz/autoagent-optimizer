@@ -209,6 +209,7 @@ Note: после `V2.3.S1` добавлен corrective slice `V2.3.S1a`, что�
    - `README.md`
    - `System_Architecture_Overview.md` (если менялась архитектура)
    - `docs/adr/*` (если было архитектурное решение)
+   - `docs/wiki/*` (обязательное пользовательское и developer обновление по слайсу)
 5. Каждый слайс фиксируется отдельным commit.
 6. Перед commit обязателен тест-гейт по типу слайса:
    - `Fast gate`: frontend-only микроизменения (`python -m pytest tests/unit/test_frontend_contracts.py` + `python -m pytest tests/e2e/test_frontend_shell_smoke_script.py`),
@@ -217,6 +218,7 @@ Note: после `V2.3.S1` добавлен corrective slice `V2.3.S1a`, что�
 7. При фронтовых изменениях в описании слайса фиксируем, какие артефакты `design_system` использованы
    (`colors_and_type.css`, `ui_kits/*`, `assets/*`, copy rules).
 8. При фронтовых изменениях также фиксируем соответствие UX North Star (`app-v3`: трехколоночный layout, run-centric header, KPI->architectures->trace, intervention rail).
+9. Wiki публикуется в GitHub Pages из текущего репозитория; для каждого закрытого слайса обязателен release-note в `docs/wiki/releases/*`.
 
 ## Backlog Source
 
@@ -229,4 +231,10 @@ Note: после `V2.3.S1` добавлен corrective slice `V2.3.S1a`, что�
 Синхронный демо-трек проекта:
 
 - [docs/demo/Demo_Track.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/demo/Demo_Track.md)
+
+## Wiki
+
+Пользовательская и developer документация (GitHub Pages source):
+
+- [docs/wiki/index.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/wiki/index.md)
 
