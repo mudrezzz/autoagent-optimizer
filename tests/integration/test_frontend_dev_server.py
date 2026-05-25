@@ -199,14 +199,20 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert chat_state_payload["candidate_set_draft"]["compile_gate"]["status"] == "draft"
 
         status_compile_gate, compile_gate_payload = _json_post(
-            f"{base_url}/api/arenas/{arena_id}/candidates/assemble-compile",
-            {},
+            f"{base_url}/api/arenas/{arena_id}/candidates/select-for-tests",
+            {
+                "candidate_ids": [
+                    "cand_pattern_cleaner_v0",
+                ],
+                "max_compile_attempts": 3,
+            },
         )
         assert status_compile_gate == 200
         assert compile_gate_payload["status"] == "success"
-        assert compile_gate_payload["action"] == "assemble_compile_candidates"
+        assert compile_gate_payload["action"] == "select_candidates_for_tests"
         assert compile_gate_payload["compile_gate"]["status"] in {"ready", "failed"}
-        assert compile_gate_payload["compile_gate"]["compiled_candidates"] == compile_gate_payload["compile_gate"]["total_candidates"]
+        assert compile_gate_payload["compile_gate"]["compiled_candidates"] == 1
+        assert compile_gate_payload["compile_gate"]["selected_candidates"] == 1
         assert compile_gate_payload["candidate_set_draft"]["compile_gate"]["status"] == compile_gate_payload["compile_gate"]["status"]
         assert compile_gate_payload["messages_total"] >= 3
 

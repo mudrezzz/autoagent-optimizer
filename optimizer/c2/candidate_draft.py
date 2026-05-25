@@ -164,6 +164,8 @@ def build_candidate_draft_from_brief(
     # Русский комментарий: deep-copy нужен, чтобы compile-readiness мутации не затрагивали базовые шаблоны.
     selected_candidates = [deepcopy(candidate) for candidate in filtered_candidates[:max_candidates]]
     for candidate in selected_candidates:
+        # Русский комментарий: флаг пользовательского отбора кандидата в тестовый прогон.
+        candidate["selected_for_tests"] = False
         # Русский комментарий: стартовый статус кандидата до запуска compile gate.
         candidate["compile_readiness"] = {
             "status": "draft",
@@ -194,8 +196,10 @@ def build_candidate_draft_from_brief(
             "compiled_candidates": 0,
             "ready_candidates": 0,
             "failed_candidates": 0,
+            "selected_candidates": 0,
             "total_candidates": total_selected,
             "processed_at": None,
+            "max_compile_attempts": None,
         },
     }
     # Русский комментарий: legacy-поле сохраняем для совместимости старых отчетов/тестов.

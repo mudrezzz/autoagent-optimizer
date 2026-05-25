@@ -7,7 +7,6 @@ import type { ArenaRecord, C2CandidateSetDraft, Capability } from "../types";
 
 // Русский комментарий: мокируем API-слой, чтобы UI-тесты были детерминированными и не зависели от backend-сервера.
 vi.mock("../api", () => ({
-  assembleCompileArenaCandidates: vi.fn(),
   createArena: vi.fn(),
   deleteArena: vi.fn(),
   duplicateArena: vi.fn(),
@@ -21,10 +20,10 @@ vi.mock("../api", () => ({
   renameArena: vi.fn(),
   saveArenaPatternSelection: vi.fn(),
   searchArenaPatterns: vi.fn(),
+  selectArenaCandidatesForTests: vi.fn(),
 }));
 
 import {
-  assembleCompileArenaCandidates,
   createArena,
   deleteArena,
   duplicateArena,
@@ -38,6 +37,7 @@ import {
   renameArena,
   saveArenaPatternSelection,
   searchArenaPatterns,
+  selectArenaCandidatesForTests,
 } from "../api";
 
 // Русский комментарий: фикстура battle-арены для режима workspace.
@@ -244,7 +244,7 @@ describe("Battle workspace candidates", () => {
     });
 
     vi.mocked(postArenaChatMessage).mockRejectedValue(new Error("not used in this test"));
-    vi.mocked(assembleCompileArenaCandidates).mockRejectedValue(new Error("not used in this test"));
+    vi.mocked(selectArenaCandidatesForTests).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(createArena).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(renameArena).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(duplicateArena).mockRejectedValue(new Error("not used in this test"));
@@ -297,12 +297,12 @@ describe("Battle workspace candidates", () => {
     expect(await screen.findByLabelText("candidate-mini-graph-svg")).toBeInTheDocument();
   });
 
-  it("runs assemble+compile action and updates compile status", async () => {
+  it("selects candidates for tests and triggers internal preparation", async () => {
     const user = userEvent.setup();
-    vi.mocked(assembleCompileArenaCandidates).mockResolvedValue({
+    vi.mocked(selectArenaCandidatesForTests).mockResolvedValue({
       status: "success",
       capability_id: "c2",
-      action: "assemble_compile_candidates",
+      action: "select_candidates_for_tests",
       arena_id: ARENA.workspace_id,
       assistant_message: null,
       messages: [],
@@ -322,11 +322,14 @@ describe("Battle workspace candidates", () => {
           compiled_candidates: 3,
           ready_candidates: 3,
           failed_candidates: 0,
+          selected_candidates: 3,
           total_candidates: 3,
           processed_at: "2026-05-25T10:00:00+00:00",
+          max_compile_attempts: 3,
         },
         candidates: CANDIDATE_SET.candidates.map((candidate) => ({
           ...candidate,
+          selected_for_tests: true,
           compile_readiness: {
             status: "ready",
             dsl_file: candidate.dsl_stub_ref,
@@ -346,16 +349,23 @@ describe("Battle workspace candidates", () => {
               terminal_nodes: ["output"],
             },
             compiled_at: "2026-05-25T10:00:00+00:00",
+            attempts_used: 1,
+            user_visible_issue: false,
           },
         })),
       },
     });
 
     renderWorkspace();
-    const compileButton = await screen.findByRole("button", { name: /Assemble \+ Compile/i });
-    await user.click(compileButton);
-    expect(await screen.findByText("compile: ready")).toBeInTheDocument();
-    expect(vi.mocked(assembleCompileArenaCandidates)).toHaveBeenCalledWith(ARENA.workspace_id);
+    const firstCheckbox = await screen.findByLabelText("select-cand_direct-for-tests");
+    const secondCheckbox = await screen.findByLabelText("select-cand_cleaner-for-tests");
+    await user.click(firstCheckbox);
+    await user.click(secondCheckbox);
+
+    const selectButton = await screen.findByRole("button", { name: /Select for tests/i });
+    await user.click(selectButton);
+    expect(vi.mocked(selectArenaCandidatesForTests)).toHaveBeenCalledWith(ARENA.workspace_id, ["cand_direct", "cand_cleaner"], 3);
+    expect(await screen.findAllByText("selected for tests")).toHaveLength(3);
   });
 
   it("switches to C3 and renders pattern library search results", async () => {

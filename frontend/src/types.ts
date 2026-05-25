@@ -107,6 +107,7 @@ export type C2CandidateDraftItem = {
       target: string;
     }>;
   };
+  selected_for_tests?: boolean;
   compile_readiness?: C2CandidateCompileReadiness;
 };
 
@@ -134,6 +135,8 @@ export type C2CandidateCompileReadiness = {
     terminal_nodes?: string[];
   };
   compiled_at: string | null;
+  attempts_used?: number;
+  user_visible_issue?: boolean;
 };
 
 // Русский комментарий: compile gate агрегат по candidate set для состояния готовности.
@@ -142,8 +145,10 @@ export type C2CompileGateSummary = {
   compiled_candidates: number;
   ready_candidates: number;
   failed_candidates: number;
+  selected_candidates?: number;
   total_candidates: number;
   processed_at: string | null;
+  max_compile_attempts?: number | null;
 };
 
 // Русский комментарий: тип candidate set draft, сформированного на основе chat brief.
@@ -181,11 +186,11 @@ export type C2ChatPostMessageResponse = {
   candidate_set_draft: C2CandidateSetDraft | null;
 };
 
-// Русский комментарий: ответ C2 compile gate endpoint (assemble+compile кандидатов).
-export type C2AssembleCompileResponse = {
+// Русский комментарий: ответ C2 endpoint выбора кандидатов и внутренней подготовки к тестам.
+export type C2SelectForTestsResponse = {
   status: "success";
   capability_id: "c2";
-  action: "assemble_compile_candidates";
+  action: "select_candidates_for_tests";
   arena_id: string;
   assistant_message: C2ChatMessage | null;
   messages: C2ChatMessage[];

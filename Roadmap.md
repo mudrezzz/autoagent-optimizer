@@ -136,7 +136,7 @@ Note: после `V2.3.S1` добавлен corrective slice `V2.3.S1a`, что�
 | V2.3.S2c | C2 UX polish: classic chat + readable candidate rows | Done | right rail converted to classic chat UX; center candidates rendered as metric rows aligned with app-v3 visual language |
 | V2.3.S2d | C2 candidate accordion details | Done | expandable rows with architecture details, mini-diagram and architecture logo |
 | V2.3.S3 | C3 Pattern Library + RAG controls v0 | Done | pattern browse/search + include/exclude + retrieval trace |
-| V2.3.S4 | Candidate assembly + internal compile readiness | Done | `POST /api/arenas/{id}/candidates/assemble-compile` + per-candidate readiness (`draft/ready/failed`) + compile report in C2 accordion + FE/BE/QA |
+| V2.3.S4 | Candidate assembly + internal compile readiness | Done | candidate checkbox selection + `POST /api/arenas/{id}/candidates/select-for-tests` + internal retries/auto-fix before issue + FE/BE/QA |
 | V2.3.S5 | C4 Dataset Studio v0 | Planned | upload/manual/synthetic/clean/check flows + versioned dataset artifacts |
 | V2.3.S6 | C4 Metrics & Evaluators Studio v0 | Planned | configurable comparative/diagnostic metrics + evaluator method selection |
 | V2.3.S7 | C5 Optimizer setup + budget/epoch controls | Planned | optimization method settings + budget limits + launch guardrails |

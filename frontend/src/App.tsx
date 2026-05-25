@@ -2,7 +2,6 @@
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import {
-  assembleCompileArenaCandidates,
   createArena,
   deleteArena,
   duplicateArena,
@@ -16,6 +15,7 @@ import {
   renameArena,
   saveArenaPatternSelection,
   searchArenaPatterns,
+  selectArenaCandidatesForTests,
 } from "./api";
 import type {
   ArenaRecord,
@@ -78,6 +78,7 @@ type UiState = {
   c2Messages: C2ChatMessage[];
   c2CandidateSetDraft: C2CandidateSetDraft | null;
   c2SelectedCandidateId: string;
+  c2SelectedForTestsIds: string[];
   c2ExpandedCandidateId: string;
   c2JsonCollapsed: boolean;
   c3PatternQuery: string;
@@ -108,6 +109,7 @@ export function App(): JSX.Element {
     c2Messages: [],
     c2CandidateSetDraft: null,
     c2SelectedCandidateId: "",
+    c2SelectedForTestsIds: [],
     c2ExpandedCandidateId: "",
     c2JsonCollapsed: true,
     c3PatternQuery: "",
@@ -228,6 +230,7 @@ export function App(): JSX.Element {
       c2Messages: [],
       c2CandidateSetDraft: null,
       c2SelectedCandidateId: "",
+      c2SelectedForTestsIds: [],
       c2ExpandedCandidateId: "",
       c2JsonCollapsed: true,
       c3PatternQuery: "",
@@ -298,6 +301,10 @@ export function App(): JSX.Element {
         c2Messages: chatResponse.messages,
         c2CandidateSetDraft: chatResponse.candidate_set_draft,
         c2SelectedCandidateId: chatResponse.candidate_set_draft?.candidates[0]?.candidate_id ?? "",
+        c2SelectedForTestsIds:
+          chatResponse.candidate_set_draft?.candidates
+            .filter((candidate) => Boolean(candidate.selected_for_tests))
+            .map((candidate) => candidate.candidate_id) ?? [],
         c2ExpandedCandidateId: "",
         metricArenaStatus: "selected",
         budgetPercent: 100,
@@ -496,9 +503,14 @@ export function App(): JSX.Element {
           const nextSelectedCandidateId = canKeepSelected ? prev.c2SelectedCandidateId : (nextDraft?.candidates[0]?.candidate_id ?? "");
           const canKeepExpanded = nextDraft?.candidates.some((candidate) => candidate.candidate_id === prev.c2ExpandedCandidateId) ?? false;
           const nextExpandedCandidateId = canKeepExpanded ? prev.c2ExpandedCandidateId : "";
+          const nextSelectedForTestsIds =
+            nextDraft?.candidates
+              .filter((candidate) => Boolean(candidate.selected_for_tests))
+              .map((candidate) => candidate.candidate_id) ?? [];
           return {
             c2CandidateSetDraft: nextDraft,
             c2SelectedCandidateId: nextSelectedCandidateId,
+            c2SelectedForTestsIds: nextSelectedForTestsIds,
             c2ExpandedCandidateId: nextExpandedCandidateId,
           };
         })(),
@@ -519,33 +531,41 @@ export function App(): JSX.Element {
     setState((prev) => ({ ...prev, c2ChatInput: nextValue }));
   }
 
-  // Русский комментарий: запускает C2 compile-readiness gate и обновляет candidate draft в workspace.
-  async function handleAssembleCompileCandidates(): Promise<void> {
+  // Русский комментарий: отправляет пользовательский выбор кандидатов в внутренний этап подготовки к тестам.
+  async function handleSelectCandidatesForTests(): Promise<void> {
     if (!state.activeArenaId) {
-      setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "error", message: "Open battle before compile gate." }) }));
+      setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "error", message: "Open battle before candidate selection." }) }));
       return;
     }
     if (!state.c2CandidateSetDraft) {
-      setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "error", message: "Generate candidates before compile gate." }) }));
+      setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "error", message: "Generate candidates before test selection." }) }));
+      return;
+    }
+    if (state.c2SelectedForTestsIds.length === 0) {
+      setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "error", message: "Choose at least one candidate for tests." }) }));
       return;
     }
 
-    setState((prev) => ({ ...prev, budgetStage: "assembling + compiling candidates", budgetPercent: 70 }));
+    setState((prev) => ({ ...prev, budgetStage: "preparing selected candidates", budgetPercent: 70 }));
     try {
-      const response = await assembleCompileArenaCandidates(state.activeArenaId);
+      const response = await selectArenaCandidatesForTests(state.activeArenaId, state.c2SelectedForTestsIds, 3);
       const snapshot = {
         status: "success",
         capability_id: "c2",
-        action: "assemble_compile_candidates",
+        action: "select_candidates_for_tests",
         arena_id: response.arena_id,
         compile_gate: response.compile_gate,
       };
       setState((prev) => ({
         ...prev,
         c2CandidateSetDraft: response.candidate_set_draft,
+        c2SelectedForTestsIds:
+          response.candidate_set_draft.candidates
+            .filter((candidate) => Boolean(candidate.selected_for_tests))
+            .map((candidate) => candidate.candidate_id),
         c2Messages: response.messages,
         budgetPercent: 100,
-        budgetStage: "compile gate completed",
+        budgetStage: "selected candidates prepared",
         jsonText: prettyJson(snapshot),
         lastPayload: snapshot,
       }));
@@ -557,6 +577,19 @@ export function App(): JSX.Element {
   // Русский комментарий: выделяет кандидата в таблице архитектур для минимальной интерактивности workspace.
   function handleSelectCandidate(candidateId: string): void {
     setState((prev) => ({ ...prev, c2SelectedCandidateId: candidateId }));
+  }
+
+  // Русский комментарий: добавляет/убирает кандидата из пользовательского набора для тестов.
+  function handleToggleCandidateForTests(candidateId: string): void {
+    setState((prev) => {
+      const selectedSet = new Set(prev.c2SelectedForTestsIds);
+      if (selectedSet.has(candidateId)) {
+        selectedSet.delete(candidateId);
+      } else {
+        selectedSet.add(candidateId);
+      }
+      return { ...prev, c2SelectedForTestsIds: Array.from(selectedSet) };
+    });
   }
 
   // Русский комментарий: раскрывает/сворачивает аккордеон деталей выбранной архитектуры-кандидата.
@@ -1176,24 +1209,22 @@ export function App(): JSX.Element {
                         <div className="candidate-list-head">
                           <span>Architectures · sorted by quality</span>
                           <div className="candidate-list-head-right">
-                            <span className={`candidate-compile-chip status-${state.c2CandidateSetDraft?.compile_gate?.status ?? "draft"}`}>
-                              compile: {state.c2CandidateSetDraft?.compile_gate?.status ?? "draft"}
-                            </span>
                             <span className="muted">{state.c2CandidateSetDraft?.candidate_set_id ?? "not generated"}</span>
                             <button
                               type="button"
                               className="tb-btn tb-btn-ghost candidate-compile-action"
                               onClick={() => {
-                                void handleAssembleCompileCandidates();
+                                void handleSelectCandidatesForTests();
                               }}
                               disabled={!isC2Enabled || !state.activeArenaId || !state.c2CandidateSetDraft}
                             >
-                              Assemble + Compile
+                              Select for tests
                             </button>
                           </div>
                         </div>
                         <div className="candidate-list-scroll">
                           <div className="candidate-table-head">
+                            <span className="candidate-col-check">test</span>
                             <span className="candidate-col-title">Candidate</span>
                             <span className="candidate-col-metric">quality</span>
                             <span className="candidate-col-metric">cost/case</span>
@@ -1218,6 +1249,19 @@ export function App(): JSX.Element {
                                     }
                                   }}
                                 >
+                                  <div className="candidate-col-check">
+                                    <input
+                                      type="checkbox"
+                                      checked={state.c2SelectedForTestsIds.includes(candidate.candidate_id)}
+                                      onChange={() => {
+                                        handleToggleCandidateForTests(candidate.candidate_id);
+                                      }}
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                      }}
+                                      aria-label={`select-${candidate.candidate_id}-for-tests`}
+                                    />
+                                  </div>
                                   <div className="candidate-col-title">
                                     <div className="candidate-title-line">
                                       <b>{candidate.title}</b>
@@ -1228,12 +1272,7 @@ export function App(): JSX.Element {
                                     </div>
                                     <div className="candidate-meta">{candidate.pattern_ref}</div>
                                     <div className="row-sub">{candidate.summary}</div>
-                                    <div className="candidate-status-line">
-                                      <span className={`candidate-compile-chip status-${candidate.compile_readiness?.status ?? "draft"}`}>
-                                        {candidate.compile_readiness?.status ?? "draft"}
-                                      </span>
-                                      <span className="candidate-meta">{candidate.compile_readiness?.dsl_file ?? candidate.dsl_stub_ref}</span>
-                                    </div>
+                                    {candidate.selected_for_tests ? <div className="candidate-selected-hint">selected for tests</div> : null}
                                   </div>
                                   <div className="candidate-col-metric">
                                     <div className="candidate-metric-value">{metrics.quality}</div>
@@ -1298,23 +1337,18 @@ export function App(): JSX.Element {
                                         </div>
                                       ) : null}
                                     </div>
-                                    <div className="compile-summary-grid">
-                                      <div className="summary-cell"><div className="summary-key">status</div><div className="summary-value">{candidate.compile_readiness?.compile_summary?.status ?? candidate.compile_readiness?.status ?? "draft"}</div></div>
-                                      <div className="summary-cell"><div className="summary-key">nodes</div><div className="summary-value">{candidate.compile_readiness?.compile_summary?.node_mappings ?? 0}</div></div>
-                                      <div className="summary-cell"><div className="summary-key">warnings</div><div className="summary-value">{candidate.compile_readiness?.compile_summary?.warnings ?? 0}</div></div>
-                                      <div className="summary-cell"><div className="summary-key">errors</div><div className="summary-value">{candidate.compile_readiness?.compile_summary?.errors ?? 0}</div></div>
-                                    </div>
-                                    <div className="issues-box">
-                                      {(candidate.compile_readiness?.issues ?? []).length === 0 ? (
-                                        <div className="issue-row info">No compile issues.</div>
-                                      ) : (
-                                        (candidate.compile_readiness?.issues ?? []).map((issue, issueIndex) => (
+                                    {candidate.compile_readiness?.status === "failed" ? (
+                                      <div className="issues-box">
+                                        <div className="issue-row error">
+                                          Candidate preparation failed after internal retries ({candidate.compile_readiness.attempts_used ?? "n/a"} attempts).
+                                        </div>
+                                        {(candidate.compile_readiness?.issues ?? []).map((issue, issueIndex) => (
                                           <div key={`${candidate.candidate_id}:issue:${issueIndex}`} className={`issue-row ${issue.severity === "error" ? "error" : "warning"}`}>
                                             {issue.message}
                                           </div>
-                                        ))
-                                      )}
-                                    </div>
+                                        ))}
+                                      </div>
+                                    ) : null}
                                     <div className="candidate-steps-list">
                                       {(candidate.architecture_steps ?? []).map((step) => (
                                         <span key={step} className="candidate-step-chip">{step}</span>

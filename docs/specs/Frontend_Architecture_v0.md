@@ -231,16 +231,18 @@ Frontend не "угадывает" готовность, а читает capabil
 
 Реализованный контракт C2 compile gate:
 
-1. `POST /api/arenas/{arena_id}/candidates/assemble-compile` запускает внутреннюю сборку/компиляцию всех кандидатов текущего draft-набора.
+1. `POST /api/arenas/{arena_id}/candidates/select-for-tests` принимает пользовательский выбор кандидатов и запускает внутреннюю подготовку к тестам.
 2. `candidate_set_draft.compile_gate` возвращает агрегированный статус (`draft|ready|failed`) и счетчики `ready/failed/total`.
 3. `candidate.compile_readiness` возвращает детальный статус кандидата:
 4. `status`, `dsl_file`, `compile_summary`, `issues`, `graph_ir_summary`, `compiled_at`.
+5. Внутренний процесс подготовки делает несколько auto-retry попыток и пробует auto-fix `dsl_stub_ref`; issue показывается пользователю только если подготовка не удалась после этих попыток.
 
 UX-ожидание:
 
-1. в C2-списке кандидатов виден compile-статус набора и каждого кандидата;
-2. в аккордеоне кандидата видны summary + compile issues;
-3. compile gate запускается отдельным действием пользователя (`Assemble + Compile`).
+1. пользователь отмечает кандидатов чекбоксами в списке;
+2. пользователь запускает короткое действие `Select for tests`;
+3. в UI не требуется отдельный ручной шаг "validate/compile", это внутренний процесс;
+4. в аккордеоне кандидата issue-панель показывается только в fail-сценарии после внутренних попыток исправления.
 
 ## Comparative Metrics vs Diagnostic Signals in UI
 

@@ -5,7 +5,7 @@
   ArenaMutationResponse,
   C3PatternSearchResponse,
   C3PatternSelectionResponse,
-  C2AssembleCompileResponse,
+  C2SelectForTestsResponse,
   C2ChatPostMessageResponse,
   C2ChatStateResponse,
   C1SuccessPayload,
@@ -146,18 +146,25 @@ export async function postArenaChatMessage(
   return parseJsonOrThrow<C2ChatPostMessageResponse>(response);
 }
 
-// Русский комментарий: запускает C2 compile-readiness gate для уже сгенерированных кандидатов арены.
-export async function assembleCompileArenaCandidates(arenaId: string): Promise<C2AssembleCompileResponse> {
-  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/candidates/assemble-compile`, {
+// Русский комментарий: отправляет выбранных кандидатов в внутренний этап подготовки к тестам.
+export async function selectArenaCandidatesForTests(
+  arenaId: string,
+  candidateIds: string[],
+  maxCompileAttempts = 3,
+): Promise<C2SelectForTestsResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/candidates/select-for-tests`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: "{}",
+    body: JSON.stringify({
+      candidate_ids: candidateIds,
+      max_compile_attempts: maxCompileAttempts,
+    }),
   });
   if (!response.ok) {
     const payload = await parseJsonOrThrow<ErrorPayload>(response);
-    throw new Error(payload.message || `Failed to assemble/compile candidates: HTTP ${response.status}`);
+    throw new Error(payload.message || `Failed to select candidates for tests: HTTP ${response.status}`);
   }
-  return parseJsonOrThrow<C2AssembleCompileResponse>(response);
+  return parseJsonOrThrow<C2SelectForTestsResponse>(response);
 }
 
 // Русский комментарий: читает include/exclude выборку C3 паттернов для арены.

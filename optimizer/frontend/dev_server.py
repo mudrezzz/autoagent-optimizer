@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-from optimizer.c2 import build_candidate_draft_from_brief, run_compile_readiness_gate_for_candidate_set
+from optimizer.c2 import build_candidate_draft_from_brief, select_candidates_for_tests_and_prepare
 from optimizer.c3 import search_pattern_library
 from optimizer.dsl.compiler import DslToGraphIRCompiler
 from optimizer.dsl.io import DslLoadError, DslValidationError, load_dsl_spec
@@ -204,9 +204,9 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
                 self._handle_post_arena_chat_message(tenant_id=tenant_id, user_id=user_id, arena_id=arena_chat_match.group(1))
                 return
 
-            arena_compile_match = re.fullmatch(r"/api/arenas/([^/]+)/candidates/assemble-compile", path)
+            arena_compile_match = re.fullmatch(r"/api/arenas/([^/]+)/candidates/select-for-tests", path)
             if arena_compile_match is not None:
-                self._handle_post_arena_candidates_assemble_compile(
+                self._handle_post_arena_candidates_select_for_tests(
                     tenant_id=tenant_id,
                     user_id=user_id,
                     arena_id=arena_compile_match.group(1),
@@ -669,8 +669,30 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
                 status=HTTPStatus.CREATED,
             )
 
-        def _handle_post_arena_candidates_assemble_compile(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
-            """Запускает внутренний compile-readiness gate для набора C2 кандидатов."""
+        def _handle_post_arena_candidates_select_for_tests(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Отмечает выбранных кандидатов и внутренне готовит их к тестам (compile gate без ручного шага)."""
+
+            try:
+                payload = self._read_json_body()
+            except ValueError as exc:
+                self._send_json({"status": "error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            selected_candidate_ids_raw = payload.get("candidate_ids", [])
+            if not isinstance(selected_candidate_ids_raw, list):
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Field `candidate_ids` must be an array."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            selected_candidate_ids = [str(item).strip() for item in selected_candidate_ids_raw]
+            max_compile_attempts_raw = payload.get("max_compile_attempts", 3)
+            if not isinstance(max_compile_attempts_raw, int):
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Field `max_compile_attempts` must be an integer."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
 
             try:
                 candidate_set_draft = registry_store.get_arena_candidate_set_draft(
@@ -697,9 +719,11 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
                 return
 
             try:
-                compiled_draft = run_compile_readiness_gate_for_candidate_set(
+                compiled_draft = select_candidates_for_tests_and_prepare(
                     candidate_set_draft=candidate_set_draft,
+                    selected_candidate_ids=selected_candidate_ids,
                     project_root=project_root,
+                    max_compile_attempts=max_compile_attempts_raw,
                 )
                 registry_store.save_arena_candidate_set_draft(
                     tenant_id=tenant_id,
@@ -714,9 +738,10 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
                     arena_id=arena_id,
                     role="assistant",
                     content=(
-                        "Compile gate completed: "
-                        f"{compile_gate.get('ready_candidates', 0)}/{compile_gate.get('total_candidates', 0)} ready, "
-                        f"{compile_gate.get('failed_candidates', 0)} failed."
+                        "Candidates selected for tests: "
+                        f"{compile_gate.get('selected_candidates', 0)} selected, "
+                        f"{compile_gate.get('ready_candidates', 0)} prepared, "
+                        f"{compile_gate.get('failed_candidates', 0)} issue(s)."
                     ),
                 )
             except ValueError as exc:
@@ -735,7 +760,7 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
                 {
                     "status": "success",
                     "capability_id": "c2",
-                    "action": "assemble_compile_candidates",
+                    "action": "select_candidates_for_tests",
                     "arena_id": arena_id,
                     "assistant_message": assistant_message,
                     "messages": messages,
