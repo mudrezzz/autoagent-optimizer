@@ -380,7 +380,7 @@ describe("Battle workspace candidates", () => {
     expect(await screen.findByText("Pattern Cleaner")).toBeInTheDocument();
   });
 
-  it("uses C3 include checkbox and persists selection", async () => {
+  it("uses C3 single checkbox selection and saves by explicit action", async () => {
     const user = userEvent.setup();
     vi.mocked(saveArenaPatternSelection).mockResolvedValue({
       status: "success",
@@ -466,8 +466,15 @@ describe("Battle workspace candidates", () => {
     renderWorkspace();
     const c3Button = await screen.findByRole("button", { name: /Pattern Library \+ RAG/i });
     await user.click(c3Button);
-    const includeCheckbox = await screen.findByLabelText("c3-include-style.direct_llm");
-    await user.click(includeCheckbox);
+    const patternCheckbox = await screen.findByLabelText("select-style.direct_llm-for-generation");
+    const saveButton = await screen.findByRole("button", { name: "Save" });
+    expect(saveButton).toBeDisabled();
+
+    await user.click(patternCheckbox);
+    expect(saveButton).toBeEnabled();
+    expect(vi.mocked(saveArenaPatternSelection)).not.toHaveBeenCalled();
+
+    await user.click(saveButton);
 
     expect(vi.mocked(saveArenaPatternSelection)).toHaveBeenCalledWith(ARENA.workspace_id, ["style.direct_llm"], []);
   });

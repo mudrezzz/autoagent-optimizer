@@ -83,8 +83,8 @@ type UiState = {
   c2JsonCollapsed: boolean;
   c3PatternQuery: string;
   c3Patterns: C3PatternItem[];
-  c3IncludePatternIds: string[];
-  c3ExcludePatternIds: string[];
+  c3SelectedPatternIds: string[];
+  c3SelectionDirty: boolean;
   c3SelectionUpdatedAt: string;
   c3SearchMeta: string;
   c3ExpandedPatternId: string;
@@ -114,8 +114,8 @@ export function App(): JSX.Element {
     c2JsonCollapsed: true,
     c3PatternQuery: "",
     c3Patterns: [],
-    c3IncludePatternIds: [],
-    c3ExcludePatternIds: [],
+    c3SelectedPatternIds: [],
+    c3SelectionDirty: false,
     c3SelectionUpdatedAt: "",
     c3SearchMeta: "No C3 search yet.",
     c3ExpandedPatternId: "",
@@ -235,8 +235,8 @@ export function App(): JSX.Element {
       c2JsonCollapsed: true,
       c3PatternQuery: "",
       c3Patterns: [],
-      c3IncludePatternIds: [],
-      c3ExcludePatternIds: [],
+      c3SelectedPatternIds: [],
+      c3SelectionDirty: false,
       c3SelectionUpdatedAt: "",
       c3SearchMeta: "No C3 search yet.",
       c3ExpandedPatternId: "",
@@ -321,8 +321,8 @@ export function App(): JSX.Element {
         c2SelectedCandidateId: "",
         c2ExpandedCandidateId: "",
         c3Patterns: [],
-        c3IncludePatternIds: [],
-        c3ExcludePatternIds: [],
+        c3SelectedPatternIds: [],
+        c3SelectionDirty: false,
         c3SelectionUpdatedAt: "",
         c3SearchMeta: "No C3 search yet.",
         c3ExpandedPatternId: "",
@@ -338,6 +338,7 @@ export function App(): JSX.Element {
     const normalizedQuery = query.trim();
     const selectionResponse = await fetchArenaPatternSelection(arenaId);
     const searchResponse = await searchArenaPatterns(arenaId, normalizedQuery, 12);
+    const selectedPatternIds = selectionResponse.selection.include_pattern_ids;
     const snapshot = {
       status: "success",
       capability_id: "c3",
@@ -345,15 +346,14 @@ export function App(): JSX.Element {
       arena_id: arenaId,
       query: searchResponse.query,
       returned: searchResponse.returned,
-      include_total: searchResponse.selection.include_pattern_ids.length,
-      exclude_total: searchResponse.selection.exclude_pattern_ids.length,
+      selected_total: selectedPatternIds.length,
     };
     setState((prev) => ({
       ...prev,
       c3PatternQuery: normalizedQuery,
       c3Patterns: searchResponse.patterns,
-      c3IncludePatternIds: selectionResponse.selection.include_pattern_ids,
-      c3ExcludePatternIds: selectionResponse.selection.exclude_pattern_ids,
+      c3SelectedPatternIds: selectedPatternIds,
+      c3SelectionDirty: false,
       c3SelectionUpdatedAt: selectionResponse.selection.updated_at,
       c3SearchMeta: `results ${searchResponse.returned}/${searchResponse.total_candidates} · query "${searchResponse.query}"`,
       c3ExpandedPatternId:
@@ -367,25 +367,32 @@ export function App(): JSX.Element {
     }));
   }
 
-  // Русский комментарий: применяет include/exclude действие для конкретного паттерна и перезагружает поисковую выдачу.
-  async function handleC3PatternSelectionAction(patternId: string, mode: "include" | "exclude" | "neutral"): Promise<void> {
+  // Русский комментарий: локально переключает выбранность паттерна до явного сохранения кнопкой Save.
+  function handleToggleC3PatternSelection(patternId: string): void {
+    setState((prev) => {
+      const selectedSet = new Set(prev.c3SelectedPatternIds);
+      if (selectedSet.has(patternId)) {
+        selectedSet.delete(patternId);
+      } else {
+        selectedSet.add(patternId);
+      }
+      return {
+        ...prev,
+        c3SelectedPatternIds: Array.from(selectedSet),
+        c3SelectionDirty: true,
+      };
+    });
+  }
+
+  // Русский комментарий: сохраняет выбранные паттерны в backend (только selected-модель без exclude).
+  async function handleSaveC3PatternSelection(): Promise<void> {
     if (!state.activeArenaId) {
       return;
     }
-    const includeSet = new Set(state.c3IncludePatternIds);
-    const excludeSet = new Set(state.c3ExcludePatternIds);
-    includeSet.delete(patternId);
-    excludeSet.delete(patternId);
-    if (mode === "include") {
-      includeSet.add(patternId);
-    } else if (mode === "exclude") {
-      excludeSet.add(patternId);
-    }
-    const includePatternIds = Array.from(includeSet);
-    const excludePatternIds = Array.from(excludeSet);
     setState((prev) => ({ ...prev, budgetStage: "saving c3 selection", budgetPercent: 55 }));
     try {
-      const saveResponse = await saveArenaPatternSelection(state.activeArenaId, includePatternIds, excludePatternIds);
+      const selectedPatternIds = [...state.c3SelectedPatternIds];
+      const saveResponse = await saveArenaPatternSelection(state.activeArenaId, selectedPatternIds, []);
       const searchResponse = await searchArenaPatterns(state.activeArenaId, state.c3PatternQuery, 12);
       const snapshot = {
         status: "success",
@@ -393,13 +400,14 @@ export function App(): JSX.Element {
         action: "update_pattern_selection",
         arena_id: state.activeArenaId,
         selection: saveResponse.selection,
+        selected_total: saveResponse.selection.include_pattern_ids.length,
         returned: searchResponse.returned,
       };
       setState((prev) => ({
         ...prev,
         c3Patterns: searchResponse.patterns,
-        c3IncludePatternIds: saveResponse.selection.include_pattern_ids,
-        c3ExcludePatternIds: saveResponse.selection.exclude_pattern_ids,
+        c3SelectedPatternIds: saveResponse.selection.include_pattern_ids,
+        c3SelectionDirty: false,
         c3SelectionUpdatedAt: saveResponse.selection.updated_at,
         c3SearchMeta: `results ${searchResponse.returned}/${searchResponse.total_candidates} · query "${searchResponse.query}"`,
         c3ExpandedPatternId:
@@ -1081,12 +1089,21 @@ export function App(): JSX.Element {
                             placeholder="Search patterns: rewrite, safety, rag..."
                             disabled={!state.activeArenaId}
                           />
-                          <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleC3Search(); }} disabled={!state.activeArenaId}>
-                            Search
-                          </button>
+                          <div className="c3-toolbar-actions">
+                            <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleC3Search(); }} disabled={!state.activeArenaId}>
+                              Search
+                            </button>
+                            <button
+                              type="button"
+                              className="tb-btn tb-btn-ghost"
+                              onClick={() => { void handleSaveC3PatternSelection(); }}
+                              disabled={!state.activeArenaId || !state.c3SelectionDirty}
+                            >
+                              Save
+                            </button>
+                          </div>
                           <div className="c3-meta">
-                            <span>include {state.c3IncludePatternIds.length}</span>
-                            <span>exclude {state.c3ExcludePatternIds.length}</span>
+                            <span>selected {state.c3SelectedPatternIds.length}</span>
                             <span>{state.c3SearchMeta}</span>
                           </div>
                         </div>
@@ -1094,12 +1111,21 @@ export function App(): JSX.Element {
                           {state.c3Patterns.length === 0 ? (
                             <div className="issue-row info">No patterns yet. Run search or open C3 in selected arena.</div>
                           ) : state.c3Patterns.map((pattern) => {
-                            const includeActive = state.c3IncludePatternIds.includes(pattern.pattern_id);
-                            const excludeActive = state.c3ExcludePatternIds.includes(pattern.pattern_id);
+                            const isSelected = state.c3SelectedPatternIds.includes(pattern.pattern_id);
                             const isExpanded = state.c3ExpandedPatternId === pattern.pattern_id;
                             return (
                               <Fragment key={pattern.pattern_id}>
-                                <article className={`c3-pattern-row${includeActive ? " is-include" : ""}${excludeActive ? " is-exclude" : ""}`}>
+                                <article className={`c3-pattern-row${isSelected ? " is-selected" : ""}`}>
+                                  <div className="c3-pattern-select-col">
+                                    <input
+                                      type="checkbox"
+                                      checked={isSelected}
+                                      onChange={() => {
+                                        handleToggleC3PatternSelection(pattern.pattern_id);
+                                      }}
+                                      aria-label={`select-${pattern.pattern_id}-for-generation`}
+                                    />
+                                  </div>
                                   <div className="c3-pattern-main">
                                     <div className="c3-pattern-title">
                                       <span>{pattern.title}</span>
@@ -1121,36 +1147,6 @@ export function App(): JSX.Element {
                                     <div className="c3-pattern-score-label">retrieval score</div>
                                     <div className="c3-pattern-trace">{pattern.retrieval_trace.join(" · ")}</div>
                                     <div className="c3-pattern-actions">
-                                      {/* Единый UX: выбор паттернов в C3 делаем через чекбоксы, как и выбор кандидатов в C2. */}
-                                      <label className="c3-selection-checkbox">
-                                        <input
-                                          type="checkbox"
-                                          checked={includeActive}
-                                          aria-label={`c3-include-${pattern.pattern_id}`}
-                                          onChange={(event) => {
-                                            void handleC3PatternSelectionAction(
-                                              pattern.pattern_id,
-                                              event.target.checked ? "include" : "neutral",
-                                            );
-                                          }}
-                                        />
-                                        <span>Include</span>
-                                      </label>
-                                      {/* Вторая ось выбора: исключить паттерн. Сброс выполняется снятием чекбокса. */}
-                                      <label className="c3-selection-checkbox">
-                                        <input
-                                          type="checkbox"
-                                          checked={excludeActive}
-                                          aria-label={`c3-exclude-${pattern.pattern_id}`}
-                                          onChange={(event) => {
-                                            void handleC3PatternSelectionAction(
-                                              pattern.pattern_id,
-                                              event.target.checked ? "exclude" : "neutral",
-                                            );
-                                          }}
-                                        />
-                                        <span>Exclude</span>
-                                      </label>
                                       <button
                                         type="button"
                                         className="tb-btn tb-btn-ghost"
