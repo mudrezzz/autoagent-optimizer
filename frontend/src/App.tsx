@@ -2,7 +2,7 @@
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import {
-  addArenaDatasetRow,
+  assignArenaDatasets,
   createArenaDataset,
   createArena,
   deleteArena,
@@ -100,13 +100,16 @@ type UiState = {
   c4Datasets: C4DatasetSummary[];
   c4ActiveDatasetId: string;
   c4ActiveDataset: C4DatasetDetail | null;
+  c4AssignedDatasetIds: string[];
+  c4SelectedDatasetIds: string[];
+  c4SelectionDirty: boolean;
+  c4ExpandedDatasetId: string;
+  c4ViewMode: "list" | "edit";
+  c4EditorDatasetId: string;
+  c4EditorRows: Array<{ case_id: string; input: string; expected: string; notes: string }>;
+  c4EditorImportJsonl: string;
   c4NewDatasetName: string;
   c4NewDatasetDescription: string;
-  c4NewRowCaseId: string;
-  c4NewRowInput: string;
-  c4NewRowExpected: string;
-  c4NewRowNotes: string;
-  c4ImportJsonl: string;
   c4ValidationIssues: Array<{ severity: string; code: string; row_index: number | null; message: string }>;
   c4ValidationStatus: string;
   budgetPercent: number;
@@ -143,13 +146,16 @@ export function App(): JSX.Element {
     c4Datasets: [],
     c4ActiveDatasetId: "",
     c4ActiveDataset: null,
+    c4AssignedDatasetIds: [],
+    c4SelectedDatasetIds: [],
+    c4SelectionDirty: false,
+    c4ExpandedDatasetId: "",
+    c4ViewMode: "list",
+    c4EditorDatasetId: "",
+    c4EditorRows: [],
+    c4EditorImportJsonl: "",
     c4NewDatasetName: "",
     c4NewDatasetDescription: "",
-    c4NewRowCaseId: "",
-    c4NewRowInput: "",
-    c4NewRowExpected: "",
-    c4NewRowNotes: "",
-    c4ImportJsonl: "",
     c4ValidationIssues: [],
     c4ValidationStatus: "not_run",
     budgetPercent: 0,
@@ -276,13 +282,16 @@ export function App(): JSX.Element {
       c4Datasets: [],
       c4ActiveDatasetId: "",
       c4ActiveDataset: null,
+      c4AssignedDatasetIds: [],
+      c4SelectedDatasetIds: [],
+      c4SelectionDirty: false,
+      c4ExpandedDatasetId: "",
+      c4ViewMode: "list",
+      c4EditorDatasetId: "",
+      c4EditorRows: [],
+      c4EditorImportJsonl: "",
       c4NewDatasetName: "",
       c4NewDatasetDescription: "",
-      c4NewRowCaseId: "",
-      c4NewRowInput: "",
-      c4NewRowExpected: "",
-      c4NewRowNotes: "",
-      c4ImportJsonl: "",
       c4ValidationIssues: [],
       c4ValidationStatus: "not_run",
       metricArenaStatus: "not selected",
@@ -375,6 +384,14 @@ export function App(): JSX.Element {
         c4Datasets: [],
         c4ActiveDatasetId: "",
         c4ActiveDataset: null,
+        c4AssignedDatasetIds: [],
+        c4SelectedDatasetIds: [],
+        c4SelectionDirty: false,
+        c4ExpandedDatasetId: "",
+        c4ViewMode: "list",
+        c4EditorDatasetId: "",
+        c4EditorRows: [],
+        c4EditorImportJsonl: "",
         c4ValidationIssues: [],
         c4ValidationStatus: "not_run",
         budgetPercent: 100,
@@ -506,6 +523,14 @@ export function App(): JSX.Element {
       c4Datasets: response.datasets,
       c4ActiveDatasetId: response.active_dataset_id,
       c4ActiveDataset: response.active_dataset,
+      c4AssignedDatasetIds: response.assigned_dataset_ids,
+      c4SelectedDatasetIds: response.assigned_dataset_ids,
+      c4SelectionDirty: false,
+      c4ExpandedDatasetId: "",
+      c4ViewMode: "list",
+      c4EditorDatasetId: "",
+      c4EditorRows: [],
+      c4EditorImportJsonl: "",
       c4ValidationIssues: [],
       c4ValidationStatus: "not_run",
       budgetPercent: writeSnapshot ? 100 : prev.budgetPercent,
@@ -541,6 +566,14 @@ export function App(): JSX.Element {
         c4Datasets: response.datasets,
         c4ActiveDatasetId: response.active_dataset_id,
         c4ActiveDataset: response.active_dataset,
+        c4AssignedDatasetIds: response.assigned_dataset_ids,
+        c4SelectedDatasetIds: response.assigned_dataset_ids,
+        c4SelectionDirty: false,
+        c4ExpandedDatasetId: "",
+        c4ViewMode: "list",
+        c4EditorDatasetId: "",
+        c4EditorRows: [],
+        c4EditorImportJsonl: "",
         c4NewDatasetName: "",
         c4NewDatasetDescription: "",
         c4ValidationIssues: [],
@@ -575,6 +608,8 @@ export function App(): JSX.Element {
         c4Datasets: response.datasets,
         c4ActiveDatasetId: response.active_dataset_id,
         c4ActiveDataset: response.active_dataset,
+        c4AssignedDatasetIds: response.assigned_dataset_ids,
+        c4SelectedDatasetIds: prev.c4SelectionDirty ? prev.c4SelectedDatasetIds : response.assigned_dataset_ids,
         c4ValidationIssues: [],
         c4ValidationStatus: "not_run",
         budgetPercent: 100,
@@ -587,40 +622,48 @@ export function App(): JSX.Element {
     }
   }
 
-  // Русский комментарий: добавляет вручную одну dataset-row в активный dataset.
-  async function handleAddC4Row(): Promise<void> {
-    if (!state.activeArenaId || !state.c4ActiveDatasetId) {
+  // Русский комментарий: переключает локальный чекбокс выбора dataset для арены до явного сохранения кнопкой Save.
+  function handleToggleC4DatasetSelection(datasetId: string): void {
+    setState((prev) => {
+      const selectedSet = new Set(prev.c4SelectedDatasetIds);
+      if (selectedSet.has(datasetId)) {
+        selectedSet.delete(datasetId);
+      } else {
+        selectedSet.add(datasetId);
+      }
+      return {
+        ...prev,
+        c4SelectedDatasetIds: Array.from(selectedSet),
+        c4SelectionDirty: true,
+      };
+    });
+  }
+
+  // Русский комментарий: сохраняет назначение dataset-ов на арену явным действием Save.
+  async function handleSaveC4DatasetAssignment(): Promise<void> {
+    if (!state.activeArenaId) {
       return;
     }
-    setState((prev) => ({ ...prev, budgetStage: "adding row", budgetPercent: 55 }));
+    setState((prev) => ({ ...prev, budgetStage: "saving dataset assignment", budgetPercent: 60 }));
     try {
-      const response = await addArenaDatasetRow(state.activeArenaId, state.c4ActiveDatasetId, {
-        case_id: state.c4NewRowCaseId.trim(),
-        input: state.c4NewRowInput.trim(),
-        expected: state.c4NewRowExpected.trim(),
-        notes: state.c4NewRowNotes.trim(),
-      });
+      const response = await assignArenaDatasets(state.activeArenaId, state.c4SelectedDatasetIds);
       const snapshot = {
         status: "success",
         capability_id: "c4",
-        action: response.action ?? "add_row",
+        action: response.action ?? "assign_datasets",
         arena_id: state.activeArenaId,
-        active_dataset_id: response.active_dataset_id,
-        rows_total: response.active_dataset?.rows_total ?? 0,
+        assigned_dataset_ids: response.assigned_dataset_ids,
       };
       setState((prev) => ({
         ...prev,
         c4Datasets: response.datasets,
         c4ActiveDatasetId: response.active_dataset_id,
         c4ActiveDataset: response.active_dataset,
-        c4NewRowCaseId: "",
-        c4NewRowInput: "",
-        c4NewRowExpected: "",
-        c4NewRowNotes: "",
-        c4ValidationIssues: [],
-        c4ValidationStatus: "not_run",
+        c4AssignedDatasetIds: response.assigned_dataset_ids,
+        c4SelectedDatasetIds: response.assigned_dataset_ids,
+        c4SelectionDirty: false,
         budgetPercent: 100,
-        budgetStage: "row added",
+        budgetStage: "dataset assignment saved",
         jsonText: prettyJson(snapshot),
         lastPayload: snapshot,
       }));
@@ -629,12 +672,102 @@ export function App(): JSX.Element {
     }
   }
 
-  // Русский комментарий: импортирует rows из JSONL-текста в активный dataset (replace flow).
-  async function handleImportC4Jsonl(): Promise<void> {
-    if (!state.activeArenaId || !state.c4ActiveDatasetId) {
+  // Русский комментарий: раскрывает/сворачивает details-панель конкретного dataset в общем списке.
+  function handleToggleC4DatasetDetails(datasetId: string): void {
+    setState((prev) => ({
+      ...prev,
+      c4ExpandedDatasetId: prev.c4ExpandedDatasetId === datasetId ? "" : datasetId,
+    }));
+  }
+
+  // Русский комментарий: открывает отдельный экран редактирования dataset с хлебными крошками.
+  async function handleOpenC4DatasetEditor(datasetId: string): Promise<void> {
+    if (!state.activeArenaId) {
       return;
     }
-    const lines = state.c4ImportJsonl
+    setState((prev) => ({ ...prev, budgetStage: "opening dataset editor", budgetPercent: 50 }));
+    try {
+      const response = await selectArenaDataset(state.activeArenaId, datasetId);
+      const activeDataset = response.active_dataset;
+      const snapshot = {
+        status: "success",
+        capability_id: "c4",
+        action: "open_dataset_editor",
+        arena_id: state.activeArenaId,
+        dataset_id: response.active_dataset_id,
+        rows_total: activeDataset?.rows_total ?? 0,
+      };
+      setState((prev) => ({
+        ...prev,
+        c4Datasets: response.datasets,
+        c4ActiveDatasetId: response.active_dataset_id,
+        c4ActiveDataset: activeDataset,
+        c4AssignedDatasetIds: response.assigned_dataset_ids,
+        c4SelectedDatasetIds: prev.c4SelectionDirty ? prev.c4SelectedDatasetIds : response.assigned_dataset_ids,
+        c4ViewMode: "edit",
+        c4EditorDatasetId: response.active_dataset_id,
+        c4EditorRows: activeDataset?.rows.map((row) => ({ ...row })) ?? [],
+        c4EditorImportJsonl: "",
+        c4ValidationIssues: [],
+        c4ValidationStatus: "not_run",
+        budgetPercent: 100,
+        budgetStage: "dataset editor ready",
+        jsonText: prettyJson(snapshot),
+        lastPayload: snapshot,
+      }));
+    } catch (error) {
+      setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
+    }
+  }
+
+  // Русский комментарий: возвращает пользователя из editor-режима к общему списку dataset-ов.
+  function handleBackToC4DatasetList(): void {
+    setState((prev) => ({
+      ...prev,
+      c4ViewMode: "list",
+      c4EditorDatasetId: "",
+      c4EditorRows: [],
+      c4EditorImportJsonl: "",
+      c4ValidationIssues: [],
+      c4ValidationStatus: "not_run",
+    }));
+  }
+
+  // Русский комментарий: обновляет поле строки в editor-таблице dataset.
+  function handleUpdateC4EditorRowField(rowIndex: number, field: "case_id" | "input" | "expected" | "notes", value: string): void {
+    setState((prev) => ({
+      ...prev,
+      c4EditorRows: prev.c4EditorRows.map((row, index) => (index === rowIndex ? { ...row, [field]: value } : row)),
+    }));
+  }
+
+  // Русский комментарий: добавляет пустую строку в editor для ручного редактирования dataset.
+  function handleAddC4EditorRow(): void {
+    setState((prev) => ({
+      ...prev,
+      c4EditorRows: [
+        ...prev.c4EditorRows,
+        {
+          case_id: "",
+          input: "",
+          expected: "",
+          notes: "",
+        },
+      ],
+    }));
+  }
+
+  // Русский комментарий: удаляет выбранную строку из editor-таблицы dataset.
+  function handleDeleteC4EditorRow(rowIndex: number): void {
+    setState((prev) => ({
+      ...prev,
+      c4EditorRows: prev.c4EditorRows.filter((_, index) => index !== rowIndex),
+    }));
+  }
+
+  // Русский комментарий: заменяет editor-содержимое dataset через JSONL-текст.
+  function handleImportC4EditorJsonl(): void {
+    const lines = state.c4EditorImportJsonl
       .split(/\r?\n/)
       .map((item) => item.trim())
       .filter((item) => item.length > 0);
@@ -657,15 +790,29 @@ export function App(): JSX.Element {
       setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "error", message: `Invalid JSONL row: ${String(error)}` }) }));
       return;
     }
-    setState((prev) => ({ ...prev, budgetStage: "importing jsonl", budgetPercent: 60 }));
+    setState((prev) => ({
+      ...prev,
+      c4EditorRows: parsedRows,
+      c4ValidationIssues: [],
+      c4ValidationStatus: "not_run",
+      jsonText: prettyJson({ status: "success", capability_id: "c4", action: "import_editor_jsonl", rows_total: parsedRows.length }),
+    }));
+  }
+
+  // Русский комментарий: сохраняет изменения редактора в backend через replace-операцию.
+  async function handleSaveC4EditorChanges(): Promise<void> {
+    if (!state.activeArenaId || !state.c4EditorDatasetId) {
+      return;
+    }
+    setState((prev) => ({ ...prev, budgetStage: "saving dataset rows", budgetPercent: 65 }));
     try {
-      const response = await replaceArenaDatasetRows(state.activeArenaId, state.c4ActiveDatasetId, parsedRows);
+      const response = await replaceArenaDatasetRows(state.activeArenaId, state.c4EditorDatasetId, state.c4EditorRows);
       const snapshot = {
         status: "success",
         capability_id: "c4",
         action: response.action ?? "replace_rows",
         arena_id: state.activeArenaId,
-        active_dataset_id: response.active_dataset_id,
+        dataset_id: state.c4EditorDatasetId,
         rows_total: response.active_dataset?.rows_total ?? 0,
       };
       setState((prev) => ({
@@ -673,10 +820,13 @@ export function App(): JSX.Element {
         c4Datasets: response.datasets,
         c4ActiveDatasetId: response.active_dataset_id,
         c4ActiveDataset: response.active_dataset,
+        c4AssignedDatasetIds: response.assigned_dataset_ids,
+        c4SelectedDatasetIds: prev.c4SelectionDirty ? prev.c4SelectedDatasetIds : response.assigned_dataset_ids,
+        c4EditorRows: response.active_dataset?.rows.map((row) => ({ ...row })) ?? [],
         c4ValidationIssues: [],
         c4ValidationStatus: "not_run",
         budgetPercent: 100,
-        budgetStage: "jsonl imported",
+        budgetStage: "dataset rows saved",
         jsonText: prettyJson(snapshot),
         lastPayload: snapshot,
       }));
@@ -687,19 +837,20 @@ export function App(): JSX.Element {
 
   // Русский комментарий: запускает базовую проверку dataset и показывает issues в C4 UI.
   async function handleValidateC4Dataset(): Promise<void> {
-    if (!state.activeArenaId || !state.c4ActiveDatasetId) {
+    const targetDatasetId = state.c4ViewMode === "edit" ? state.c4EditorDatasetId : state.c4ActiveDatasetId;
+    if (!state.activeArenaId || !targetDatasetId) {
       return;
     }
     setState((prev) => ({ ...prev, budgetStage: "validating dataset", budgetPercent: 60 }));
     try {
-      const response = await validateArenaDataset(state.activeArenaId, state.c4ActiveDatasetId);
+      const response = await validateArenaDataset(state.activeArenaId, targetDatasetId);
       const validation = response.validation_report;
       const snapshot = {
         status: "success",
         capability_id: "c4",
         action: response.action ?? "validate_dataset",
         arena_id: state.activeArenaId,
-        dataset_id: validation?.dataset_id ?? state.c4ActiveDatasetId,
+        dataset_id: validation?.dataset_id ?? targetDatasetId,
         validation_status: validation?.status ?? "unknown",
         issues_total: validation?.issues.length ?? 0,
       };
@@ -708,6 +859,8 @@ export function App(): JSX.Element {
         c4Datasets: response.datasets,
         c4ActiveDatasetId: response.active_dataset_id,
         c4ActiveDataset: response.active_dataset,
+        c4AssignedDatasetIds: response.assigned_dataset_ids,
+        c4SelectedDatasetIds: prev.c4SelectionDirty ? prev.c4SelectedDatasetIds : response.assigned_dataset_ids,
         c4ValidationIssues: validation?.issues ?? [],
         c4ValidationStatus: validation?.status ?? "unknown",
         budgetPercent: 100,
@@ -722,19 +875,20 @@ export function App(): JSX.Element {
 
   // Русский комментарий: сохраняет версию активного dataset как snapshot-артефакт.
   async function handleSaveC4DatasetVersion(): Promise<void> {
-    if (!state.activeArenaId || !state.c4ActiveDatasetId) {
+    const targetDatasetId = state.c4ViewMode === "edit" ? state.c4EditorDatasetId : state.c4ActiveDatasetId;
+    if (!state.activeArenaId || !targetDatasetId) {
       return;
     }
     const label = `manual-${new Date().toISOString().slice(0, 19)}`;
     setState((prev) => ({ ...prev, budgetStage: "saving dataset version", budgetPercent: 65 }));
     try {
-      const response = await saveArenaDatasetVersion(state.activeArenaId, state.c4ActiveDatasetId, label, "manual");
+      const response = await saveArenaDatasetVersion(state.activeArenaId, targetDatasetId, label, "manual");
       const snapshot = {
         status: "success",
         capability_id: "c4",
         action: response.action ?? "save_dataset_version",
         arena_id: state.activeArenaId,
-        dataset_id: response.active_dataset_id,
+        dataset_id: targetDatasetId,
         version_id: response.version?.version_id ?? "",
       };
       setState((prev) => ({
@@ -742,6 +896,9 @@ export function App(): JSX.Element {
         c4Datasets: response.datasets,
         c4ActiveDatasetId: response.active_dataset_id,
         c4ActiveDataset: response.active_dataset,
+        c4AssignedDatasetIds: response.assigned_dataset_ids,
+        c4SelectedDatasetIds: prev.c4SelectionDirty ? prev.c4SelectedDatasetIds : response.assigned_dataset_ids,
+        c4EditorRows: prev.c4ViewMode === "edit" ? response.active_dataset?.rows.map((row) => ({ ...row })) ?? [] : prev.c4EditorRows,
         budgetPercent: 100,
         budgetStage: "dataset version saved",
         jsonText: prettyJson(snapshot),
@@ -1556,164 +1713,234 @@ export function App(): JSX.Element {
                     </header>
                     <div className="tv-body tv-body--workspace">
                       <section className="c4-panel">
-                        <div className="c4-create-row">
-                          <input
-                            type="text"
-                            value={state.c4NewDatasetName}
-                            onChange={(event) => {
-                              setState((prev) => ({ ...prev, c4NewDatasetName: event.target.value }));
-                            }}
-                            placeholder="Dataset name"
-                            disabled={!state.activeArenaId}
-                          />
-                          <input
-                            type="text"
-                            value={state.c4NewDatasetDescription}
-                            onChange={(event) => {
-                              setState((prev) => ({ ...prev, c4NewDatasetDescription: event.target.value }));
-                            }}
-                            placeholder="Description"
-                            disabled={!state.activeArenaId}
-                          />
-                          <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleCreateC4Dataset(); }} disabled={!state.activeArenaId}>
-                            Create dataset
-                          </button>
-                        </div>
-
-                        <div className="c4-toolbar">
-                          <select
-                            value={state.c4ActiveDatasetId}
-                            onChange={(event) => {
-                              void handleSelectC4Dataset(event.target.value);
-                            }}
-                            disabled={!state.activeArenaId || state.c4Datasets.length === 0}
-                          >
-                            <option value="">Select dataset</option>
-                            {state.c4Datasets.map((dataset) => (
-                              <option key={dataset.dataset_id} value={dataset.dataset_id}>
-                                {dataset.name} ({dataset.rows_total} rows)
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            type="button"
-                            className="tb-btn tb-btn-ghost"
-                            onClick={() => {
-                              void handleValidateC4Dataset();
-                            }}
-                            disabled={!state.activeArenaId || !state.c4ActiveDatasetId}
-                          >
-                            Validate
-                          </button>
-                          <button
-                            type="button"
-                            className="tb-btn tb-btn-ghost"
-                            onClick={() => {
-                              void handleSaveC4DatasetVersion();
-                            }}
-                            disabled={!state.activeArenaId || !state.c4ActiveDatasetId}
-                          >
-                            Save version
-                          </button>
-                          <div className="c4-meta">
-                            <span>rows {state.c4ActiveDataset?.rows_total ?? 0}</span>
-                            <span>versions {state.c4ActiveDataset?.versions_total ?? 0}</span>
-                          </div>
-                        </div>
-
-                        {state.c4ActiveDataset ? (
+                        {state.c4ViewMode === "list" ? (
                           <>
-                            <div className="c4-row-editor">
+                            <div className="c4-create-row">
                               <input
                                 type="text"
-                                value={state.c4NewRowCaseId}
+                                value={state.c4NewDatasetName}
                                 onChange={(event) => {
-                                  setState((prev) => ({ ...prev, c4NewRowCaseId: event.target.value }));
+                                  setState((prev) => ({ ...prev, c4NewDatasetName: event.target.value }));
                                 }}
-                                placeholder="case_id (optional)"
+                                placeholder="Dataset name"
+                                disabled={!state.activeArenaId}
                               />
                               <input
                                 type="text"
-                                value={state.c4NewRowInput}
+                                value={state.c4NewDatasetDescription}
                                 onChange={(event) => {
-                                  setState((prev) => ({ ...prev, c4NewRowInput: event.target.value }));
+                                  setState((prev) => ({ ...prev, c4NewDatasetDescription: event.target.value }));
                                 }}
-                                placeholder="input"
+                                placeholder="Description"
+                                disabled={!state.activeArenaId}
                               />
-                              <input
-                                type="text"
-                                value={state.c4NewRowExpected}
-                                onChange={(event) => {
-                                  setState((prev) => ({ ...prev, c4NewRowExpected: event.target.value }));
-                                }}
-                                placeholder="expected"
-                              />
-                              <input
-                                type="text"
-                                value={state.c4NewRowNotes}
-                                onChange={(event) => {
-                                  setState((prev) => ({ ...prev, c4NewRowNotes: event.target.value }));
-                                }}
-                                placeholder="notes"
-                              />
-                              <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleAddC4Row(); }}>
-                                Add row
+                              <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleCreateC4Dataset(); }} disabled={!state.activeArenaId}>
+                                Create dataset
                               </button>
                             </div>
-
-                            <div className="c4-import-block">
-                              <textarea
-                                value={state.c4ImportJsonl}
-                                onChange={(event) => {
-                                  setState((prev) => ({ ...prev, c4ImportJsonl: event.target.value }));
-                                }}
-                                placeholder='JSONL import, one row per line: {"case_id":"case_1","input":"...","expected":"...","notes":"..."}'
-                              />
-                              <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleImportC4Jsonl(); }}>
-                                Import JSONL (replace)
+                            <div className="candidate-list">
+                              <div className="candidate-list-head">
+                                <span>Datasets · sorted by update time</span>
+                                <div className="candidate-list-head-right">
+                                  <span className="muted">assigned {state.c4AssignedDatasetIds.length}</span>
+                                  <button
+                                    type="button"
+                                    className="tb-btn tb-btn-ghost candidate-compile-action"
+                                    onClick={() => {
+                                      void handleSaveC4DatasetAssignment();
+                                    }}
+                                    disabled={!state.activeArenaId}
+                                  >
+                                    Save
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="candidate-list-scroll">
+                                <div className="candidate-table-head">
+                                  <span className="candidate-col-check">use</span>
+                                  <span className="candidate-col-title">Dataset</span>
+                                  <span className="candidate-col-metric">rows</span>
+                                  <span className="candidate-col-metric">versions</span>
+                                  <span className="candidate-col-metric">updated</span>
+                                  <span className="candidate-col-action">details</span>
+                                </div>
+                                {state.c4Datasets.length === 0 ? (
+                                  <div className="issue-row info">No datasets yet. Create your first dataset above.</div>
+                                ) : state.c4Datasets.map((dataset) => {
+                                  const isSelected = state.c4SelectedDatasetIds.includes(dataset.dataset_id);
+                                  const isAssigned = state.c4AssignedDatasetIds.includes(dataset.dataset_id);
+                                  const isExpanded = state.c4ExpandedDatasetId === dataset.dataset_id;
+                                  const updatedLabel = dataset.updated_at ? dataset.updated_at.slice(0, 16).replace("T", " ") : "n/a";
+                                  return (
+                                    <Fragment key={dataset.dataset_id}>
+                                      <article
+                                        className={`candidate-row${state.c4ActiveDatasetId === dataset.dataset_id ? " candidate-row--active" : ""}`}
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => {
+                                          void handleSelectC4Dataset(dataset.dataset_id);
+                                        }}
+                                        onKeyDown={(event) => {
+                                          if (event.key === "Enter" || event.key === " ") {
+                                            event.preventDefault();
+                                            void handleSelectC4Dataset(dataset.dataset_id);
+                                          }
+                                        }}
+                                      >
+                                        <div className="candidate-col-check">
+                                          <input
+                                            type="checkbox"
+                                            checked={isSelected}
+                                            onChange={() => {
+                                              handleToggleC4DatasetSelection(dataset.dataset_id);
+                                            }}
+                                            onClick={(event) => {
+                                              event.stopPropagation();
+                                            }}
+                                            aria-label={`select-${dataset.dataset_id}-for-arena`}
+                                          />
+                                        </div>
+                                        <div className="candidate-col-title">
+                                          <div className="candidate-title-line">
+                                            <b>{dataset.name}</b>
+                                            <span className={`workspace-pill${isAssigned ? " champ" : " base"}`}>
+                                              <span className="dot" />
+                                              {isAssigned ? "Assigned" : "Available"}
+                                            </span>
+                                          </div>
+                                          <div className="candidate-meta">{dataset.dataset_id}</div>
+                                          <div className="row-sub">{dataset.description || "No description."}</div>
+                                        </div>
+                                        <div className="candidate-col-metric">
+                                          <div className="candidate-metric-value">{dataset.rows_total}</div>
+                                          <div className="candidate-metric-label">cases</div>
+                                        </div>
+                                        <div className="candidate-col-metric">
+                                          <div className="candidate-metric-value">{dataset.versions_total}</div>
+                                          <div className="candidate-metric-label">saved</div>
+                                        </div>
+                                        <div className="candidate-col-metric">
+                                          <div className="candidate-metric-value c4-updated">{updatedLabel}</div>
+                                          <div className="candidate-metric-label">utc</div>
+                                        </div>
+                                        <div className="candidate-col-action c4-actions">
+                                          <button
+                                            type="button"
+                                            className="candidate-details-toggle"
+                                            onClick={(event) => {
+                                              event.stopPropagation();
+                                              handleToggleC4DatasetDetails(dataset.dataset_id);
+                                            }}
+                                            aria-expanded={isExpanded}
+                                            aria-controls={`c4-dataset-details-${dataset.dataset_id}`}
+                                          >
+                                            Details
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className="candidate-details-toggle"
+                                            onClick={(event) => {
+                                              event.stopPropagation();
+                                              void handleOpenC4DatasetEditor(dataset.dataset_id);
+                                            }}
+                                          >
+                                            Edit
+                                          </button>
+                                        </div>
+                                      </article>
+                                      {isExpanded ? (
+                                        <section id={`c4-dataset-details-${dataset.dataset_id}`} className="c4-dataset-details-panel" role="region" aria-label="c4 dataset details">
+                                          <div className="c4-details-title">Preview first 5 rows</div>
+                                          {dataset.preview_rows.length === 0 ? (
+                                            <div className="issue-row info">Dataset has no rows yet.</div>
+                                          ) : (
+                                            <div className="c4-preview-list">
+                                              {dataset.preview_rows.map((row, rowIndex) => (
+                                                <div key={`${dataset.dataset_id}:preview:${row.case_id}:${rowIndex}`} className="c4-preview-row">
+                                                  <span className="c4-preview-case">{row.case_id}</span>
+                                                  <span className="c4-preview-text">{row.input || "input is empty"}</span>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </section>
+                                      ) : null}
+                                    </Fragment>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="c4-editor-screen">
+                            <div className="c4-breadcrumbs">
+                              <button type="button" className="c4-breadcrumb-link" onClick={handleBackToC4DatasetList}>Datasets</button>
+                              <span>/</span>
+                              <span>{state.c4ActiveDataset?.name ?? state.c4EditorDatasetId}</span>
+                              <span>/</span>
+                              <span>Edit</span>
+                            </div>
+                            <div className="c4-toolbar c4-toolbar--editor">
+                              <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EditorChanges(); }}>
+                                Save changes
+                              </button>
+                              <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleValidateC4Dataset(); }}>
+                                Validate
+                              </button>
+                              <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4DatasetVersion(); }}>
+                                Save version
+                              </button>
+                              <button type="button" className="tb-btn tb-btn-ghost" onClick={handleBackToC4DatasetList}>
+                                Back
                               </button>
                             </div>
-
+                            <div className="c4-row-editor c4-row-editor--list">
+                              <button type="button" className="tb-btn tb-btn-ghost" onClick={handleAddC4EditorRow}>Add row</button>
+                            </div>
                             <div className="c4-table-wrap">
-                              <table className="c4-table">
+                              <table className="c4-table c4-table--editor">
                                 <thead>
                                   <tr>
                                     <th>case_id</th>
                                     <th>input</th>
                                     <th>expected</th>
                                     <th>notes</th>
+                                    <th />
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {state.c4ActiveDataset.rows.length === 0 ? (
+                                  {state.c4EditorRows.length === 0 ? (
                                     <tr>
-                                      <td colSpan={4}>No rows yet.</td>
+                                      <td colSpan={5}>No rows yet.</td>
                                     </tr>
-                                  ) : state.c4ActiveDataset.rows.map((row) => (
-                                    <tr key={row.case_id}>
-                                      <td>{row.case_id}</td>
-                                      <td>{row.input}</td>
-                                      <td>{row.expected}</td>
-                                      <td>{row.notes}</td>
+                                  ) : state.c4EditorRows.map((row, rowIndex) => (
+                                    <tr key={`${state.c4EditorDatasetId}:${rowIndex}`}>
+                                      <td><input value={row.case_id} onChange={(event) => { handleUpdateC4EditorRowField(rowIndex, "case_id", event.target.value); }} /></td>
+                                      <td><input value={row.input} onChange={(event) => { handleUpdateC4EditorRowField(rowIndex, "input", event.target.value); }} /></td>
+                                      <td><input value={row.expected} onChange={(event) => { handleUpdateC4EditorRowField(rowIndex, "expected", event.target.value); }} /></td>
+                                      <td><input value={row.notes} onChange={(event) => { handleUpdateC4EditorRowField(rowIndex, "notes", event.target.value); }} /></td>
+                                      <td>
+                                        <button type="button" className="candidate-details-toggle" onClick={() => { handleDeleteC4EditorRow(rowIndex); }}>
+                                          Delete
+                                        </button>
+                                      </td>
                                     </tr>
                                   ))}
                                 </tbody>
                               </table>
                             </div>
-
-                            <div className="c4-versions">
-                              <div className="c4-versions-title">Saved versions</div>
-                              <div className="c4-version-list">
-                                {state.c4ActiveDataset.versions.length === 0 ? (
-                                  <span className="candidate-step-chip">No versions yet.</span>
-                                ) : state.c4ActiveDataset.versions.map((version) => (
-                                  <span key={version.version_id} className="candidate-step-chip">
-                                    {version.label} · {version.rows_total} rows
-                                  </span>
-                                ))}
-                              </div>
+                            <div className="c4-import-block">
+                              <textarea
+                                value={state.c4EditorImportJsonl}
+                                onChange={(event) => {
+                                  setState((prev) => ({ ...prev, c4EditorImportJsonl: event.target.value }));
+                                }}
+                                placeholder='JSONL import, one row per line: {"case_id":"case_1","input":"...","expected":"...","notes":"..."}'
+                              />
+                              <button type="button" className="tb-btn tb-btn-ghost" onClick={handleImportC4EditorJsonl}>
+                                Import JSONL (replace in editor)
+                              </button>
                             </div>
-
                             {state.c4ValidationStatus !== "not_run" ? (
                               <div className="issues-box">
                                 <div className={`issue-row ${state.c4ValidationStatus === "ok" ? "info" : "warning"}`}>
@@ -1726,9 +1953,7 @@ export function App(): JSX.Element {
                                 ))}
                               </div>
                             ) : null}
-                          </>
-                        ) : (
-                          <div className="issue-row info">Create and select dataset to start C4 flow.</div>
+                          </div>
                         )}
                       </section>
                       <section className={`workspace-json-panel${state.c2JsonCollapsed ? " is-collapsed" : ""}`}>

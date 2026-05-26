@@ -172,6 +172,7 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert status_c4_state_empty == 200
         assert c4_state_empty_payload["status"] == "success"
         assert c4_state_empty_payload["active_dataset"] is None
+        assert c4_state_empty_payload["assigned_dataset_ids"] == []
         assert c4_state_empty_payload["datasets"] == []
 
         status_c4_create, c4_create_payload = _json_post(
@@ -182,6 +183,7 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert c4_create_payload["status"] == "success"
         dataset_id = str(c4_create_payload["dataset"]["dataset_id"])
         assert c4_create_payload["active_dataset_id"] == dataset_id
+        assert c4_create_payload["assigned_dataset_ids"] == []
 
         status_c4_add_row, c4_add_row_payload = _json_post(
             f"{base_url}/api/arenas/{arena_id}/datasets/{dataset_id}/rows/add",
@@ -219,6 +221,17 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert status_c4_replace_rows == 200
         assert c4_replace_rows_payload["status"] == "success"
         assert c4_replace_rows_payload["active_dataset"]["rows_total"] == 2
+        assert len(c4_replace_rows_payload["datasets"][0]["preview_rows"]) == 2
+
+        status_c4_assign, c4_assign_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/datasets/assign",
+            {
+                "dataset_ids": [dataset_id],
+            },
+        )
+        assert status_c4_assign == 200
+        assert c4_assign_payload["status"] == "success"
+        assert c4_assign_payload["assigned_dataset_ids"] == [dataset_id]
 
         status_c3_update, c3_update_payload = _json_post(
             f"{base_url}/api/arenas/{arena_id}/patterns/selection",

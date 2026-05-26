@@ -79,12 +79,14 @@ def _build_c4_dataset_state_payload(*, arena_id: str, studio_state: dict[str, An
 
     datasets = studio_state.get("datasets", [])
     active_dataset_id = str(studio_state.get("active_dataset_id", "")).strip()
+    assigned_dataset_ids = studio_state.get("assigned_dataset_ids", [])
     active_dataset = next((item for item in datasets if str(item.get("dataset_id", "")) == active_dataset_id), None)
     return {
         "status": "success",
         "capability_id": "c4",
         "arena_id": arena_id,
         "active_dataset_id": active_dataset_id,
+        "assigned_dataset_ids": [str(item) for item in assigned_dataset_ids if isinstance(item, str)],
         "datasets": [_build_c4_dataset_summary(item) for item in datasets if isinstance(item, dict)],
         "active_dataset": _build_c4_dataset_detail(active_dataset) if isinstance(active_dataset, dict) else None,
     }
@@ -96,6 +98,7 @@ def _build_c4_dataset_summary(dataset: dict[str, Any]) -> dict[str, Any]:
     versions = dataset.get("versions", [])
     latest_version = versions[-1] if isinstance(versions, list) and versions else None
     rows = dataset.get("rows", [])
+    preview_rows = rows[:5] if isinstance(rows, list) else []
     return {
         "dataset_id": str(dataset.get("dataset_id", "")),
         "name": str(dataset.get("name", "")),
@@ -104,6 +107,7 @@ def _build_c4_dataset_summary(dataset: dict[str, Any]) -> dict[str, Any]:
         "versions_total": len(versions) if isinstance(versions, list) else 0,
         "updated_at": str(dataset.get("updated_at", "")),
         "last_version_id": str(latest_version.get("version_id", "")) if isinstance(latest_version, dict) else "",
+        "preview_rows": [dict(item) for item in preview_rows if isinstance(item, dict)],
     }
 
 
@@ -303,6 +307,15 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
                     tenant_id=tenant_id,
                     user_id=user_id,
                     arena_id=arena_dataset_select_match.group(1),
+                )
+                return
+
+            arena_dataset_assign_match = re.fullmatch(r"/api/arenas/([^/]+)/datasets/assign", path)
+            if arena_dataset_assign_match is not None:
+                self._handle_post_arena_dataset_assign(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    arena_id=arena_dataset_assign_match.group(1),
                 )
                 return
 
@@ -1103,6 +1116,48 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
             response_payload = _build_c4_dataset_state_payload(arena_id=arena_id, studio_state=studio_state)
             response_payload["action"] = "add_row"
             response_payload["row"] = row
+            self._send_json(response_payload)
+
+        def _handle_post_arena_dataset_assign(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Сохраняет выбранные пользователем dataset-ы для прогона арены."""
+
+            try:
+                payload = self._read_json_body()
+            except ValueError as exc:
+                self._send_json({"status": "error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            dataset_ids_raw = payload.get("dataset_ids", [])
+            if not isinstance(dataset_ids_raw, list):
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Field `dataset_ids` must be an array."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            if any(not isinstance(item, str) for item in dataset_ids_raw):
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Dataset ids must contain strings only."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            try:
+                studio_state = registry_store.save_arena_assigned_datasets(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                    dataset_ids=[str(item) for item in dataset_ids_raw],
+                )
+            except KeyError as exc:
+                code = "arena_not_found" if "Workspace not found" in str(exc) else "dataset_not_found"
+                self._send_json({"status": "error", "code": code, "message": str(exc)}, status=HTTPStatus.NOT_FOUND)
+                return
+            except ValueError as exc:
+                self._send_json({"status": "error", "code": "validation_error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            response_payload = _build_c4_dataset_state_payload(arena_id=arena_id, studio_state=studio_state)
+            response_payload["action"] = "assign_datasets"
             self._send_json(response_payload)
 
         def _handle_post_arena_dataset_rows_replace(

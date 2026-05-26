@@ -287,6 +287,7 @@ export type C4DatasetSummary = {
   versions_total: number;
   updated_at: string;
   last_version_id: string;
+  preview_rows: C4DatasetRow[];
 };
 
 // Русский комментарий: detail активного dataset в C4 Studio.
@@ -302,6 +303,7 @@ export type C4DatasetStateResponse = {
   capability_id: "c4";
   arena_id: string;
   active_dataset_id: string;
+  assigned_dataset_ids: string[];
   datasets: C4DatasetSummary[];
   active_dataset: C4DatasetDetail | null;
   action?: string;

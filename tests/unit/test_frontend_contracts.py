@@ -21,8 +21,8 @@ def test_capability_catalog_contains_six_items() -> None:
     assert capabilities[0]["route"] == "/battles"
 
 
-def test_capability_catalog_statuses_match_v2_3_s5_scope() -> None:
-    """Проверяет, что в V2.3.S5 capability C1/C2/C3/C4 открыты как enabled."""
+def test_capability_catalog_statuses_match_v2_3_s5a_scope() -> None:
+    """Проверяет, что в V2.3.S5a capability C1/C2/C3/C4 открыты как enabled."""
 
     payload = build_capability_catalog_payload()
     capabilities = payload["capabilities"]

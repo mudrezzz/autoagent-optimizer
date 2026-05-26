@@ -50,6 +50,14 @@ Response включает:
 }
 ```
 
+`POST /api/arenas/{arena_id}/datasets/assign`
+
+```json
+{
+  "dataset_ids": ["dset_1234567890", "dset_abcdefghij"]
+}
+```
+
 `POST /api/arenas/{arena_id}/datasets/{dataset_id}/rows/add`
 
 ```json

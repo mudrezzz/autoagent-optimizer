@@ -1119,8 +1119,8 @@ code { font-family: var(--font-mono); }
 }
 
 .c4-create-row input,
-.c4-toolbar select,
 .c4-row-editor input,
+.c4-table--editor input,
 .c4-import-block textarea {
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -1131,24 +1131,94 @@ code { font-family: var(--font-mono); }
 }
 
 .c4-toolbar {
-  display: grid;
-  grid-template-columns: minmax(220px, 0.8fr) auto auto minmax(200px, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: center;
 }
 
-.c4-meta {
-  display: inline-flex;
-  gap: 8px;
-  color: var(--gray-600);
-  font-size: 11px;
-  flex-wrap: wrap;
+.c4-toolbar--editor {
+  justify-content: flex-start;
 }
 
-.c4-row-editor {
-  display: grid;
-  grid-template-columns: minmax(130px, 0.45fr) 1fr 1fr minmax(160px, 0.6fr) auto;
+.c4-row-editor--list {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.c4-editor-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.c4-breadcrumbs {
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
+  color: var(--gray-600);
+  font-size: 12px;
+}
+
+.c4-breadcrumb-link {
+  border: none;
+  background: transparent;
+  color: var(--accent-700);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+}
+
+.c4-breadcrumb-link:hover {
+  text-decoration: underline;
+}
+
+.c4-updated {
+  font-size: 14px;
+}
+
+.c4-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.c4-dataset-details-panel {
+  border-top: 1px dashed var(--border-muted);
+  border-bottom: 1px solid var(--border-muted);
+  background: var(--gray-0);
+  padding: 12px 14px;
+}
+
+.c4-details-title {
+  font-size: 12px;
+  color: var(--gray-700);
+  margin-bottom: 8px;
+}
+
+.c4-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.c4-preview-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.35fr) 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.c4-preview-case {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--gray-700);
+}
+
+.c4-preview-text {
+  font-size: 12px;
+  color: var(--gray-800);
+  line-height: 1.45;
 }
 
 .c4-import-block {
@@ -1168,7 +1238,7 @@ code { font-family: var(--font-mono); }
   border: 1px solid var(--border-muted);
   border-radius: 10px;
   overflow: auto;
-  max-height: 230px;
+  max-height: 320px;
 }
 
 .c4-table {
@@ -1198,22 +1268,14 @@ code { font-family: var(--font-mono); }
   border-bottom: none;
 }
 
-.c4-versions {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.c4-table--editor td {
+  vertical-align: middle;
 }
 
-.c4-versions-title {
-  font-size: 11px;
-  color: var(--gray-600);
-  text-transform: uppercase;
-}
-
-.c4-version-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+.c4-table--editor input {
+  width: 100%;
+  min-width: 120px;
+  padding: 7px 9px;
 }
 
 .candidate-step-chip {

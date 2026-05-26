@@ -189,6 +189,7 @@ Input (Tenant + User + Battle + Task Brief + Constraints + Data + Budget)
    - `optimizer.c2` (deterministic brief-to-candidates generator + arena-scoped chat state contract + compile-readiness gate with per-candidate reports).
    - C3 pattern library UI/selection with saved include set and retrieval trace.
    - C4 dataset studio v0 (dataset create/select, row add/replace, validate, version snapshot) via `/api/arenas/{id}/datasets/*`.
+   - C4 UX unification layer: candidate-like dataset list, multi-dataset assignment (`/datasets/assign`) and dedicated dataset editor screen with breadcrumbs.
 2. Next:
    - Vertical product delivery track (`V2.3.*`) moves to C4 metrics/evaluator studio after C4 dataset slice completion.
    - Evaluation Fabric & MetricOps (`I5.*`) including evaluator adapter layer and post-export native evaluation loop.

@@ -687,6 +687,35 @@ class WorkspaceRegistryStore:
             self._write_store(data)
             return dict(studio_state)
 
+    def save_arena_assigned_datasets(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        dataset_ids: list[str],
+    ) -> dict[str, Any]:
+        """Сохраняет выбранный пользователем набор dataset для прогона арены."""
+
+        normalized_dataset_ids = _normalize_dataset_id_list(dataset_ids)
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            studio_state = _normalize_dataset_studio_state(workspace.get("dataset_studio"))
+            known_dataset_ids = {str(item.get("dataset_id", "")) for item in studio_state.get("datasets", [])}
+            unknown_dataset_ids = [item for item in normalized_dataset_ids if item not in known_dataset_ids]
+            if unknown_dataset_ids:
+                raise KeyError(f"Dataset not found: {unknown_dataset_ids[0]}")
+            studio_state["assigned_dataset_ids"] = normalized_dataset_ids
+            workspace["dataset_studio"] = studio_state
+            self._write_store(data)
+            return dict(studio_state)
+
     def append_arena_dataset_row(
         self,
         *,
@@ -1062,6 +1091,7 @@ def _build_default_dataset_studio_state() -> dict[str, Any]:
 
     return {
         "active_dataset_id": "",
+        "assigned_dataset_ids": [],
         "datasets": [],
     }
 
@@ -1083,8 +1113,16 @@ def _normalize_dataset_studio_state(raw_state: Any) -> dict[str, Any]:
         active_dataset_id = ""
     if not active_dataset_id and datasets:
         active_dataset_id = str(datasets[0].get("dataset_id", ""))
+    assigned_dataset_ids_raw = raw_state.get("assigned_dataset_ids", [])
+    try:
+        assigned_dataset_ids = _normalize_dataset_id_list(assigned_dataset_ids_raw)
+    except ValueError:
+        assigned_dataset_ids = []
+    known_dataset_ids = {str(item.get("dataset_id", "")) for item in datasets}
+    assigned_dataset_ids = [item for item in assigned_dataset_ids if item in known_dataset_ids]
     return {
         "active_dataset_id": active_dataset_id,
+        "assigned_dataset_ids": assigned_dataset_ids,
         "datasets": datasets,
     }
 
@@ -1166,3 +1204,21 @@ def _find_dataset_by_id(*, studio_state: dict[str, Any], dataset_id: str) -> dic
         if str(dataset.get("dataset_id", "")) == normalized_dataset_id:
             return dataset
     raise KeyError(f"Dataset not found: {normalized_dataset_id}")
+
+
+def _normalize_dataset_id_list(raw_value: Any) -> list[str]:
+    """Нормализует список dataset id в уникальный стабильный массив строк."""
+
+    if not isinstance(raw_value, list):
+        raise ValueError("Dataset id list must be an array.")
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for item in raw_value:
+        if not isinstance(item, str):
+            raise ValueError("Dataset id list must contain strings only.")
+        value = item.strip()
+        if not value or value in seen:
+            continue
+        seen.add(value)
+        normalized.append(value)
+    return normalized

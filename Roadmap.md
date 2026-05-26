@@ -139,6 +139,7 @@ Note: после `V2.3.S1` добавлен corrective slice `V2.3.S1a`, что�
 | V2.3.S4 | Candidate assembly + internal compile readiness | Done | candidate checkbox selection + `POST /api/arenas/{id}/candidates/select-for-tests` + internal retries/auto-fix before issue + FE/BE/QA |
 | V2.3.S4a | UX corrective: unified checkbox selection (C2/C3) | Done | C3 switched to single checkbox per pattern + explicit `Save`; interaction aligned with C2 selection flow |
 | V2.3.S5 | C4 Dataset Studio v0 | Done | upload/manual/synthetic/clean/check flows + versioned dataset artifacts |
+| V2.3.S5a | C4 UX unification + Dataset Editor | Done | candidate-like dataset list with checkbox+Save assignment, details preview rows, dedicated editor screen with breadcrumbs and row-level editing/import |
 | V2.3.S6 | C4 Metrics & Evaluators Studio v0 | Planned | configurable comparative/diagnostic metrics + evaluator method selection |
 | V2.3.S7 | C5 Optimizer setup + budget/epoch controls | Planned | optimization method settings + budget limits + launch guardrails |
 | V2.3.S8 | C5 Run Monitor + version manifest timeline | Planned | progress/epochs/events/trace drilldown + run manifest visibility |

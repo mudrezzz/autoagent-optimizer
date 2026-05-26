@@ -23,5 +23,6 @@
 7. [Releases / V2.3.S4](releases/v2.3.s4.md)
 8. [Releases / V2.3.S4a](releases/v2.3.s4a.md)
 9. [Releases / V2.3.S5](releases/v2.3.s5.md)
+10. [Releases / V2.3.S5a](releases/v2.3.s5a.md)
 
 _Deployment trigger: 2026-05-26._

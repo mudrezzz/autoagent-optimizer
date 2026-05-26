@@ -7,7 +7,7 @@ import type { ArenaRecord, C2CandidateSetDraft, Capability } from "../types";
 
 // Русский комментарий: мокируем API-слой, чтобы UI-тесты были детерминированными и не зависели от backend-сервера.
 vi.mock("../api", () => ({
-  addArenaDatasetRow: vi.fn(),
+  assignArenaDatasets: vi.fn(),
   createArenaDataset: vi.fn(),
   createArena: vi.fn(),
   deleteArena: vi.fn(),
@@ -31,7 +31,7 @@ vi.mock("../api", () => ({
 }));
 
 import {
-  addArenaDatasetRow,
+  assignArenaDatasets,
   createArenaDataset,
   createArena,
   deleteArena,
@@ -262,6 +262,7 @@ describe("Battle workspace candidates", () => {
       capability_id: "c4",
       arena_id: ARENA.workspace_id,
       active_dataset_id: "dset_demo_1",
+      assigned_dataset_ids: [],
       datasets: [
         {
           dataset_id: "dset_demo_1",
@@ -271,6 +272,10 @@ describe("Battle workspace candidates", () => {
           versions_total: 1,
           updated_at: "2026-05-26T00:00:00+00:00",
           last_version_id: "dsv_demo_1",
+          preview_rows: [
+            { case_id: "case_1", input: "input 1", expected: "expected 1", notes: "" },
+            { case_id: "case_2", input: "input 2", expected: "expected 2", notes: "" },
+          ],
         },
       ],
       active_dataset: {
@@ -293,8 +298,8 @@ describe("Battle workspace candidates", () => {
     vi.mocked(postArenaChatMessage).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(selectArenaCandidatesForTests).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(createArenaDataset).mockRejectedValue(new Error("not used in this test"));
+    vi.mocked(assignArenaDatasets).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(selectArenaDataset).mockRejectedValue(new Error("not used in this test"));
-    vi.mocked(addArenaDatasetRow).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(replaceArenaDatasetRows).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(validateArenaDataset).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(saveArenaDatasetVersion).mockRejectedValue(new Error("not used in this test"));
@@ -545,14 +550,91 @@ describe("Battle workspace candidates", () => {
     expect(await screen.findByRole("region", { name: "c3 pattern details" })).toBeInTheDocument();
   });
 
-  it("switches to C4 and adds dataset row", async () => {
+  it("switches to C4, saves assignment and edits dataset rows", async () => {
     const user = userEvent.setup();
-    vi.mocked(addArenaDatasetRow).mockResolvedValue({
+    vi.mocked(assignArenaDatasets).mockResolvedValue({
       status: "success",
       capability_id: "c4",
       arena_id: ARENA.workspace_id,
-      action: "add_row",
+      action: "assign_datasets",
       active_dataset_id: "dset_demo_1",
+      assigned_dataset_ids: ["dset_demo_1"],
+      datasets: [
+        {
+          dataset_id: "dset_demo_1",
+          name: "LinkedIn Golden",
+          description: "demo dataset",
+          rows_total: 2,
+          versions_total: 1,
+          updated_at: "2026-05-26T00:10:00+00:00",
+          last_version_id: "dsv_demo_1",
+          preview_rows: [
+            { case_id: "case_1", input: "input 1", expected: "expected 1", notes: "" },
+            { case_id: "case_2", input: "input 2", expected: "expected 2", notes: "" },
+          ],
+        },
+      ],
+      active_dataset: {
+        dataset_id: "dset_demo_1",
+        name: "LinkedIn Golden",
+        description: "demo dataset",
+        rows_total: 2,
+        versions_total: 1,
+        updated_at: "2026-05-26T00:10:00+00:00",
+        last_version_id: "dsv_demo_1",
+        created_at: "2026-05-26T00:00:00+00:00",
+        rows: [
+          { case_id: "case_1", input: "input 1", expected: "expected 1", notes: "" },
+          { case_id: "case_2", input: "input 2", expected: "expected 2", notes: "" },
+        ],
+        versions: [{ version_id: "dsv_demo_1", label: "v1", created_at: "2026-05-26T00:00:00+00:00", rows_total: 2, source: "manual" }],
+      },
+    });
+    vi.mocked(selectArenaDataset).mockResolvedValue({
+      status: "success",
+      capability_id: "c4",
+      arena_id: ARENA.workspace_id,
+      action: "select_dataset",
+      active_dataset_id: "dset_demo_1",
+      assigned_dataset_ids: ["dset_demo_1"],
+      datasets: [
+        {
+          dataset_id: "dset_demo_1",
+          name: "LinkedIn Golden",
+          description: "demo dataset",
+          rows_total: 2,
+          versions_total: 1,
+          updated_at: "2026-05-26T00:10:00+00:00",
+          last_version_id: "dsv_demo_1",
+          preview_rows: [
+            { case_id: "case_1", input: "input 1", expected: "expected 1", notes: "" },
+            { case_id: "case_2", input: "input 2", expected: "expected 2", notes: "" },
+          ],
+        },
+      ],
+      active_dataset: {
+        dataset_id: "dset_demo_1",
+        name: "LinkedIn Golden",
+        description: "demo dataset",
+        rows_total: 2,
+        versions_total: 1,
+        updated_at: "2026-05-26T00:10:00+00:00",
+        last_version_id: "dsv_demo_1",
+        created_at: "2026-05-26T00:00:00+00:00",
+        rows: [
+          { case_id: "case_1", input: "input 1", expected: "expected 1", notes: "" },
+          { case_id: "case_2", input: "input 2", expected: "expected 2", notes: "" },
+        ],
+        versions: [{ version_id: "dsv_demo_1", label: "v1", created_at: "2026-05-26T00:00:00+00:00", rows_total: 2, source: "manual" }],
+      },
+    });
+    vi.mocked(replaceArenaDatasetRows).mockResolvedValue({
+      status: "success",
+      capability_id: "c4",
+      arena_id: ARENA.workspace_id,
+      action: "replace_rows",
+      active_dataset_id: "dset_demo_1",
+      assigned_dataset_ids: ["dset_demo_1"],
       datasets: [
         {
           dataset_id: "dset_demo_1",
@@ -560,8 +642,13 @@ describe("Battle workspace candidates", () => {
           description: "demo dataset",
           rows_total: 3,
           versions_total: 1,
-          updated_at: "2026-05-26T00:10:00+00:00",
+          updated_at: "2026-05-26T00:12:00+00:00",
           last_version_id: "dsv_demo_1",
+          preview_rows: [
+            { case_id: "case_1", input: "input 1", expected: "expected 1", notes: "" },
+            { case_id: "case_2", input: "input 2", expected: "expected 2", notes: "" },
+            { case_id: "case_3", input: "input 3", expected: "expected 3", notes: "" },
+          ],
         },
       ],
       active_dataset: {
@@ -570,17 +657,16 @@ describe("Battle workspace candidates", () => {
         description: "demo dataset",
         rows_total: 3,
         versions_total: 1,
-        updated_at: "2026-05-26T00:10:00+00:00",
+        updated_at: "2026-05-26T00:12:00+00:00",
         last_version_id: "dsv_demo_1",
         created_at: "2026-05-26T00:00:00+00:00",
         rows: [
           { case_id: "case_1", input: "input 1", expected: "expected 1", notes: "" },
           { case_id: "case_2", input: "input 2", expected: "expected 2", notes: "" },
-          { case_id: "case_3", input: "input 3", expected: "expected 3", notes: "n" },
+          { case_id: "case_3", input: "input 3", expected: "expected 3", notes: "" },
         ],
         versions: [{ version_id: "dsv_demo_1", label: "v1", created_at: "2026-05-26T00:00:00+00:00", rows_total: 2, source: "manual" }],
       },
-      row: { case_id: "case_3", input: "input 3", expected: "expected 3", notes: "n" },
     });
 
     renderWorkspace();
@@ -588,20 +674,20 @@ describe("Battle workspace candidates", () => {
     await user.click(c4Button);
 
     expect(await screen.findByText("Dataset studio")).toBeInTheDocument();
-    const inputField = await screen.findByPlaceholderText("input");
-    const expectedField = await screen.findByPlaceholderText("expected");
-    await user.type(inputField, "input 3");
-    await user.type(expectedField, "expected 3");
-    await user.click(await screen.findByRole("button", { name: "Add row" }));
+    await user.click(await screen.findByLabelText("select-dset_demo_1-for-arena"));
+    await user.click(await screen.findByRole("button", { name: "Save" }));
+    expect(vi.mocked(assignArenaDatasets)).toHaveBeenCalledWith(ARENA.workspace_id, ["dset_demo_1"]);
 
-    expect(vi.mocked(addArenaDatasetRow)).toHaveBeenCalledWith(
-      ARENA.workspace_id,
-      "dset_demo_1",
-      expect.objectContaining({
-        input: "input 3",
-        expected: "expected 3",
-      }),
-    );
-    expect(await screen.findByText("case_3")).toBeInTheDocument();
+    const detailsButtons = await screen.findAllByRole("button", { name: "Details" });
+    await user.click(detailsButtons[0]);
+    expect(await screen.findByText("Preview first 5 rows")).toBeInTheDocument();
+
+    await user.click(await screen.findByRole("button", { name: "Edit" }));
+    expect(await screen.findByText("Edit")).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Add row" }));
+    const caseInputs = await screen.findAllByDisplayValue("");
+    await user.type(caseInputs[0], "case_3");
+    await user.click(await screen.findByRole("button", { name: "Save changes" }));
+    expect(vi.mocked(replaceArenaDatasetRows)).toHaveBeenCalled();
   });
 });

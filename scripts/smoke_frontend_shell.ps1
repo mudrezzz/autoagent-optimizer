@@ -1,4 +1,4 @@
-﻿# Smoke runner for frontend capability shell (V2.3.S5 / C1+C2+C3+C4 vertical slice).
+﻿# Smoke runner for frontend capability shell (V2.3.S5a / C1+C2+C3+C4 vertical slice).
 param()
 
 $ErrorActionPreference = "Stop"
@@ -63,22 +63,22 @@ try {
 
   $c1 = $capabilities.capabilities | Where-Object { $_.id -eq "c1" }
   if ($null -eq $c1 -or $c1.status -ne "enabled") {
-    throw "C1 capability must be enabled in V2.3.S5."
+    throw "C1 capability must be enabled in V2.3.S5a."
   }
   if ($c1.name -ne "Battle Registry") {
     throw "C1 capability name must match product capability model."
   }
   $c2 = $capabilities.capabilities | Where-Object { $_.id -eq "c2" }
   if ($null -eq $c2 -or $c2.status -ne "enabled") {
-    throw "C2 capability must be enabled in V2.3.S5."
+    throw "C2 capability must be enabled in V2.3.S5a."
   }
   $c3 = $capabilities.capabilities | Where-Object { $_.id -eq "c3" }
   if ($null -eq $c3 -or $c3.status -ne "enabled") {
-    throw "C3 capability must be enabled in V2.3.S5."
+    throw "C3 capability must be enabled in V2.3.S5a."
   }
   $c4 = $capabilities.capabilities | Where-Object { $_.id -eq "c4" }
   if ($null -eq $c4 -or $c4.status -ne "enabled") {
-    throw "C4 capability must be enabled in V2.3.S5."
+    throw "C4 capability must be enabled in V2.3.S5a."
   }
 
   Write-Host "[SMOKE] run C1 battle flow"
@@ -163,6 +163,12 @@ try {
     throw "C4 save version endpoint returned unexpected payload."
   }
 
+  $datasetAssignPayload = @{ dataset_ids = @($datasetId) } | ConvertTo-Json -Compress
+  $datasetAssign = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId/datasets/assign" -Method Post -Body $datasetAssignPayload -ContentType "application/json" -TimeoutSec 8
+  if ($datasetAssign.status -ne "success" -or $datasetAssign.assigned_dataset_ids.Count -ne 1) {
+    throw "C4 assign datasets endpoint returned unexpected payload."
+  }
+
   Write-Host "[SMOKE] frontend capability shell completed successfully."
 } finally {
   if ($null -ne $process -and -not $process.HasExited) {
@@ -173,3 +179,5 @@ try {
   }
   Remove-Item Env:AUTOAGENT_WORKSPACE_STORE_FILE -ErrorAction SilentlyContinue
 }
+
+

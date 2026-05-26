@@ -32,10 +32,11 @@
 
 В C4 Dataset Studio:
 
-1. Пользователь создает и выбирает активный dataset.
-2. Можно добавить строку вручную (`case_id`, `input`, `expected`, `notes`).
-3. Можно импортировать набор строк через JSONL-textarea (replace mode).
-4. Кнопка `Validate` показывает `issues` (`error`/`warning`) без запуска оптимизатора.
-5. Кнопка `Save version` сохраняет snapshot текущих строк.
+1. Экран разделен на два режима: `list` и `edit`.
+2. В `list` режиме dataset-ы отображаются как candidate-like rows с чекбоксами.
+3. Кнопка `Save` сохраняет назначение выбранных dataset-ов на арену.
+4. `Details` раскрывает превью первых 5 строк.
+5. `Edit` открывает отдельный editor-screen с breadcrumbs.
+6. В `edit` режиме доступны add/delete/edit rows, JSONL import, `Save changes`, `Validate`, `Save version`.
 
 Состояние загружается через `fetchArenaDatasetState` и обновляется после каждого C4 действия.

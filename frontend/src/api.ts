@@ -251,6 +251,20 @@ export async function selectArenaDataset(arenaId: string, datasetId: string): Pr
   return parseJsonOrThrow<C4DatasetStateResponse>(response);
 }
 
+// Русский комментарий: сохраняет список dataset-ов, назначенных для прогона арены.
+export async function assignArenaDatasets(arenaId: string, datasetIds: string[]): Promise<C4DatasetStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/datasets/assign`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ dataset_ids: datasetIds }),
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to assign datasets: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C4DatasetStateResponse>(response);
+}
+
 // Русский комментарий: добавляет одну строку в dataset C4 Studio.
 export async function addArenaDatasetRow(
   arenaId: string,
