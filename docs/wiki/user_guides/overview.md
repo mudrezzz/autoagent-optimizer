@@ -1,5 +1,19 @@
 ﻿# User Guide Overview
 
+## Реальные скриншоты интерфейса
+
+### Battles Hub
+
+![Battles Hub](../assets/screenshots/real-battles-hub.png)
+
+### Battle Workspace (C2)
+
+![Battle Workspace C2](../assets/screenshots/real-workspace-c2.png)
+
+### Battle Workspace (C3)
+
+![Battle Workspace C3](../assets/screenshots/real-workspace-c3.png)
+
 ## Базовый пользовательский поток
 
 1. Создайте или откройте battle в Battles Hub.
@@ -15,3 +29,4 @@
 2. Внутренние попытки автоисправления подготовительных ошибок.
 
 Пользователь видит только итог: кандидат готов к тесту или требуется ручное внимание.
+
