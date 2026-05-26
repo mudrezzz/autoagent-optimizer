@@ -1,4 +1,4 @@
-﻿# AutoAgent Optimizer Wiki
+# AutoAgent Optimizer Wiki
 
 Этот wiki-сайт публикуется из текущего репозитория через GitHub Pages.
 
@@ -19,3 +19,5 @@
 3. [Developer / Backend](developer/backend.md)
 4. [Developer / Frontend](developer/frontend.md)
 5. [Releases / V2.3.S4](releases/v2.3.s4.md)
+
+_Deployment trigger: 2026-05-26._
