@@ -261,6 +261,66 @@ export type C3PatternSearchResponse = {
   patterns: C3PatternItem[];
 };
 
+// Русский комментарий: строка dataset для C4 Dataset Studio.
+export type C4DatasetRow = {
+  case_id: string;
+  input: string;
+  expected: string;
+  notes: string;
+};
+
+// Русский комментарий: version snapshot metadata для dataset.
+export type C4DatasetVersion = {
+  version_id: string;
+  label: string;
+  created_at: string;
+  rows_total: number;
+  source: string;
+};
+
+// Русский комментарий: summary dataset для списка в C4 Studio.
+export type C4DatasetSummary = {
+  dataset_id: string;
+  name: string;
+  description: string;
+  rows_total: number;
+  versions_total: number;
+  updated_at: string;
+  last_version_id: string;
+};
+
+// Русский комментарий: detail активного dataset в C4 Studio.
+export type C4DatasetDetail = C4DatasetSummary & {
+  created_at: string;
+  rows: C4DatasetRow[];
+  versions: C4DatasetVersion[];
+};
+
+// Русский комментарий: ответ состояния C4 Dataset Studio.
+export type C4DatasetStateResponse = {
+  status: "success";
+  capability_id: "c4";
+  arena_id: string;
+  active_dataset_id: string;
+  datasets: C4DatasetSummary[];
+  active_dataset: C4DatasetDetail | null;
+  action?: string;
+  row?: C4DatasetRow;
+  dataset?: C4DatasetDetail;
+  version?: C4DatasetVersion;
+  validation_report?: {
+    dataset_id: string;
+    rows_total: number;
+    status: "ok" | "failed";
+    issues: Array<{
+      severity: "error" | "warning" | string;
+      code: string;
+      row_index: number | null;
+      message: string;
+    }>;
+  };
+};
+
 // Русский комментарий: тип issue в compile report legacy debug endpoint.
 export type CompileIssue = {
   severity: "warning" | "error" | string;

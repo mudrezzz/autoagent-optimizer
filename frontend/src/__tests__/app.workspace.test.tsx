@@ -7,8 +7,11 @@ import type { ArenaRecord, C2CandidateSetDraft, Capability } from "../types";
 
 // Русский комментарий: мокируем API-слой, чтобы UI-тесты были детерминированными и не зависели от backend-сервера.
 vi.mock("../api", () => ({
+  addArenaDatasetRow: vi.fn(),
+  createArenaDataset: vi.fn(),
   createArena: vi.fn(),
   deleteArena: vi.fn(),
+  fetchArenaDatasetState: vi.fn(),
   duplicateArena: vi.fn(),
   fetchCapabilityCatalog: vi.fn(),
   fetchArenaPatternSelection: vi.fn(),
@@ -17,15 +20,22 @@ vi.mock("../api", () => ({
   getArenaChatState: vi.fn(),
   listArenas: vi.fn(),
   postArenaChatMessage: vi.fn(),
+  replaceArenaDatasetRows: vi.fn(),
   renameArena: vi.fn(),
   saveArenaPatternSelection: vi.fn(),
+  saveArenaDatasetVersion: vi.fn(),
   searchArenaPatterns: vi.fn(),
+  selectArenaDataset: vi.fn(),
   selectArenaCandidatesForTests: vi.fn(),
+  validateArenaDataset: vi.fn(),
 }));
 
 import {
+  addArenaDatasetRow,
+  createArenaDataset,
   createArena,
   deleteArena,
+  fetchArenaDatasetState,
   duplicateArena,
   fetchCapabilityCatalog,
   fetchArenaPatternSelection,
@@ -34,10 +44,14 @@ import {
   getArenaChatState,
   listArenas,
   postArenaChatMessage,
+  replaceArenaDatasetRows,
   renameArena,
   saveArenaPatternSelection,
+  saveArenaDatasetVersion,
   searchArenaPatterns,
+  selectArenaDataset,
   selectArenaCandidatesForTests,
+  validateArenaDataset,
 } from "../api";
 
 // Русский комментарий: фикстура battle-арены для режима workspace.
@@ -54,7 +68,8 @@ const ARENA: ArenaRecord = {
 const CAPABILITIES: Capability[] = [
   { id: "c1", name: "Battle Registry", description: "Manage battle arenas.", status: "enabled", badge_count: 1 },
   { id: "c2", name: "Task Chat + Candidates", description: "Generate candidates from chat.", status: "enabled", badge_count: 1 },
-  { id: "c3", name: "Pattern Library + RAG", description: "Planned", status: "planned", badge_count: 0 },
+  { id: "c3", name: "Pattern Library + RAG", description: "Pattern retrieval", status: "enabled", badge_count: 1 },
+  { id: "c4", name: "Dataset & Metrics Studio", description: "Dataset controls", status: "enabled", badge_count: 1 },
 ];
 
 // Русский комментарий: фикстура набора кандидатов для проверки рендера, фокуса и accordion-деталей.
@@ -242,9 +257,47 @@ describe("Battle workspace candidates", () => {
         },
       ],
     });
+    vi.mocked(fetchArenaDatasetState).mockResolvedValue({
+      status: "success",
+      capability_id: "c4",
+      arena_id: ARENA.workspace_id,
+      active_dataset_id: "dset_demo_1",
+      datasets: [
+        {
+          dataset_id: "dset_demo_1",
+          name: "LinkedIn Golden",
+          description: "demo dataset",
+          rows_total: 2,
+          versions_total: 1,
+          updated_at: "2026-05-26T00:00:00+00:00",
+          last_version_id: "dsv_demo_1",
+        },
+      ],
+      active_dataset: {
+        dataset_id: "dset_demo_1",
+        name: "LinkedIn Golden",
+        description: "demo dataset",
+        rows_total: 2,
+        versions_total: 1,
+        updated_at: "2026-05-26T00:00:00+00:00",
+        last_version_id: "dsv_demo_1",
+        created_at: "2026-05-26T00:00:00+00:00",
+        rows: [
+          { case_id: "case_1", input: "input 1", expected: "expected 1", notes: "" },
+          { case_id: "case_2", input: "input 2", expected: "expected 2", notes: "" },
+        ],
+        versions: [{ version_id: "dsv_demo_1", label: "v1", created_at: "2026-05-26T00:00:00+00:00", rows_total: 2, source: "manual" }],
+      },
+    });
 
     vi.mocked(postArenaChatMessage).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(selectArenaCandidatesForTests).mockRejectedValue(new Error("not used in this test"));
+    vi.mocked(createArenaDataset).mockRejectedValue(new Error("not used in this test"));
+    vi.mocked(selectArenaDataset).mockRejectedValue(new Error("not used in this test"));
+    vi.mocked(addArenaDatasetRow).mockRejectedValue(new Error("not used in this test"));
+    vi.mocked(replaceArenaDatasetRows).mockRejectedValue(new Error("not used in this test"));
+    vi.mocked(validateArenaDataset).mockRejectedValue(new Error("not used in this test"));
+    vi.mocked(saveArenaDatasetVersion).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(createArena).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(renameArena).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(duplicateArena).mockRejectedValue(new Error("not used in this test"));
@@ -490,5 +543,65 @@ describe("Battle workspace candidates", () => {
     await user.click(detailsButtons[0]);
     expect(await screen.findByLabelText("c3-pattern-mini-graph-svg")).toBeInTheDocument();
     expect(await screen.findByRole("region", { name: "c3 pattern details" })).toBeInTheDocument();
+  });
+
+  it("switches to C4 and adds dataset row", async () => {
+    const user = userEvent.setup();
+    vi.mocked(addArenaDatasetRow).mockResolvedValue({
+      status: "success",
+      capability_id: "c4",
+      arena_id: ARENA.workspace_id,
+      action: "add_row",
+      active_dataset_id: "dset_demo_1",
+      datasets: [
+        {
+          dataset_id: "dset_demo_1",
+          name: "LinkedIn Golden",
+          description: "demo dataset",
+          rows_total: 3,
+          versions_total: 1,
+          updated_at: "2026-05-26T00:10:00+00:00",
+          last_version_id: "dsv_demo_1",
+        },
+      ],
+      active_dataset: {
+        dataset_id: "dset_demo_1",
+        name: "LinkedIn Golden",
+        description: "demo dataset",
+        rows_total: 3,
+        versions_total: 1,
+        updated_at: "2026-05-26T00:10:00+00:00",
+        last_version_id: "dsv_demo_1",
+        created_at: "2026-05-26T00:00:00+00:00",
+        rows: [
+          { case_id: "case_1", input: "input 1", expected: "expected 1", notes: "" },
+          { case_id: "case_2", input: "input 2", expected: "expected 2", notes: "" },
+          { case_id: "case_3", input: "input 3", expected: "expected 3", notes: "n" },
+        ],
+        versions: [{ version_id: "dsv_demo_1", label: "v1", created_at: "2026-05-26T00:00:00+00:00", rows_total: 2, source: "manual" }],
+      },
+      row: { case_id: "case_3", input: "input 3", expected: "expected 3", notes: "n" },
+    });
+
+    renderWorkspace();
+    const c4Button = await screen.findByRole("button", { name: /Dataset & Metrics Studio/i });
+    await user.click(c4Button);
+
+    expect(await screen.findByText("Dataset studio")).toBeInTheDocument();
+    const inputField = await screen.findByPlaceholderText("input");
+    const expectedField = await screen.findByPlaceholderText("expected");
+    await user.type(inputField, "input 3");
+    await user.type(expectedField, "expected 3");
+    await user.click(await screen.findByRole("button", { name: "Add row" }));
+
+    expect(vi.mocked(addArenaDatasetRow)).toHaveBeenCalledWith(
+      ARENA.workspace_id,
+      "dset_demo_1",
+      expect.objectContaining({
+        input: "input 3",
+        expected: "expected 3",
+      }),
+    );
+    expect(await screen.findByText("case_3")).toBeInTheDocument();
   });
 });

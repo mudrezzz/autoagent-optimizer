@@ -90,6 +90,7 @@ class WorkspaceRegistryStore:
                 "chat_messages": [],
                 "candidate_set_draft": None,
                 "pattern_selection": _build_default_pattern_selection(),
+                "dataset_studio": _build_default_dataset_studio_state(),
             }
             data["workspaces"].append(workspace)
             self._write_store(data)
@@ -176,6 +177,7 @@ class WorkspaceRegistryStore:
                 "chat_messages": [],
                 "candidate_set_draft": None,
                 "pattern_selection": _build_default_pattern_selection(),
+                "dataset_studio": _build_default_dataset_studio_state(),
             }
             data["workspaces"].append(workspace_copy)
             self._write_store(data)
@@ -587,6 +589,252 @@ class WorkspaceRegistryStore:
             self._write_store(data)
             return dict(normalized)
 
+    def get_arena_dataset_studio_state(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+    ) -> dict[str, Any]:
+        """Возвращает состояние Dataset Studio для выбранной арены."""
+
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            normalized_state = _normalize_dataset_studio_state(workspace.get("dataset_studio"))
+            workspace["dataset_studio"] = normalized_state
+            self._write_store(data)
+            return dict(normalized_state)
+
+    def create_arena_dataset(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        name: str,
+        description: str,
+    ) -> dict[str, Any]:
+        """Создает новый dataset в Dataset Studio арены и делает его активным."""
+
+        normalized_name = name.strip()
+        normalized_description = description.strip()
+        if not normalized_name:
+            raise ValueError("Dataset name must be a non-empty string.")
+
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            studio_state = _normalize_dataset_studio_state(workspace.get("dataset_studio"))
+            datasets = studio_state.get("datasets", [])
+            if any(str(item.get("name", "")).strip().lower() == normalized_name.lower() for item in datasets):
+                raise ValueError("Dataset with the same name already exists.")
+            now = _utc_now_iso()
+            dataset = {
+                "dataset_id": f"dset_{uuid4().hex[:10]}",
+                "name": normalized_name,
+                "description": normalized_description,
+                "created_at": now,
+                "updated_at": now,
+                "rows": [],
+                "versions": [],
+            }
+            datasets.append(dataset)
+            studio_state["datasets"] = datasets
+            studio_state["active_dataset_id"] = dataset["dataset_id"]
+            workspace["dataset_studio"] = studio_state
+            self._write_store(data)
+            return dict(dataset)
+
+    def set_active_arena_dataset(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        dataset_id: str,
+    ) -> dict[str, Any]:
+        """Устанавливает активный dataset для выбранной арены."""
+
+        normalized_dataset_id = dataset_id.strip()
+        if not normalized_dataset_id:
+            raise ValueError("Dataset id must be a non-empty string.")
+
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            studio_state = _normalize_dataset_studio_state(workspace.get("dataset_studio"))
+            datasets = studio_state.get("datasets", [])
+            if not any(str(item.get("dataset_id", "")) == normalized_dataset_id for item in datasets):
+                raise KeyError(f"Dataset not found: {normalized_dataset_id}")
+            studio_state["active_dataset_id"] = normalized_dataset_id
+            workspace["dataset_studio"] = studio_state
+            self._write_store(data)
+            return dict(studio_state)
+
+    def append_arena_dataset_row(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        dataset_id: str,
+        row: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Добавляет одну строку в dataset и возвращает нормализованную запись."""
+
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            studio_state = _normalize_dataset_studio_state(workspace.get("dataset_studio"))
+            dataset = _find_dataset_by_id(studio_state=studio_state, dataset_id=dataset_id)
+            normalized_row = _normalize_dataset_row(row)
+            rows = dataset.get("rows", [])
+            rows.append(normalized_row)
+            dataset["rows"] = rows
+            dataset["updated_at"] = _utc_now_iso()
+            workspace["dataset_studio"] = studio_state
+            self._write_store(data)
+            return dict(normalized_row)
+
+    def replace_arena_dataset_rows(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        dataset_id: str,
+        rows: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        """Полностью заменяет строки dataset и возвращает обновленный dataset."""
+
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            studio_state = _normalize_dataset_studio_state(workspace.get("dataset_studio"))
+            dataset = _find_dataset_by_id(studio_state=studio_state, dataset_id=dataset_id)
+            normalized_rows = [_normalize_dataset_row(item) for item in rows]
+            dataset["rows"] = normalized_rows
+            dataset["updated_at"] = _utc_now_iso()
+            workspace["dataset_studio"] = studio_state
+            self._write_store(data)
+            return dict(dataset)
+
+    def save_arena_dataset_version(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        dataset_id: str,
+        label: str,
+        source: str,
+    ) -> dict[str, Any]:
+        """Сохраняет version snapshot выбранного dataset."""
+
+        normalized_label = label.strip() or f"snapshot-{_utc_now_iso()}"
+        normalized_source = source.strip() or "manual"
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            studio_state = _normalize_dataset_studio_state(workspace.get("dataset_studio"))
+            dataset = _find_dataset_by_id(studio_state=studio_state, dataset_id=dataset_id)
+            rows = [_normalize_dataset_row(item) for item in dataset.get("rows", [])]
+            version = {
+                "version_id": f"dsv_{uuid4().hex[:10]}",
+                "label": normalized_label,
+                "created_at": _utc_now_iso(),
+                "rows_total": len(rows),
+                "source": normalized_source,
+                "rows_snapshot": rows,
+            }
+            versions = dataset.get("versions", [])
+            versions.append(version)
+            dataset["versions"] = versions
+            dataset["updated_at"] = _utc_now_iso()
+            workspace["dataset_studio"] = studio_state
+            self._write_store(data)
+            return dict(version)
+
+    def validate_arena_dataset(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        dataset_id: str,
+    ) -> dict[str, Any]:
+        """Выполняет базовую валидацию dataset v0 и возвращает отчет issues."""
+
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            studio_state = _normalize_dataset_studio_state(workspace.get("dataset_studio"))
+            dataset = _find_dataset_by_id(studio_state=studio_state, dataset_id=dataset_id)
+            rows = [_normalize_dataset_row(item) for item in dataset.get("rows", [])]
+            issues: list[dict[str, Any]] = []
+            seen_case_ids: set[str] = set()
+            for index, row in enumerate(rows):
+                case_id = str(row.get("case_id", "")).strip()
+                input_text = str(row.get("input", "")).strip()
+                expected_text = str(row.get("expected", "")).strip()
+                if not case_id:
+                    issues.append({"severity": "error", "code": "missing_case_id", "row_index": index, "message": "case_id is required."})
+                elif case_id in seen_case_ids:
+                    issues.append(
+                        {"severity": "error", "code": "duplicate_case_id", "row_index": index, "message": f"case_id `{case_id}` is duplicated."}
+                    )
+                seen_case_ids.add(case_id)
+                if not input_text:
+                    issues.append({"severity": "error", "code": "missing_input", "row_index": index, "message": "input is required."})
+                if not expected_text:
+                    issues.append({"severity": "warning", "code": "missing_expected", "row_index": index, "message": "expected is empty."})
+
+            if not rows:
+                issues.append({"severity": "error", "code": "empty_dataset", "row_index": None, "message": "Dataset must contain at least one row."})
+
+            return {
+                "dataset_id": str(dataset.get("dataset_id", "")),
+                "rows_total": len(rows),
+                "issues": issues,
+                "status": "ok" if not any(item.get("severity") == "error" for item in issues) else "failed",
+            }
+
     def _read_store(self) -> dict[str, Any]:
         """Читает JSON-store и гарантирует корректный базовый контракт."""
 
@@ -807,3 +1055,114 @@ def _normalize_pattern_id_list(raw_value: Any) -> list[str]:
         seen.add(value)
         normalized.append(value)
     return normalized
+
+
+def _build_default_dataset_studio_state() -> dict[str, Any]:
+    """Строит default-состояние Dataset Studio для новой арены."""
+
+    return {
+        "active_dataset_id": "",
+        "datasets": [],
+    }
+
+
+def _normalize_dataset_studio_state(raw_state: Any) -> dict[str, Any]:
+    """Нормализует состояние Dataset Studio и возвращает безопасный payload."""
+
+    if not isinstance(raw_state, dict):
+        return _build_default_dataset_studio_state()
+    datasets_raw = raw_state.get("datasets", [])
+    datasets: list[dict[str, Any]] = []
+    if isinstance(datasets_raw, list):
+        for item in datasets_raw:
+            if not isinstance(item, dict):
+                continue
+            datasets.append(_normalize_dataset_payload(item))
+    active_dataset_id = str(raw_state.get("active_dataset_id", "")).strip()
+    if active_dataset_id and not any(str(item.get("dataset_id", "")) == active_dataset_id for item in datasets):
+        active_dataset_id = ""
+    if not active_dataset_id and datasets:
+        active_dataset_id = str(datasets[0].get("dataset_id", ""))
+    return {
+        "active_dataset_id": active_dataset_id,
+        "datasets": datasets,
+    }
+
+
+def _normalize_dataset_payload(raw_dataset: dict[str, Any]) -> dict[str, Any]:
+    """Нормализует один dataset с rows и version snapshots."""
+
+    dataset_id = str(raw_dataset.get("dataset_id", "")).strip() or f"dset_{uuid4().hex[:10]}"
+    name = str(raw_dataset.get("name", "")).strip() or "dataset"
+    description = str(raw_dataset.get("description", "")).strip()
+    created_at = str(raw_dataset.get("created_at", "")).strip() or _utc_now_iso()
+    updated_at = str(raw_dataset.get("updated_at", "")).strip() or created_at
+    rows_raw = raw_dataset.get("rows", [])
+    versions_raw = raw_dataset.get("versions", [])
+    rows = [_normalize_dataset_row(item) for item in rows_raw if isinstance(item, dict)] if isinstance(rows_raw, list) else []
+    versions = [_normalize_dataset_version(item) for item in versions_raw if isinstance(item, dict)] if isinstance(versions_raw, list) else []
+    return {
+        "dataset_id": dataset_id,
+        "name": name,
+        "description": description,
+        "created_at": created_at,
+        "updated_at": updated_at,
+        "rows": rows,
+        "versions": versions,
+    }
+
+
+def _normalize_dataset_row(raw_row: Any) -> dict[str, Any]:
+    """Нормализует одну dataset-row в контракт `case_id/input/expected/notes`."""
+
+    if not isinstance(raw_row, dict):
+        raise ValueError("Dataset row must be an object.")
+    case_id = str(raw_row.get("case_id", "")).strip() or f"case_{uuid4().hex[:8]}"
+    input_text = str(raw_row.get("input", "")).strip()
+    expected_text = str(raw_row.get("expected", "")).strip()
+    notes = str(raw_row.get("notes", "")).strip()
+    return {
+        "case_id": case_id,
+        "input": input_text,
+        "expected": expected_text,
+        "notes": notes,
+    }
+
+
+def _normalize_dataset_version(raw_version: dict[str, Any]) -> dict[str, Any]:
+    """Нормализует metadata version snapshot dataset."""
+
+    version_id = str(raw_version.get("version_id", "")).strip() or f"dsv_{uuid4().hex[:10]}"
+    label = str(raw_version.get("label", "")).strip() or version_id
+    created_at = str(raw_version.get("created_at", "")).strip() or _utc_now_iso()
+    source = str(raw_version.get("source", "")).strip() or "manual"
+    rows_snapshot_raw = raw_version.get("rows_snapshot", [])
+    rows_snapshot = (
+        [_normalize_dataset_row(item) for item in rows_snapshot_raw if isinstance(item, dict)]
+        if isinstance(rows_snapshot_raw, list)
+        else []
+    )
+    rows_total_raw = raw_version.get("rows_total", len(rows_snapshot))
+    try:
+        rows_total = int(rows_total_raw)
+    except (TypeError, ValueError):
+        rows_total = len(rows_snapshot)
+    return {
+        "version_id": version_id,
+        "label": label,
+        "created_at": created_at,
+        "rows_total": rows_total,
+        "source": source,
+        "rows_snapshot": rows_snapshot,
+    }
+
+
+def _find_dataset_by_id(*, studio_state: dict[str, Any], dataset_id: str) -> dict[str, Any]:
+    """Ищет dataset по id и бросает KeyError, если dataset отсутствует."""
+
+    normalized_dataset_id = str(dataset_id).strip()
+    datasets = studio_state.get("datasets", [])
+    for dataset in datasets:
+        if str(dataset.get("dataset_id", "")) == normalized_dataset_id:
+            return dataset
+    raise KeyError(f"Dataset not found: {normalized_dataset_id}")

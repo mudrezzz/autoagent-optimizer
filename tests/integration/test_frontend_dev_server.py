@@ -78,7 +78,7 @@ def _json_get(url: str, *, headers: dict[str, str] | None = None) -> tuple[int, 
 
 @pytest.mark.integration
 def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
-    """Проверяет, что dev server отдает shell, capability-каталог и C1+C2 arena API-контур."""
+    """Проверяет, что dev server отдает shell и вертикальный API-контур C1..C4."""
 
     port = _find_free_port()
     base_url = f"http://127.0.0.1:{port}"
@@ -126,6 +126,8 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
             assert c2["status"] == "enabled"
             c3 = next(item for item in payload["capabilities"] if item["id"] == "c3")
             assert c3["status"] == "enabled"
+            c4 = next(item for item in payload["capabilities"] if item["id"] == "c4")
+            assert c4["status"] == "enabled"
 
         status_arenas, arenas_payload = _json_get(f"{base_url}/api/arenas")
         assert status_arenas == 200
@@ -165,6 +167,58 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert status_c3_search == 200
         assert c3_search_payload["status"] == "success"
         assert c3_search_payload["returned"] >= 1
+
+        status_c4_state_empty, c4_state_empty_payload = _json_get(f"{base_url}/api/arenas/{arena_id}/datasets/state")
+        assert status_c4_state_empty == 200
+        assert c4_state_empty_payload["status"] == "success"
+        assert c4_state_empty_payload["active_dataset"] is None
+        assert c4_state_empty_payload["datasets"] == []
+
+        status_c4_create, c4_create_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/datasets/create",
+            {"name": "stylizer-dataset", "description": "Dataset for C4 smoke"},
+        )
+        assert status_c4_create == 201
+        assert c4_create_payload["status"] == "success"
+        dataset_id = str(c4_create_payload["dataset"]["dataset_id"])
+        assert c4_create_payload["active_dataset_id"] == dataset_id
+
+        status_c4_add_row, c4_add_row_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/datasets/{dataset_id}/rows/add",
+            {"row": {"case_id": "case_001", "input": "input text", "expected": "expected text", "notes": "n"}},
+        )
+        assert status_c4_add_row == 200
+        assert c4_add_row_payload["status"] == "success"
+        assert c4_add_row_payload["active_dataset"]["rows_total"] == 1
+
+        status_c4_validate, c4_validate_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/datasets/{dataset_id}/validate",
+            {},
+        )
+        assert status_c4_validate == 200
+        assert c4_validate_payload["status"] == "success"
+        assert c4_validate_payload["validation_report"]["rows_total"] == 1
+
+        status_c4_save_version, c4_save_version_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/datasets/{dataset_id}/save-version",
+            {"label": "v1", "source": "manual"},
+        )
+        assert status_c4_save_version == 200
+        assert c4_save_version_payload["status"] == "success"
+        assert c4_save_version_payload["version"]["label"] == "v1"
+
+        status_c4_replace_rows, c4_replace_rows_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/datasets/{dataset_id}/rows/replace",
+            {
+                "rows": [
+                    {"case_id": "case_010", "input": "i1", "expected": "e1", "notes": ""},
+                    {"case_id": "case_011", "input": "i2", "expected": "e2", "notes": ""},
+                ]
+            },
+        )
+        assert status_c4_replace_rows == 200
+        assert c4_replace_rows_payload["status"] == "success"
+        assert c4_replace_rows_payload["active_dataset"]["rows_total"] == 2
 
         status_c3_update, c3_update_payload = _json_post(
             f"{base_url}/api/arenas/{arena_id}/patterns/selection",

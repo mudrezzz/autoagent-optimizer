@@ -17,9 +17,11 @@
 1. [User Guides / Overview](user_guides/overview.md)
 2. [User Guides / C2 Candidate Selection](user_guides/c2-select-for-tests.md)
 3. [User Guides / C3 Pattern Selection](user_guides/c3-pattern-selection.md)
-4. [Developer / Backend](developer/backend.md)
-5. [Developer / Frontend](developer/frontend.md)
-6. [Releases / V2.3.S4](releases/v2.3.s4.md)
-7. [Releases / V2.3.S4a](releases/v2.3.s4a.md)
+4. [User Guides / C4 Dataset Studio](user_guides/c4-dataset-studio.md)
+5. [Developer / Backend](developer/backend.md)
+6. [Developer / Frontend](developer/frontend.md)
+7. [Releases / V2.3.S4](releases/v2.3.s4.md)
+8. [Releases / V2.3.S4a](releases/v2.3.s4a.md)
+9. [Releases / V2.3.S5](releases/v2.3.s5.md)
 
 _Deployment trigger: 2026-05-26._

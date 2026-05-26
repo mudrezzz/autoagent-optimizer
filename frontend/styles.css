@@ -1105,6 +1105,117 @@ code { font-family: var(--font-mono); }
   gap: 6px;
 }
 
+.c4-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+.c4-create-row {
+  display: grid;
+  grid-template-columns: minmax(170px, 0.7fr) minmax(220px, 1fr) auto;
+  gap: 8px;
+}
+
+.c4-create-row input,
+.c4-toolbar select,
+.c4-row-editor input,
+.c4-import-block textarea {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--gray-0);
+  color: var(--gray-900);
+  font-size: 12px;
+  padding: 8px 10px;
+}
+
+.c4-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) auto auto minmax(200px, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.c4-meta {
+  display: inline-flex;
+  gap: 8px;
+  color: var(--gray-600);
+  font-size: 11px;
+  flex-wrap: wrap;
+}
+
+.c4-row-editor {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.45fr) 1fr 1fr minmax(160px, 0.6fr) auto;
+  gap: 8px;
+}
+
+.c4-import-block {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: start;
+}
+
+.c4-import-block textarea {
+  min-height: 94px;
+  resize: vertical;
+  font-family: var(--font-mono);
+}
+
+.c4-table-wrap {
+  border: 1px solid var(--border-muted);
+  border-radius: 10px;
+  overflow: auto;
+  max-height: 230px;
+}
+
+.c4-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 620px;
+}
+
+.c4-table th,
+.c4-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-muted);
+  text-align: left;
+  font-size: 12px;
+  vertical-align: top;
+}
+
+.c4-table th {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--gray-500);
+  letter-spacing: 0.03em;
+  background: var(--gray-25);
+}
+
+.c4-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.c4-versions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.c4-versions-title {
+  font-size: 11px;
+  color: var(--gray-600);
+  text-transform: uppercase;
+}
+
+.c4-version-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .candidate-step-chip {
   border: 1px solid var(--border-muted);
   border-radius: 999px;
@@ -1863,6 +1974,13 @@ code { font-family: var(--font-mono); }
   }
 
   .c3-pattern-row {
+    grid-template-columns: 1fr;
+  }
+
+  .c4-create-row,
+  .c4-toolbar,
+  .c4-row-editor,
+  .c4-import-block {
     grid-template-columns: 1fr;
   }
 

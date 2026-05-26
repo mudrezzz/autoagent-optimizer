@@ -185,10 +185,12 @@ Input (Tenant + User + Battle + Task Brief + Constraints + Data + Budget)
    - `optimizer.champion` (Champion Export Bundle v0: arena/evidence/diagnostic/codegen bundle + manifest).
    - `optimizer.champion.native_export` (standalone `langgraph-dai` native runtime export v0).
    - `optimizer.workspace` (JSON-backed battle/arena registry store with tenant/user-scoped C1 access),
-   - `optimizer.frontend.dev_server` + `frontend/` (V2.3.S1 + V2.3.S1a + V2.3.S2 + V2.3.S2b + V2.3.S2c: C1 registry + C2 battle-chat/candidate surfaces + sticky shell + unit/integration/e2e smoke coverage; C3..C6 planned surfaces),
+   - `optimizer.frontend.dev_server` + `frontend/` (V2.3.S1 + V2.3.S1a + V2.3.S2 + V2.3.S2b + V2.3.S2c: C1 registry + C2 battle-chat/candidate surfaces + sticky shell + unit/integration/e2e smoke coverage),
    - `optimizer.c2` (deterministic brief-to-candidates generator + arena-scoped chat state contract + compile-readiness gate with per-candidate reports).
+   - C3 pattern library UI/selection with saved include set and retrieval trace.
+   - C4 dataset studio v0 (dataset create/select, row add/replace, validate, version snapshot) via `/api/arenas/{id}/datasets/*`.
 2. Next:
-   - Vertical product delivery track (`V2.3.*`) moves to C4 dataset studio after C2/C3/C2-compile slices completion.
+   - Vertical product delivery track (`V2.3.*`) moves to C4 metrics/evaluator studio after C4 dataset slice completion.
    - Evaluation Fabric & MetricOps (`I5.*`) including evaluator adapter layer and post-export native evaluation loop.
 
 ## Decision Records

@@ -1,4 +1,4 @@
-﻿# Smoke runner for frontend capability shell (V2.3.S3 / C1+C2+C3 vertical slice).
+﻿# Smoke runner for frontend capability shell (V2.3.S5 / C1+C2+C3+C4 vertical slice).
 param()
 
 $ErrorActionPreference = "Stop"
@@ -63,18 +63,22 @@ try {
 
   $c1 = $capabilities.capabilities | Where-Object { $_.id -eq "c1" }
   if ($null -eq $c1 -or $c1.status -ne "enabled") {
-    throw "C1 capability must be enabled in V2.3.S3."
+    throw "C1 capability must be enabled in V2.3.S5."
   }
   if ($c1.name -ne "Battle Registry") {
     throw "C1 capability name must match product capability model."
   }
   $c2 = $capabilities.capabilities | Where-Object { $_.id -eq "c2" }
   if ($null -eq $c2 -or $c2.status -ne "enabled") {
-    throw "C2 capability must be enabled in V2.3.S3."
+    throw "C2 capability must be enabled in V2.3.S5."
   }
   $c3 = $capabilities.capabilities | Where-Object { $_.id -eq "c3" }
   if ($null -eq $c3 -or $c3.status -ne "enabled") {
-    throw "C3 capability must be enabled in V2.3.S3."
+    throw "C3 capability must be enabled in V2.3.S5."
+  }
+  $c4 = $capabilities.capabilities | Where-Object { $_.id -eq "c4" }
+  if ($null -eq $c4 -or $c4.status -ne "enabled") {
+    throw "C4 capability must be enabled in V2.3.S5."
   }
 
   Write-Host "[SMOKE] run C1 battle flow"
@@ -125,6 +129,38 @@ try {
   $patternSearch = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId/patterns/search?q=rewrite&limit=5" -Method Get -TimeoutSec 8
   if ($patternSearch.status -ne "success" -or $patternSearch.returned -lt 1) {
     throw "C3 pattern search endpoint returned unexpected payload."
+  }
+
+  Write-Host "[SMOKE] run C4 dataset flow"
+  $datasetCreatePayload = @{ name = "stylizer-dataset"; description = "Smoke dataset" } | ConvertTo-Json -Compress
+  $datasetCreate = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId/datasets/create" -Method Post -Body $datasetCreatePayload -ContentType "application/json" -TimeoutSec 8
+  if ($datasetCreate.status -ne "success") {
+    throw "C4 create dataset endpoint returned non-success status."
+  }
+  $datasetId = $datasetCreate.active_dataset_id
+
+  $datasetAddRowPayload = @{
+    row = @{
+      case_id = "case_smoke_1"
+      input = "input smoke"
+      expected = "expected smoke"
+      notes = "smoke"
+    }
+  } | ConvertTo-Json -Compress
+  $datasetAddRow = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId/datasets/$datasetId/rows/add" -Method Post -Body $datasetAddRowPayload -ContentType "application/json" -TimeoutSec 8
+  if ($datasetAddRow.status -ne "success" -or $datasetAddRow.active_dataset.rows_total -lt 1) {
+    throw "C4 add dataset row endpoint returned unexpected payload."
+  }
+
+  $datasetValidate = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId/datasets/$datasetId/validate" -Method Post -Body "{}" -ContentType "application/json" -TimeoutSec 8
+  if ($datasetValidate.status -ne "success" -or $datasetValidate.validation_report.rows_total -lt 1) {
+    throw "C4 validate dataset endpoint returned unexpected payload."
+  }
+
+  $datasetSaveVersionPayload = @{ label = "smoke-v1"; source = "manual" } | ConvertTo-Json -Compress
+  $datasetSaveVersion = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId/datasets/$datasetId/save-version" -Method Post -Body $datasetSaveVersionPayload -ContentType "application/json" -TimeoutSec 8
+  if ($datasetSaveVersion.status -ne "success" -or $datasetSaveVersion.version.label -ne "smoke-v1") {
+    throw "C4 save version endpoint returned unexpected payload."
   }
 
   Write-Host "[SMOKE] frontend capability shell completed successfully."

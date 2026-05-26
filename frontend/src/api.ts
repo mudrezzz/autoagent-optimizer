@@ -5,6 +5,7 @@
   ArenaMutationResponse,
   C3PatternSearchResponse,
   C3PatternSelectionResponse,
+  C4DatasetStateResponse,
   C2SelectForTestsResponse,
   C2ChatPostMessageResponse,
   C2ChatStateResponse,
@@ -210,6 +211,113 @@ export async function searchArenaPatterns(arenaId: string, query: string, limit 
     throw new Error(payload.message || `Failed to search C3 patterns: HTTP ${response.status}`);
   }
   return parseJsonOrThrow<C3PatternSearchResponse>(response);
+}
+
+// Русский комментарий: читает текущее состояние C4 Dataset Studio для арены.
+export async function fetchArenaDatasetState(arenaId: string): Promise<C4DatasetStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/datasets/state`);
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to load C4 dataset state: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C4DatasetStateResponse>(response);
+}
+
+// Русский комментарий: создает новый dataset в C4 Studio.
+export async function createArenaDataset(arenaId: string, name: string, description: string): Promise<C4DatasetStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/datasets/create`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, description }),
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to create dataset: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C4DatasetStateResponse>(response);
+}
+
+// Русский комментарий: выбирает активный dataset в C4 Studio.
+export async function selectArenaDataset(arenaId: string, datasetId: string): Promise<C4DatasetStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/datasets/select`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ dataset_id: datasetId }),
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to select dataset: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C4DatasetStateResponse>(response);
+}
+
+// Русский комментарий: добавляет одну строку в dataset C4 Studio.
+export async function addArenaDatasetRow(
+  arenaId: string,
+  datasetId: string,
+  row: { case_id: string; input: string; expected: string; notes: string },
+): Promise<C4DatasetStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/datasets/${encodeURIComponent(datasetId)}/rows/add`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ row }),
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to add dataset row: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C4DatasetStateResponse>(response);
+}
+
+// Русский комментарий: полностью заменяет rows активного dataset.
+export async function replaceArenaDatasetRows(
+  arenaId: string,
+  datasetId: string,
+  rows: Array<{ case_id: string; input: string; expected: string; notes: string }>,
+): Promise<C4DatasetStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/datasets/${encodeURIComponent(datasetId)}/rows/replace`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rows }),
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to replace dataset rows: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C4DatasetStateResponse>(response);
+}
+
+// Русский комментарий: выполняет базовую валидацию dataset.
+export async function validateArenaDataset(arenaId: string, datasetId: string): Promise<C4DatasetStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/datasets/${encodeURIComponent(datasetId)}/validate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to validate dataset: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C4DatasetStateResponse>(response);
+}
+
+// Русский комментарий: сохраняет snapshot-версию dataset.
+export async function saveArenaDatasetVersion(
+  arenaId: string,
+  datasetId: string,
+  label: string,
+  source = "manual",
+): Promise<C4DatasetStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/datasets/${encodeURIComponent(datasetId)}/save-version`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ label, source }),
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to save dataset version: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C4DatasetStateResponse>(response);
 }
 
 // Русский комментарий: legacy debug endpoint validate+compile оставлен для обратной совместимости.

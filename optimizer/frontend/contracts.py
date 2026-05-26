@@ -35,9 +35,9 @@ CAPABILITY_CATALOG: tuple[dict[str, str | int], ...] = (
         "id": "c4",
         "name": "Dataset & Metrics Studio",
         "description": "Управление датасетами, метриками и методами оценки.",
-        "status": "planned",
+        "status": "enabled",
         "route": "/datasets",
-        "badge_count": 0,
+        "badge_count": 1,
     },
     {
         "id": "c5",
