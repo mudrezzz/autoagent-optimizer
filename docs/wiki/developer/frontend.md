@@ -39,4 +39,27 @@
 5. `Edit` открывает отдельный editor-screen с breadcrumbs.
 6. В `edit` режиме доступны add/delete/edit rows, JSONL import, `Save changes`, `Validate`, `Save version`.
 
-Состояние загружается через `fetchArenaDatasetState` и обновляется после каждого C4 действия.
+В C4 Metrics & Evaluators Studio:
+
+1. Comparative metrics редактируются чекбоксами + weight и сохраняются `Save metrics`.
+2. Diagnostic signals редактируются чекбоксами и сохраняются `Save diagnostics`.
+3. Evaluators редактируются чекбоксами и сохраняются `Save evaluators`.
+4. Budget редактируется числами и сохраняется `Save budget`.
+5. `Validate profile` возвращает status + issues.
+6. `Save version` фиксирует snapshot evaluation profile.
+
+Состояние загружается через `fetchArenaDatasetState` + `fetchArenaEvaluationState` и обновляется после каждого C4 действия.
+
+## C5 UI contract
+
+В C5 Optimizer Setup:
+
+1. `Methods` и `Optimization controls` редактируются чекбоксами.
+2. `Run plan` и `Budget limits` редактируются числовыми полями.
+3. `Save setup` сохраняет профиль в backend.
+4. `Validate` запускает preflight guardrails и возвращает status + issues.
+5. `Launch` создает queued run только если guardrails не содержат error.
+6. `Save profile version` фиксирует snapshot optimizer setup.
+7. `Launch queue` показывает последние run-записи.
+
+Состояние C5 загружается через `fetchArenaOptimizerState` и обновляется после каждого C5 действия.

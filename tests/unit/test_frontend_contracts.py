@@ -21,8 +21,8 @@ def test_capability_catalog_contains_six_items() -> None:
     assert capabilities[0]["route"] == "/battles"
 
 
-def test_capability_catalog_statuses_match_v2_3_s5a_scope() -> None:
-    """Проверяет, что в V2.3.S5a capability C1/C2/C3/C4 открыты как enabled."""
+def test_capability_catalog_statuses_match_v2_3_s7_scope() -> None:
+    """Проверяет, что в V2.3.S7 capability C1/C2/C3/C4/C5 открыты как enabled."""
 
     payload = build_capability_catalog_payload()
     capabilities = payload["capabilities"]
@@ -32,16 +32,16 @@ def test_capability_catalog_statuses_match_v2_3_s5a_scope() -> None:
     assert statuses["c2"] == "enabled"
     assert statuses["c3"] == "enabled"
     assert statuses["c4"] == "enabled"
-    assert statuses["c5"] == "planned"
+    assert statuses["c5"] == "enabled"
     assert statuses["c6"] == "planned"
 
 
 def test_stub_payload_contains_expected_shape() -> None:
     """Проверяет, что stub-payload содержит стабильный контракт полей для planned capability preview."""
 
-    payload = build_stub_capability_payload("c5")
+    payload = build_stub_capability_payload("c6")
     assert payload["status"] == "stub_success"
-    assert payload["capability_id"] == "c5"
+    assert payload["capability_id"] == "c6"
     assert payload["capability_status"] == "planned"
     assert "summary" in payload
     assert "next_step" in payload

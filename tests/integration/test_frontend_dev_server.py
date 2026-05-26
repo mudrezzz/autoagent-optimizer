@@ -78,7 +78,7 @@ def _json_get(url: str, *, headers: dict[str, str] | None = None) -> tuple[int, 
 
 @pytest.mark.integration
 def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
-    """Проверяет, что dev server отдает shell и вертикальный API-контур C1..C4."""
+    """Проверяет, что dev server отдает shell и вертикальный API-контур C1..C5."""
 
     port = _find_free_port()
     base_url = f"http://127.0.0.1:{port}"
@@ -128,6 +128,8 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
             assert c3["status"] == "enabled"
             c4 = next(item for item in payload["capabilities"] if item["id"] == "c4")
             assert c4["status"] == "enabled"
+            c5 = next(item for item in payload["capabilities"] if item["id"] == "c5")
+            assert c5["status"] == "enabled"
 
         status_arenas, arenas_payload = _json_get(f"{base_url}/api/arenas")
         assert status_arenas == 200
@@ -233,6 +235,109 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert c4_assign_payload["status"] == "success"
         assert c4_assign_payload["assigned_dataset_ids"] == [dataset_id]
 
+        status_eval_state, eval_state_payload = _json_get(f"{base_url}/api/arenas/{arena_id}/evaluation/state")
+        assert status_eval_state == 200
+        assert eval_state_payload["status"] == "success"
+        assert len(eval_state_payload["comparative_metrics"]) >= 1
+        assert len(eval_state_payload["diagnostic_signals"]) >= 1
+        assert len(eval_state_payload["evaluators"]) >= 1
+
+        status_eval_metrics_save, eval_metrics_save_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/evaluation/metrics/save",
+            {
+                "comparative_metrics": [
+                    {"metric_id": "quality_f1", "title": "Quality F1@K", "description": "quality", "enabled": True, "weight": 0.7},
+                    {"metric_id": "cost_per_case", "title": "Cost / case", "description": "cost", "enabled": True, "weight": 0.3},
+                ],
+                "diagnostic_signals": [
+                    {"signal_id": "retrieval_coverage", "title": "Retrieval coverage", "description": "retrieval", "enabled": True},
+                ],
+            },
+        )
+        assert status_eval_metrics_save == 200
+        assert eval_metrics_save_payload["status"] == "success"
+        assert eval_metrics_save_payload["comparative_metrics"][0]["weight"] == 0.7
+
+        status_eval_evaluators_save, eval_evaluators_save_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/evaluation/evaluators/save",
+            {
+                "evaluators": [
+                    {"evaluator_id": "golden_oracle", "title": "Golden dataset oracle", "description": "deterministic", "enabled": True},
+                    {"evaluator_id": "llm_judge", "title": "LLM as a judge", "description": "semantic", "enabled": True},
+                ]
+            },
+        )
+        assert status_eval_evaluators_save == 200
+        assert eval_evaluators_save_payload["status"] == "success"
+        assert len(eval_evaluators_save_payload["evaluators"]) == 2
+
+        status_eval_budget_save, eval_budget_save_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/evaluation/budget/save",
+            {
+                "budget": {"max_cases": 12, "max_llm_calls": 40, "max_cost_usd": 1.5},
+            },
+        )
+        assert status_eval_budget_save == 200
+        assert eval_budget_save_payload["status"] == "success"
+        assert eval_budget_save_payload["budget"]["max_cases"] == 12
+
+        status_eval_validate, eval_validate_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/evaluation/validate",
+            {},
+        )
+        assert status_eval_validate == 200
+        assert eval_validate_payload["status"] == "success"
+        assert eval_validate_payload["validation_report"]["status"] in {"ready", "warnings", "invalid"}
+
+        status_eval_save_version, eval_save_version_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/evaluation/save-version",
+            {"label": "eval-v1", "source": "manual"},
+        )
+        assert status_eval_save_version == 200
+        assert eval_save_version_payload["status"] == "success"
+        assert eval_save_version_payload["version"]["label"] == "eval-v1"
+
+        status_optimizer_state, optimizer_state_payload = _json_get(f"{base_url}/api/arenas/{arena_id}/optimizer/state")
+        assert status_optimizer_state == 200
+        assert optimizer_state_payload["status"] == "success"
+        assert len(optimizer_state_payload["methods"]) >= 1
+        assert len(optimizer_state_payload["controls"]) >= 1
+
+        status_optimizer_save, optimizer_save_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/optimizer/save",
+            {
+                "methods": [
+                    {"method_id": "random_search", "title": "Random search", "description": "baseline", "enabled": True},
+                    {"method_id": "grid_search", "title": "Grid search", "description": "deterministic", "enabled": True},
+                ],
+                "controls": [
+                    {"control_id": "tune_prompts", "title": "Tune prompts", "description": "scope", "enabled": True},
+                    {"control_id": "tune_pattern_mix", "title": "Tune pattern mix", "description": "scope", "enabled": True},
+                ],
+                "run_plan": {"epochs_total": 3, "candidates_per_epoch": 4, "max_parallel_trials": 2, "early_stop_patience": 1},
+                "budget": {"max_cases": 24, "max_llm_calls": 200, "max_cost_usd": 8.0, "max_runtime_minutes": 30},
+            },
+        )
+        assert status_optimizer_save == 200
+        assert optimizer_save_payload["status"] == "success"
+        assert optimizer_save_payload["run_plan"]["epochs_total"] == 3
+
+        status_optimizer_validate, optimizer_validate_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/optimizer/validate",
+            {},
+        )
+        assert status_optimizer_validate == 200
+        assert optimizer_validate_payload["status"] == "success"
+        assert optimizer_validate_payload["validation_report"]["status"] in {"ready", "warnings", "invalid"}
+
+        status_optimizer_version, optimizer_version_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/optimizer/save-version",
+            {"label": "opt-v1", "source": "manual"},
+        )
+        assert status_optimizer_version == 200
+        assert optimizer_version_payload["status"] == "success"
+        assert optimizer_version_payload["version"]["label"] == "opt-v1"
+
         status_c3_update, c3_update_payload = _json_post(
             f"{base_url}/api/arenas/{arena_id}/patterns/selection",
             {
@@ -282,6 +387,23 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert compile_gate_payload["compile_gate"]["selected_candidates"] == 1
         assert compile_gate_payload["candidate_set_draft"]["compile_gate"]["status"] == compile_gate_payload["compile_gate"]["status"]
         assert compile_gate_payload["messages_total"] >= 3
+
+        status_optimizer_validate_after_compile, optimizer_validate_after_compile_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/optimizer/validate",
+            {},
+        )
+        assert status_optimizer_validate_after_compile == 200
+        assert optimizer_validate_after_compile_payload["status"] == "success"
+        assert optimizer_validate_after_compile_payload["validation_report"]["status"] in {"ready", "warnings"}
+
+        status_optimizer_launch, optimizer_launch_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/optimizer/launch",
+            {"triggered_by": "integration_test"},
+        )
+        assert status_optimizer_launch == 202
+        assert optimizer_launch_payload["status"] == "success"
+        assert optimizer_launch_payload["run"]["status"] == "queued"
+        assert optimizer_launch_payload["run"]["triggered_by"] == "integration_test"
 
         status_rename_arena, renamed_payload = _json_post(
             f"{base_url}/api/arenas/{arena_id}/rename",

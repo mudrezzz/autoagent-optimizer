@@ -43,9 +43,9 @@ CAPABILITY_CATALOG: tuple[dict[str, str | int], ...] = (
         "id": "c5",
         "name": "Optimizer Run Monitor",
         "description": "Запуск оптимизации и мониторинг эпох, логов и метрик.",
-        "status": "planned",
+        "status": "enabled",
         "route": "/runs",
-        "badge_count": 0,
+        "badge_count": 1,
     },
     {
         "id": "c6",

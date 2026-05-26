@@ -12,6 +12,8 @@ vi.mock("../api", () => ({
   createArena: vi.fn(),
   deleteArena: vi.fn(),
   fetchArenaDatasetState: vi.fn(),
+  fetchArenaEvaluationState: vi.fn(),
+  fetchArenaOptimizerState: vi.fn(),
   duplicateArena: vi.fn(),
   fetchCapabilityCatalog: vi.fn(),
   fetchArenaPatternSelection: vi.fn(),
@@ -22,12 +24,21 @@ vi.mock("../api", () => ({
   postArenaChatMessage: vi.fn(),
   replaceArenaDatasetRows: vi.fn(),
   renameArena: vi.fn(),
+  saveArenaEvaluationBudget: vi.fn(),
+  saveArenaEvaluationEvaluators: vi.fn(),
+  saveArenaEvaluationMetrics: vi.fn(),
+  saveArenaEvaluationVersion: vi.fn(),
+  saveArenaOptimizerSetup: vi.fn(),
+  saveArenaOptimizerVersion: vi.fn(),
   saveArenaPatternSelection: vi.fn(),
   saveArenaDatasetVersion: vi.fn(),
   searchArenaPatterns: vi.fn(),
   selectArenaDataset: vi.fn(),
   selectArenaCandidatesForTests: vi.fn(),
+  launchArenaOptimizer: vi.fn(),
   validateArenaDataset: vi.fn(),
+  validateArenaEvaluationProfile: vi.fn(),
+  validateArenaOptimizerSetup: vi.fn(),
 }));
 
 import {
@@ -36,6 +47,8 @@ import {
   createArena,
   deleteArena,
   fetchArenaDatasetState,
+  fetchArenaEvaluationState,
+  fetchArenaOptimizerState,
   duplicateArena,
   fetchCapabilityCatalog,
   fetchArenaPatternSelection,
@@ -46,12 +59,21 @@ import {
   postArenaChatMessage,
   replaceArenaDatasetRows,
   renameArena,
+  saveArenaEvaluationBudget,
+  saveArenaEvaluationEvaluators,
+  saveArenaEvaluationMetrics,
+  saveArenaEvaluationVersion,
+  saveArenaOptimizerSetup,
+  saveArenaOptimizerVersion,
   saveArenaPatternSelection,
   saveArenaDatasetVersion,
   searchArenaPatterns,
   selectArenaDataset,
   selectArenaCandidatesForTests,
+  launchArenaOptimizer,
   validateArenaDataset,
+  validateArenaEvaluationProfile,
+  validateArenaOptimizerSetup,
 } from "../api";
 
 // Русский комментарий: фикстура battle-арены для режима workspace.
@@ -70,6 +92,7 @@ const CAPABILITIES: Capability[] = [
   { id: "c2", name: "Task Chat + Candidates", description: "Generate candidates from chat.", status: "enabled", badge_count: 1 },
   { id: "c3", name: "Pattern Library + RAG", description: "Pattern retrieval", status: "enabled", badge_count: 1 },
   { id: "c4", name: "Dataset & Metrics Studio", description: "Dataset controls", status: "enabled", badge_count: 1 },
+  { id: "c5", name: "Optimizer Run Monitor", description: "Optimizer setup", status: "enabled", badge_count: 1 },
 ];
 
 // Русский комментарий: фикстура набора кандидатов для проверки рендера, фокуса и accordion-деталей.
@@ -294,6 +317,42 @@ describe("Battle workspace candidates", () => {
         versions: [{ version_id: "dsv_demo_1", label: "v1", created_at: "2026-05-26T00:00:00+00:00", rows_total: 2, source: "manual" }],
       },
     });
+    vi.mocked(fetchArenaEvaluationState).mockResolvedValue({
+      status: "success",
+      capability_id: "c4",
+      arena_id: ARENA.workspace_id,
+      comparative_metrics: [
+        { metric_id: "quality_f1", title: "Quality F1@K", description: "quality", enabled: true, weight: 0.6 },
+        { metric_id: "cost_per_case", title: "Cost / case", description: "cost", enabled: true, weight: 0.2 },
+      ],
+      diagnostic_signals: [
+        { signal_id: "retrieval_coverage", title: "Retrieval coverage", description: "retrieval", enabled: true },
+      ],
+      evaluators: [
+        { evaluator_id: "golden_oracle", title: "Golden dataset oracle", description: "deterministic", enabled: true },
+      ],
+      budget: { max_cases: 20, max_llm_calls: 100, max_cost_usd: 5.0 },
+      versions: [],
+      updated_at: "2026-05-26T00:00:00+00:00",
+    });
+    vi.mocked(fetchArenaOptimizerState).mockResolvedValue({
+      status: "success",
+      capability_id: "c5",
+      arena_id: ARENA.workspace_id,
+      methods: [
+        { method_id: "random_search", title: "Random search", description: "baseline", enabled: true },
+        { method_id: "grid_search", title: "Grid search", description: "deterministic", enabled: false },
+      ],
+      controls: [
+        { control_id: "tune_prompts", title: "Tune prompts", description: "prompt scope", enabled: true },
+        { control_id: "tune_pattern_mix", title: "Tune pattern mix", description: "pattern scope", enabled: true },
+      ],
+      run_plan: { epochs_total: 3, candidates_per_epoch: 4, max_parallel_trials: 2, early_stop_patience: 1 },
+      budget: { max_cases: 24, max_llm_calls: 200, max_cost_usd: 8, max_runtime_minutes: 30 },
+      versions: [],
+      launch_history: [],
+      updated_at: "2026-05-26T00:00:00+00:00",
+    });
 
     vi.mocked(postArenaChatMessage).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(selectArenaCandidatesForTests).mockRejectedValue(new Error("not used in this test"));
@@ -303,6 +362,15 @@ describe("Battle workspace candidates", () => {
     vi.mocked(replaceArenaDatasetRows).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(validateArenaDataset).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(saveArenaDatasetVersion).mockRejectedValue(new Error("not used in this test"));
+    vi.mocked(saveArenaEvaluationMetrics).mockRejectedValue(new Error("not used in this test"));
+    vi.mocked(saveArenaEvaluationEvaluators).mockRejectedValue(new Error("not used in this test"));
+    vi.mocked(saveArenaEvaluationBudget).mockRejectedValue(new Error("not used in this test"));
+    vi.mocked(validateArenaEvaluationProfile).mockRejectedValue(new Error("not used in this test"));
+    vi.mocked(saveArenaEvaluationVersion).mockRejectedValue(new Error("not used in this test"));
+    vi.mocked(saveArenaOptimizerSetup).mockRejectedValue(new Error("not used in this test"));
+    vi.mocked(validateArenaOptimizerSetup).mockRejectedValue(new Error("not used in this test"));
+    vi.mocked(saveArenaOptimizerVersion).mockRejectedValue(new Error("not used in this test"));
+    vi.mocked(launchArenaOptimizer).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(createArena).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(renameArena).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(duplicateArena).mockRejectedValue(new Error("not used in this test"));
@@ -689,5 +757,149 @@ describe("Battle workspace candidates", () => {
     await user.type(caseInputs[0], "case_3");
     await user.click(await screen.findByRole("button", { name: "Save changes" }));
     expect(vi.mocked(replaceArenaDatasetRows)).toHaveBeenCalled();
+  });
+
+  it("updates C4 evaluation profile and validates it", async () => {
+    const user = userEvent.setup();
+    vi.mocked(saveArenaEvaluationMetrics).mockResolvedValue({
+      status: "success",
+      capability_id: "c4",
+      arena_id: ARENA.workspace_id,
+      action: "save_evaluation_metrics",
+      comparative_metrics: [
+        { metric_id: "quality_f1", title: "Quality F1@K", description: "quality", enabled: true, weight: 0.7 },
+        { metric_id: "cost_per_case", title: "Cost / case", description: "cost", enabled: true, weight: 0.3 },
+      ],
+      diagnostic_signals: [{ signal_id: "retrieval_coverage", title: "Retrieval coverage", description: "retrieval", enabled: true }],
+      evaluators: [{ evaluator_id: "golden_oracle", title: "Golden dataset oracle", description: "deterministic", enabled: true }],
+      budget: { max_cases: 20, max_llm_calls: 100, max_cost_usd: 5.0 },
+      versions: [],
+      updated_at: "2026-05-26T00:00:00+00:00",
+    });
+    vi.mocked(validateArenaEvaluationProfile).mockResolvedValue({
+      status: "success",
+      capability_id: "c4",
+      arena_id: ARENA.workspace_id,
+      action: "validate_evaluation_profile",
+      comparative_metrics: [
+        { metric_id: "quality_f1", title: "Quality F1@K", description: "quality", enabled: true, weight: 0.7 },
+        { metric_id: "cost_per_case", title: "Cost / case", description: "cost", enabled: true, weight: 0.3 },
+      ],
+      diagnostic_signals: [{ signal_id: "retrieval_coverage", title: "Retrieval coverage", description: "retrieval", enabled: true }],
+      evaluators: [{ evaluator_id: "golden_oracle", title: "Golden dataset oracle", description: "deterministic", enabled: true }],
+      budget: { max_cases: 20, max_llm_calls: 100, max_cost_usd: 5.0 },
+      versions: [],
+      updated_at: "2026-05-26T00:00:00+00:00",
+      validation_report: {
+        status: "ready",
+        updated_at: "2026-05-26T00:00:00+00:00",
+        issues: [],
+      },
+    });
+
+    renderWorkspace();
+    const c4Button = await screen.findByRole("button", { name: /Dataset & Metrics Studio/i });
+    await user.click(c4Button);
+
+    const metricToggle = await screen.findByLabelText("toggle-metric-cost_per_case");
+    await user.click(metricToggle);
+    await user.click(await screen.findByRole("button", { name: "Save metrics" }));
+    expect(vi.mocked(saveArenaEvaluationMetrics)).toHaveBeenCalled();
+
+    await user.click(await screen.findByRole("button", { name: "Validate profile" }));
+    expect(vi.mocked(validateArenaEvaluationProfile)).toHaveBeenCalledWith(ARENA.workspace_id);
+    expect(await screen.findByText("Evaluation profile status: ready")).toBeInTheDocument();
+  });
+
+  it("saves and validates C5 optimizer setup, then launches queued run", async () => {
+    const user = userEvent.setup();
+    vi.mocked(saveArenaOptimizerSetup).mockResolvedValue({
+      status: "success",
+      capability_id: "c5",
+      arena_id: ARENA.workspace_id,
+      action: "save_optimizer_setup",
+      methods: [
+        { method_id: "random_search", title: "Random search", description: "baseline", enabled: true },
+        { method_id: "grid_search", title: "Grid search", description: "deterministic", enabled: true },
+      ],
+      controls: [
+        { control_id: "tune_prompts", title: "Tune prompts", description: "prompt scope", enabled: true },
+        { control_id: "tune_pattern_mix", title: "Tune pattern mix", description: "pattern scope", enabled: true },
+      ],
+      run_plan: { epochs_total: 3, candidates_per_epoch: 4, max_parallel_trials: 2, early_stop_patience: 1 },
+      budget: { max_cases: 24, max_llm_calls: 200, max_cost_usd: 8, max_runtime_minutes: 30 },
+      versions: [],
+      launch_history: [],
+      updated_at: "2026-05-26T00:00:00+00:00",
+    });
+    vi.mocked(validateArenaOptimizerSetup).mockResolvedValue({
+      status: "success",
+      capability_id: "c5",
+      arena_id: ARENA.workspace_id,
+      action: "validate_optimizer_setup",
+      methods: [
+        { method_id: "random_search", title: "Random search", description: "baseline", enabled: true },
+      ],
+      controls: [
+        { control_id: "tune_prompts", title: "Tune prompts", description: "prompt scope", enabled: true },
+      ],
+      run_plan: { epochs_total: 3, candidates_per_epoch: 4, max_parallel_trials: 2, early_stop_patience: 1 },
+      budget: { max_cases: 24, max_llm_calls: 200, max_cost_usd: 8, max_runtime_minutes: 30 },
+      versions: [],
+      launch_history: [],
+      updated_at: "2026-05-26T00:00:00+00:00",
+      validation_report: { status: "ready", updated_at: "2026-05-26T00:00:00+00:00", issues: [] },
+    });
+    vi.mocked(launchArenaOptimizer).mockResolvedValue({
+      status: "success",
+      capability_id: "c5",
+      arena_id: ARENA.workspace_id,
+      action: "launch_optimizer",
+      methods: [{ method_id: "random_search", title: "Random search", description: "baseline", enabled: true }],
+      controls: [{ control_id: "tune_prompts", title: "Tune prompts", description: "prompt scope", enabled: true }],
+      run_plan: { epochs_total: 3, candidates_per_epoch: 4, max_parallel_trials: 2, early_stop_patience: 1 },
+      budget: { max_cases: 24, max_llm_calls: 200, max_cost_usd: 8, max_runtime_minutes: 30 },
+      versions: [],
+      launch_history: [
+        {
+          run_id: "run_demo_1",
+          created_at: "2026-05-26T00:00:00+00:00",
+          status: "queued",
+          method_id: "random_search",
+          epochs_total: 3,
+          selected_candidates_total: 2,
+          assigned_datasets_total: 1,
+          triggered_by: "manual",
+        },
+      ],
+      updated_at: "2026-05-26T00:00:00+00:00",
+      run: {
+        run_id: "run_demo_1",
+        created_at: "2026-05-26T00:00:00+00:00",
+        status: "queued",
+        method_id: "random_search",
+        epochs_total: 3,
+        selected_candidates_total: 2,
+        assigned_datasets_total: 1,
+        triggered_by: "manual",
+      },
+    });
+
+    renderWorkspace();
+    const c5Button = await screen.findByRole("button", { name: /Optimizer Run Monitor/i });
+    await user.click(c5Button);
+
+    expect(await screen.findByText("Optimizer setup + launch guardrails")).toBeInTheDocument();
+    await user.click(await screen.findByLabelText("toggle-method-grid_search"));
+    await user.click(await screen.findByRole("button", { name: "Save setup" }));
+    expect(vi.mocked(saveArenaOptimizerSetup)).toHaveBeenCalled();
+
+    await user.click(await screen.findByRole("button", { name: "Validate" }));
+    expect(vi.mocked(validateArenaOptimizerSetup)).toHaveBeenCalledWith(ARENA.workspace_id);
+    expect(await screen.findByText("Optimizer preflight status: ready")).toBeInTheDocument();
+
+    await user.click(await screen.findByRole("button", { name: "Launch" }));
+    expect(vi.mocked(launchArenaOptimizer)).toHaveBeenCalledWith(ARENA.workspace_id, "manual");
+    expect(await screen.findByText(/run_demo_1/i)).toBeInTheDocument();
   });
 });

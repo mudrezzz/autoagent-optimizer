@@ -185,13 +185,15 @@ Input (Tenant + User + Battle + Task Brief + Constraints + Data + Budget)
    - `optimizer.champion` (Champion Export Bundle v0: arena/evidence/diagnostic/codegen bundle + manifest).
    - `optimizer.champion.native_export` (standalone `langgraph-dai` native runtime export v0).
    - `optimizer.workspace` (JSON-backed battle/arena registry store with tenant/user-scoped C1 access),
-   - `optimizer.frontend.dev_server` + `frontend/` (V2.3.S1 + V2.3.S1a + V2.3.S2 + V2.3.S2b + V2.3.S2c: C1 registry + C2 battle-chat/candidate surfaces + sticky shell + unit/integration/e2e smoke coverage),
+   - `optimizer.frontend.dev_server` + `frontend/` (V2.3.S1 + V2.3.S1a + V2.3.S2 + V2.3.S2b + V2.3.S2c + V2.3.S5a + V2.3.S6 + V2.3.S7: C1 registry + C2 battle-chat/candidate surfaces + C4 dataset/evaluation studios + C5 optimizer setup/guardrails + sticky shell + unit/integration/e2e smoke coverage),
    - `optimizer.c2` (deterministic brief-to-candidates generator + arena-scoped chat state contract + compile-readiness gate with per-candidate reports).
    - C3 pattern library UI/selection with saved include set and retrieval trace.
    - C4 dataset studio v0 (dataset create/select, row add/replace, validate, version snapshot) via `/api/arenas/{id}/datasets/*`.
    - C4 UX unification layer: candidate-like dataset list, multi-dataset assignment (`/datasets/assign`) and dedicated dataset editor screen with breadcrumbs.
+   - C4 metrics & evaluators studio v0 (comparative/diagnostic metrics, evaluator adapters, budget limits, validate/version flow) via `/api/arenas/{id}/evaluation/*`.
+   - C5 optimizer setup studio v0 (methods/controls/run-plan/budget, preflight guardrails, profile versioning, launch queue) via `/api/arenas/{id}/optimizer/*`.
 2. Next:
-   - Vertical product delivery track (`V2.3.*`) moves to C4 metrics/evaluator studio after C4 dataset slice completion.
+   - Vertical product delivery track (`V2.3.*`) moves to C5 run-monitor timeline after C5 setup/launch guardrails slice completion.
    - Evaluation Fabric & MetricOps (`I5.*`) including evaluator adapter layer and post-export native evaluation loop.
 
 ## Decision Records

@@ -63,6 +63,8 @@
 34. [ADR-0034-unified-checkbox-selection-ux-c2-c3.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0034-unified-checkbox-selection-ux-c2-c3.md) - Accepted
 35. [ADR-0035-c4-dataset-studio-v0-contract.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0035-c4-dataset-studio-v0-contract.md) - Accepted
 36. [ADR-0036-c4-ux-unification-and-dataset-editor.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0036-c4-ux-unification-and-dataset-editor.md) - Accepted
+37. [ADR-0037-c4-metrics-and-evaluators-studio-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0037-c4-metrics-and-evaluators-studio-v0.md) - Accepted
+38. [ADR-0038-c5-optimizer-setup-and-guardrail-launch-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0038-c5-optimizer-setup-and-guardrail-launch-v0.md) - Accepted
 
 ## Template
 

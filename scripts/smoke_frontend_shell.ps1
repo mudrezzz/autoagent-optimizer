@@ -1,4 +1,4 @@
-﻿# Smoke runner for frontend capability shell (V2.3.S5a / C1+C2+C3+C4 vertical slice).
+﻿# Smoke runner for frontend capability shell (V2.3.S7 / C1+C2+C3+C4+C5 vertical slice).
 param()
 
 $ErrorActionPreference = "Stop"
@@ -63,22 +63,26 @@ try {
 
   $c1 = $capabilities.capabilities | Where-Object { $_.id -eq "c1" }
   if ($null -eq $c1 -or $c1.status -ne "enabled") {
-    throw "C1 capability must be enabled in V2.3.S5a."
+    throw "C1 capability must be enabled in V2.3.S7."
   }
   if ($c1.name -ne "Battle Registry") {
     throw "C1 capability name must match product capability model."
   }
   $c2 = $capabilities.capabilities | Where-Object { $_.id -eq "c2" }
   if ($null -eq $c2 -or $c2.status -ne "enabled") {
-    throw "C2 capability must be enabled in V2.3.S5a."
+    throw "C2 capability must be enabled in V2.3.S7."
   }
   $c3 = $capabilities.capabilities | Where-Object { $_.id -eq "c3" }
   if ($null -eq $c3 -or $c3.status -ne "enabled") {
-    throw "C3 capability must be enabled in V2.3.S5a."
+    throw "C3 capability must be enabled in V2.3.S7."
   }
   $c4 = $capabilities.capabilities | Where-Object { $_.id -eq "c4" }
   if ($null -eq $c4 -or $c4.status -ne "enabled") {
-    throw "C4 capability must be enabled in V2.3.S5a."
+    throw "C4 capability must be enabled in V2.3.S7."
+  }
+  $c5 = $capabilities.capabilities | Where-Object { $_.id -eq "c5" }
+  if ($null -eq $c5 -or $c5.status -ne "enabled") {
+    throw "C5 capability must be enabled in V2.3.S7."
   }
 
   Write-Host "[SMOKE] run C1 battle flow"
@@ -169,6 +173,103 @@ try {
     throw "C4 assign datasets endpoint returned unexpected payload."
   }
 
+  $evalState = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId/evaluation/state" -Method Get -TimeoutSec 8
+  if ($evalState.status -ne "success" -or $evalState.comparative_metrics.Count -lt 1) {
+    throw "C4 evaluation state endpoint returned unexpected payload."
+  }
+
+  $evalMetricsPayload = @{
+    comparative_metrics = @(
+      @{ metric_id = "quality_f1"; title = "Quality F1@K"; description = "quality"; enabled = $true; weight = 0.7 },
+      @{ metric_id = "cost_per_case"; title = "Cost / case"; description = "cost"; enabled = $true; weight = 0.3 }
+    )
+    diagnostic_signals = @(
+      @{ signal_id = "retrieval_coverage"; title = "Retrieval coverage"; description = "retrieval"; enabled = $true }
+    )
+  } | ConvertTo-Json -Compress
+  $evalMetrics = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId/evaluation/metrics/save" -Method Post -Body $evalMetricsPayload -ContentType "application/json" -TimeoutSec 8
+  if ($evalMetrics.status -ne "success") {
+    throw "C4 evaluation metrics save endpoint returned unexpected payload."
+  }
+
+  $evalEvaluatorsPayload = @{
+    evaluators = @(
+      @{ evaluator_id = "golden_oracle"; title = "Golden dataset oracle"; description = "deterministic"; enabled = $true },
+      @{ evaluator_id = "llm_judge"; title = "LLM as a judge"; description = "semantic"; enabled = $true }
+    )
+  } | ConvertTo-Json -Compress
+  $evalEvaluators = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId/evaluation/evaluators/save" -Method Post -Body $evalEvaluatorsPayload -ContentType "application/json" -TimeoutSec 8
+  if ($evalEvaluators.status -ne "success") {
+    throw "C4 evaluation evaluators save endpoint returned unexpected payload."
+  }
+
+  $evalBudgetPayload = @{ budget = @{ max_cases = 12; max_llm_calls = 40; max_cost_usd = 1.5 } } | ConvertTo-Json -Compress
+  $evalBudget = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId/evaluation/budget/save" -Method Post -Body $evalBudgetPayload -ContentType "application/json" -TimeoutSec 8
+  if ($evalBudget.status -ne "success" -or $evalBudget.budget.max_cases -ne 12) {
+    throw "C4 evaluation budget save endpoint returned unexpected payload."
+  }
+
+  $evalValidate = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId/evaluation/validate" -Method Post -Body "{}" -ContentType "application/json" -TimeoutSec 8
+  if ($evalValidate.status -ne "success") {
+    throw "C4 evaluation validate endpoint returned unexpected payload."
+  }
+
+  $evalVersionPayload = @{ label = "eval-smoke-v1"; source = "manual" } | ConvertTo-Json -Compress
+  $evalVersion = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId/evaluation/save-version" -Method Post -Body $evalVersionPayload -ContentType "application/json" -TimeoutSec 8
+  if ($evalVersion.status -ne "success" -or $evalVersion.version.label -ne "eval-smoke-v1") {
+    throw "C4 evaluation save version endpoint returned unexpected payload."
+  }
+
+  Write-Host "[SMOKE] run C5 optimizer setup flow"
+  $optimizerState = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId/optimizer/state" -Method Get -TimeoutSec 8
+  if ($optimizerState.status -ne "success" -or $optimizerState.methods.Count -lt 1) {
+    throw "C5 optimizer state endpoint returned unexpected payload."
+  }
+
+  $optimizerSavePayload = @{
+    methods = @(
+      @{ method_id = "random_search"; title = "Random search"; description = "baseline"; enabled = $true },
+      @{ method_id = "grid_search"; title = "Grid search"; description = "deterministic"; enabled = $true }
+    )
+    controls = @(
+      @{ control_id = "tune_prompts"; title = "Tune prompts"; description = "scope"; enabled = $true },
+      @{ control_id = "tune_pattern_mix"; title = "Tune pattern mix"; description = "scope"; enabled = $true }
+    )
+    run_plan = @{ epochs_total = 3; candidates_per_epoch = 4; max_parallel_trials = 2; early_stop_patience = 1 }
+    budget = @{ max_cases = 24; max_llm_calls = 200; max_cost_usd = 8.0; max_runtime_minutes = 30 }
+  } | ConvertTo-Json -Compress
+  $optimizerSave = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId/optimizer/save" -Method Post -Body $optimizerSavePayload -ContentType "application/json" -TimeoutSec 8
+  if ($optimizerSave.status -ne "success" -or $optimizerSave.run_plan.epochs_total -ne 3) {
+    throw "C5 optimizer save endpoint returned unexpected payload."
+  }
+
+  $optimizerValidate = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId/optimizer/validate" -Method Post -Body "{}" -ContentType "application/json" -TimeoutSec 8
+  if ($optimizerValidate.status -ne "success") {
+    throw "C5 optimizer validate endpoint returned unexpected payload."
+  }
+
+  $optimizerVersionPayload = @{ label = "opt-smoke-v1"; source = "manual" } | ConvertTo-Json -Compress
+  $optimizerVersion = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId/optimizer/save-version" -Method Post -Body $optimizerVersionPayload -ContentType "application/json" -TimeoutSec 8
+  if ($optimizerVersion.status -ne "success" -or $optimizerVersion.version.label -ne "opt-smoke-v1") {
+    throw "C5 optimizer save version endpoint returned unexpected payload."
+  }
+
+  $candidateId = $chatResult.candidate_set_draft.candidates[0].candidate_id
+  $selectForTestsPayload = @{
+    candidate_ids = @($candidateId)
+    max_compile_attempts = 3
+  } | ConvertTo-Json -Compress
+  $selectForTests = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId/candidates/select-for-tests" -Method Post -Body $selectForTestsPayload -ContentType "application/json" -TimeoutSec 8
+  if ($selectForTests.status -ne "success") {
+    throw "C2 select-for-tests endpoint returned unexpected payload."
+  }
+
+  $optimizerLaunchPayload = @{ triggered_by = "smoke_script" } | ConvertTo-Json -Compress
+  $optimizerLaunch = Invoke-RestMethod -Uri "$baseUrl/api/arenas/$arenaId/optimizer/launch" -Method Post -Body $optimizerLaunchPayload -ContentType "application/json" -TimeoutSec 8
+  if ($optimizerLaunch.status -ne "success" -or $optimizerLaunch.run.status -ne "queued") {
+    throw "C5 optimizer launch endpoint returned unexpected payload."
+  }
+
   Write-Host "[SMOKE] frontend capability shell completed successfully."
 } finally {
   if ($null -ne $process -and -not $process.HasExited) {
@@ -179,5 +280,8 @@ try {
   }
   Remove-Item Env:AUTOAGENT_WORKSPACE_STORE_FILE -ErrorAction SilentlyContinue
 }
+
+
+
 
 

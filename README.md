@@ -6,8 +6,8 @@ OSS-first платформа для архитектурного поиска, w
 
 - `Phase`: MVP-2 transition (product realignment + evaluation fabric)
 - `Iteration`: Roadmap v3 - vertical product slices
-- `Overall`: In Progress (V2.3.S1 + V2.3.S1a + V2.3.S2 + V2.3.S2b + V2.3.S2c + V2.3.S2d + V2.3.S3 + V2.3.S4 + V2.3.S4a + V2.3.S5 + V2.3.S5a done, product capabilities C1-C6 in rollout)
-- `Next Slice`: V2.3.S6 C4 Metrics & Evaluators Studio v0
+- `Overall`: In Progress (V2.3.S1 + V2.3.S1a + V2.3.S2 + V2.3.S2b + V2.3.S2c + V2.3.S2d + V2.3.S3 + V2.3.S4 + V2.3.S4a + V2.3.S5 + V2.3.S5a + V2.3.S6 + V2.3.S7 done, product capabilities C1-C6 in rollout)
+- `Next Slice`: V2.3.S8 C5 Run Monitor + version manifest timeline
 
 Подробный статус:
 

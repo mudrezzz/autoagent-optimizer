@@ -138,6 +138,91 @@ def _build_c4_dataset_version(version: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _build_c4_evaluation_state_payload(*, arena_id: str, studio_state: dict[str, Any]) -> dict[str, Any]:
+    """Формирует публичный API-payload состояния C4 Metrics & Evaluators Studio."""
+
+    versions = studio_state.get("versions", [])
+    return {
+        "status": "success",
+        "capability_id": "c4",
+        "arena_id": arena_id,
+        "comparative_metrics": [dict(item) for item in studio_state.get("comparative_metrics", []) if isinstance(item, dict)],
+        "diagnostic_signals": [dict(item) for item in studio_state.get("diagnostic_signals", []) if isinstance(item, dict)],
+        "evaluators": [dict(item) for item in studio_state.get("evaluators", []) if isinstance(item, dict)],
+        "budget": dict(studio_state.get("budget", {})),
+        "versions": [_build_c4_evaluation_version(item) for item in versions if isinstance(item, dict)],
+        "updated_at": str(studio_state.get("updated_at", "")),
+    }
+
+
+def _build_c4_evaluation_version(version: dict[str, Any]) -> dict[str, Any]:
+    """Собирает публичный version DTO для evaluation profile без тяжелых деталей."""
+
+    comparative_metrics = version.get("comparative_metrics", [])
+    diagnostic_signals = version.get("diagnostic_signals", [])
+    evaluators = version.get("evaluators", [])
+    return {
+        "version_id": str(version.get("version_id", "")),
+        "label": str(version.get("label", "")),
+        "created_at": str(version.get("created_at", "")),
+        "source": str(version.get("source", "")),
+        "enabled_comparative_total": len([item for item in comparative_metrics if isinstance(item, dict) and bool(item.get("enabled", False))]),
+        "enabled_diagnostic_total": len([item for item in diagnostic_signals if isinstance(item, dict) and bool(item.get("enabled", False))]),
+        "enabled_evaluators_total": len([item for item in evaluators if isinstance(item, dict) and bool(item.get("enabled", False))]),
+    }
+
+
+def _build_c5_optimizer_state_payload(*, arena_id: str, studio_state: dict[str, Any]) -> dict[str, Any]:
+    """Формирует публичный API-payload состояния C5 Optimizer Setup Studio."""
+
+    versions = studio_state.get("versions", [])
+    launch_history = studio_state.get("launch_history", [])
+    return {
+        "status": "success",
+        "capability_id": "c5",
+        "arena_id": arena_id,
+        "methods": [dict(item) for item in studio_state.get("methods", []) if isinstance(item, dict)],
+        "controls": [dict(item) for item in studio_state.get("controls", []) if isinstance(item, dict)],
+        "run_plan": dict(studio_state.get("run_plan", {})),
+        "budget": dict(studio_state.get("budget", {})),
+        "versions": [_build_c5_optimizer_version(item) for item in versions if isinstance(item, dict)],
+        "launch_history": [_build_c5_launch_entry(item) for item in launch_history if isinstance(item, dict)],
+        "updated_at": str(studio_state.get("updated_at", "")),
+    }
+
+
+def _build_c5_optimizer_version(version: dict[str, Any]) -> dict[str, Any]:
+    """Собирает публичный version DTO для optimizer setup без тяжелых деталей."""
+
+    methods = version.get("methods", [])
+    controls = version.get("controls", [])
+    run_plan = version.get("run_plan", {})
+    return {
+        "version_id": str(version.get("version_id", "")),
+        "label": str(version.get("label", "")),
+        "created_at": str(version.get("created_at", "")),
+        "source": str(version.get("source", "")),
+        "enabled_methods_total": len([item for item in methods if isinstance(item, dict) and bool(item.get("enabled", False))]),
+        "enabled_controls_total": len([item for item in controls if isinstance(item, dict) and bool(item.get("enabled", False))]),
+        "epochs_total": int(run_plan.get("epochs_total", 0) or 0) if isinstance(run_plan, dict) else 0,
+    }
+
+
+def _build_c5_launch_entry(entry: dict[str, Any]) -> dict[str, Any]:
+    """Собирает публичную DTO запись launch history C5."""
+
+    return {
+        "run_id": str(entry.get("run_id", "")),
+        "created_at": str(entry.get("created_at", "")),
+        "status": str(entry.get("status", "")),
+        "method_id": str(entry.get("method_id", "")),
+        "epochs_total": int(entry.get("epochs_total", 0) or 0),
+        "selected_candidates_total": int(entry.get("selected_candidates_total", 0) or 0),
+        "assigned_datasets_total": int(entry.get("assigned_datasets_total", 0) or 0),
+        "triggered_by": str(entry.get("triggered_by", "")),
+    }
+
+
 def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore) -> type[SimpleHTTPRequestHandler]:
     """Создает handler-класс с замыканием на project_root и registry_store."""
 
@@ -206,6 +291,18 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
             if arena_datasets_state_match is not None:
                 arena_id = arena_datasets_state_match.group(1)
                 self._handle_get_arena_dataset_state(tenant_id=tenant_id, user_id=user_id, arena_id=arena_id)
+                return
+
+            arena_evaluation_state_match = re.fullmatch(r"/api/arenas/([^/]+)/evaluation/state", path)
+            if arena_evaluation_state_match is not None:
+                arena_id = arena_evaluation_state_match.group(1)
+                self._handle_get_arena_evaluation_state(tenant_id=tenant_id, user_id=user_id, arena_id=arena_id)
+                return
+
+            arena_optimizer_state_match = re.fullmatch(r"/api/arenas/([^/]+)/optimizer/state", path)
+            if arena_optimizer_state_match is not None:
+                arena_id = arena_optimizer_state_match.group(1)
+                self._handle_get_arena_optimizer_state(tenant_id=tenant_id, user_id=user_id, arena_id=arena_id)
                 return
 
             # Русский комментарий: оставляем legacy project-роут как alias к arena id для плавной миграции.
@@ -356,6 +453,87 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
                     user_id=user_id,
                     arena_id=arena_dataset_save_version_match.group(1),
                     dataset_id=arena_dataset_save_version_match.group(2),
+                )
+                return
+
+            arena_evaluation_metrics_save_match = re.fullmatch(r"/api/arenas/([^/]+)/evaluation/metrics/save", path)
+            if arena_evaluation_metrics_save_match is not None:
+                self._handle_post_arena_evaluation_metrics_save(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    arena_id=arena_evaluation_metrics_save_match.group(1),
+                )
+                return
+
+            arena_evaluation_evaluators_save_match = re.fullmatch(r"/api/arenas/([^/]+)/evaluation/evaluators/save", path)
+            if arena_evaluation_evaluators_save_match is not None:
+                self._handle_post_arena_evaluation_evaluators_save(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    arena_id=arena_evaluation_evaluators_save_match.group(1),
+                )
+                return
+
+            arena_evaluation_budget_save_match = re.fullmatch(r"/api/arenas/([^/]+)/evaluation/budget/save", path)
+            if arena_evaluation_budget_save_match is not None:
+                self._handle_post_arena_evaluation_budget_save(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    arena_id=arena_evaluation_budget_save_match.group(1),
+                )
+                return
+
+            arena_evaluation_validate_match = re.fullmatch(r"/api/arenas/([^/]+)/evaluation/validate", path)
+            if arena_evaluation_validate_match is not None:
+                self._handle_post_arena_evaluation_validate(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    arena_id=arena_evaluation_validate_match.group(1),
+                )
+                return
+
+            arena_evaluation_save_version_match = re.fullmatch(r"/api/arenas/([^/]+)/evaluation/save-version", path)
+            if arena_evaluation_save_version_match is not None:
+                self._handle_post_arena_evaluation_save_version(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    arena_id=arena_evaluation_save_version_match.group(1),
+                )
+                return
+
+            arena_optimizer_save_match = re.fullmatch(r"/api/arenas/([^/]+)/optimizer/save", path)
+            if arena_optimizer_save_match is not None:
+                self._handle_post_arena_optimizer_save(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    arena_id=arena_optimizer_save_match.group(1),
+                )
+                return
+
+            arena_optimizer_validate_match = re.fullmatch(r"/api/arenas/([^/]+)/optimizer/validate", path)
+            if arena_optimizer_validate_match is not None:
+                self._handle_post_arena_optimizer_validate(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    arena_id=arena_optimizer_validate_match.group(1),
+                )
+                return
+
+            arena_optimizer_save_version_match = re.fullmatch(r"/api/arenas/([^/]+)/optimizer/save-version", path)
+            if arena_optimizer_save_version_match is not None:
+                self._handle_post_arena_optimizer_save_version(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    arena_id=arena_optimizer_save_version_match.group(1),
+                )
+                return
+
+            arena_optimizer_launch_match = re.fullmatch(r"/api/arenas/([^/]+)/optimizer/launch", path)
+            if arena_optimizer_launch_match is not None:
+                self._handle_post_arena_optimizer_launch(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    arena_id=arena_optimizer_launch_match.group(1),
                 )
                 return
 
@@ -1300,6 +1478,405 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
             response_payload["action"] = "save_dataset_version"
             response_payload["version"] = _build_c4_dataset_version(version)
             self._send_json(response_payload)
+
+        def _handle_get_arena_evaluation_state(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Возвращает состояние C4 Metrics & Evaluators Studio для выбранной арены."""
+
+            try:
+                studio_state = registry_store.get_arena_evaluation_studio_state(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                )
+            except KeyError as exc:
+                self._send_json(
+                    {"status": "error", "code": "arena_not_found", "message": str(exc)},
+                    status=HTTPStatus.NOT_FOUND,
+                )
+                return
+
+            self._send_json(_build_c4_evaluation_state_payload(arena_id=arena_id, studio_state=studio_state))
+
+        def _handle_post_arena_evaluation_metrics_save(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Сохраняет comparative/diagnostic метрики evaluation profile."""
+
+            try:
+                payload = self._read_json_body()
+            except ValueError as exc:
+                self._send_json({"status": "error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            comparative_metrics = payload.get("comparative_metrics", [])
+            diagnostic_signals = payload.get("diagnostic_signals", [])
+            if not isinstance(comparative_metrics, list) or not isinstance(diagnostic_signals, list):
+                self._send_json(
+                    {
+                        "status": "error",
+                        "code": "validation_error",
+                        "message": "Fields `comparative_metrics` and `diagnostic_signals` must be arrays.",
+                    },
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            if any(not isinstance(item, dict) for item in comparative_metrics) or any(not isinstance(item, dict) for item in diagnostic_signals):
+                self._send_json(
+                    {
+                        "status": "error",
+                        "code": "validation_error",
+                        "message": "Metrics payload must contain objects only.",
+                    },
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            try:
+                studio_state = registry_store.save_arena_evaluation_metrics(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                    comparative_metrics=[dict(item) for item in comparative_metrics],
+                    diagnostic_signals=[dict(item) for item in diagnostic_signals],
+                )
+            except KeyError as exc:
+                self._send_json({"status": "error", "code": "arena_not_found", "message": str(exc)}, status=HTTPStatus.NOT_FOUND)
+                return
+            except ValueError as exc:
+                self._send_json({"status": "error", "code": "validation_error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            response_payload = _build_c4_evaluation_state_payload(arena_id=arena_id, studio_state=studio_state)
+            response_payload["action"] = "save_evaluation_metrics"
+            self._send_json(response_payload)
+
+        def _handle_post_arena_evaluation_evaluators_save(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Сохраняет evaluator-адаптеры evaluation profile."""
+
+            try:
+                payload = self._read_json_body()
+            except ValueError as exc:
+                self._send_json({"status": "error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            evaluators = payload.get("evaluators", [])
+            if not isinstance(evaluators, list):
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Field `evaluators` must be an array."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            if any(not isinstance(item, dict) for item in evaluators):
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Field `evaluators` must contain objects only."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            try:
+                studio_state = registry_store.save_arena_evaluation_evaluators(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                    evaluators=[dict(item) for item in evaluators],
+                )
+            except KeyError as exc:
+                self._send_json({"status": "error", "code": "arena_not_found", "message": str(exc)}, status=HTTPStatus.NOT_FOUND)
+                return
+            except ValueError as exc:
+                self._send_json({"status": "error", "code": "validation_error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            response_payload = _build_c4_evaluation_state_payload(arena_id=arena_id, studio_state=studio_state)
+            response_payload["action"] = "save_evaluation_evaluators"
+            self._send_json(response_payload)
+
+        def _handle_post_arena_evaluation_budget_save(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Сохраняет бюджетные ограничения evaluation profile."""
+
+            try:
+                payload = self._read_json_body()
+            except ValueError as exc:
+                self._send_json({"status": "error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            budget = payload.get("budget", {})
+            if not isinstance(budget, dict):
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Field `budget` must be an object."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            try:
+                studio_state = registry_store.save_arena_evaluation_budget(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                    budget=budget,
+                )
+            except KeyError as exc:
+                self._send_json({"status": "error", "code": "arena_not_found", "message": str(exc)}, status=HTTPStatus.NOT_FOUND)
+                return
+            except ValueError as exc:
+                self._send_json({"status": "error", "code": "validation_error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            response_payload = _build_c4_evaluation_state_payload(arena_id=arena_id, studio_state=studio_state)
+            response_payload["action"] = "save_evaluation_budget"
+            self._send_json(response_payload)
+
+        def _handle_post_arena_evaluation_validate(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Валидирует текущий evaluation profile и возвращает issues-отчет."""
+
+            try:
+                validation_report = registry_store.validate_arena_evaluation_profile(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                )
+                studio_state = registry_store.get_arena_evaluation_studio_state(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                )
+            except KeyError as exc:
+                self._send_json({"status": "error", "code": "arena_not_found", "message": str(exc)}, status=HTTPStatus.NOT_FOUND)
+                return
+
+            response_payload = _build_c4_evaluation_state_payload(arena_id=arena_id, studio_state=studio_state)
+            response_payload["action"] = "validate_evaluation_profile"
+            response_payload["validation_report"] = validation_report
+            self._send_json(response_payload)
+
+        def _handle_post_arena_evaluation_save_version(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Сохраняет snapshot-версию evaluation profile."""
+
+            try:
+                payload = self._read_json_body()
+            except ValueError as exc:
+                self._send_json({"status": "error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            label = payload.get("label", "")
+            source = payload.get("source", "manual")
+            if not isinstance(label, str) or not isinstance(source, str):
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Fields `label` and `source` must be strings."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            try:
+                version = registry_store.save_arena_evaluation_version(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                    label=label,
+                    source=source,
+                )
+                studio_state = registry_store.get_arena_evaluation_studio_state(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                )
+            except KeyError as exc:
+                self._send_json({"status": "error", "code": "arena_not_found", "message": str(exc)}, status=HTTPStatus.NOT_FOUND)
+                return
+
+            response_payload = _build_c4_evaluation_state_payload(arena_id=arena_id, studio_state=studio_state)
+            response_payload["action"] = "save_evaluation_version"
+            response_payload["version"] = _build_c4_evaluation_version(version)
+            self._send_json(response_payload)
+
+        def _handle_get_arena_optimizer_state(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Возвращает состояние C5 Optimizer Setup Studio для выбранной арены."""
+
+            try:
+                studio_state = registry_store.get_arena_optimizer_studio_state(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                )
+            except KeyError as exc:
+                self._send_json(
+                    {"status": "error", "code": "arena_not_found", "message": str(exc)},
+                    status=HTTPStatus.NOT_FOUND,
+                )
+                return
+
+            self._send_json(_build_c5_optimizer_state_payload(arena_id=arena_id, studio_state=studio_state))
+
+        def _handle_post_arena_optimizer_save(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Сохраняет C5 optimizer setup (methods/controls/run_plan/budget)."""
+
+            try:
+                payload = self._read_json_body()
+            except ValueError as exc:
+                self._send_json({"status": "error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            methods = payload.get("methods", [])
+            controls = payload.get("controls", [])
+            run_plan = payload.get("run_plan", {})
+            budget = payload.get("budget", {})
+            if not isinstance(methods, list) or not isinstance(controls, list) or not isinstance(run_plan, dict) or not isinstance(budget, dict):
+                self._send_json(
+                    {
+                        "status": "error",
+                        "code": "validation_error",
+                        "message": "Fields `methods`/`controls` must be arrays and `run_plan`/`budget` must be objects.",
+                    },
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            if any(not isinstance(item, dict) for item in methods) or any(not isinstance(item, dict) for item in controls):
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Methods and controls must contain objects only."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            try:
+                studio_state = registry_store.save_arena_optimizer_setup(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                    methods=[dict(item) for item in methods],
+                    controls=[dict(item) for item in controls],
+                    run_plan=dict(run_plan),
+                    budget=dict(budget),
+                )
+            except KeyError as exc:
+                self._send_json({"status": "error", "code": "arena_not_found", "message": str(exc)}, status=HTTPStatus.NOT_FOUND)
+                return
+            except ValueError as exc:
+                self._send_json({"status": "error", "code": "validation_error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            response_payload = _build_c5_optimizer_state_payload(arena_id=arena_id, studio_state=studio_state)
+            response_payload["action"] = "save_optimizer_setup"
+            self._send_json(response_payload)
+
+        def _handle_post_arena_optimizer_validate(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Валидирует C5 optimizer setup и возвращает guardrail-issues."""
+
+            try:
+                validation_report = registry_store.validate_arena_optimizer_setup(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                )
+                studio_state = registry_store.get_arena_optimizer_studio_state(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                )
+            except KeyError as exc:
+                self._send_json({"status": "error", "code": "arena_not_found", "message": str(exc)}, status=HTTPStatus.NOT_FOUND)
+                return
+
+            response_payload = _build_c5_optimizer_state_payload(arena_id=arena_id, studio_state=studio_state)
+            response_payload["action"] = "validate_optimizer_setup"
+            response_payload["validation_report"] = validation_report
+            self._send_json(response_payload)
+
+        def _handle_post_arena_optimizer_save_version(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Сохраняет snapshot-версию C5 optimizer setup."""
+
+            try:
+                payload = self._read_json_body()
+            except ValueError as exc:
+                self._send_json({"status": "error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            label = payload.get("label", "")
+            source = payload.get("source", "manual")
+            if not isinstance(label, str) or not isinstance(source, str):
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Fields `label` and `source` must be strings."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            try:
+                version = registry_store.save_arena_optimizer_version(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                    label=label,
+                    source=source,
+                )
+                studio_state = registry_store.get_arena_optimizer_studio_state(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                )
+            except KeyError as exc:
+                self._send_json({"status": "error", "code": "arena_not_found", "message": str(exc)}, status=HTTPStatus.NOT_FOUND)
+                return
+            except ValueError as exc:
+                self._send_json({"status": "error", "code": "validation_error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            response_payload = _build_c5_optimizer_state_payload(arena_id=arena_id, studio_state=studio_state)
+            response_payload["action"] = "save_optimizer_version"
+            response_payload["version"] = _build_c5_optimizer_version(version)
+            self._send_json(response_payload)
+
+        def _handle_post_arena_optimizer_launch(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Запускает C5 optimizer run с preflight-guardrails."""
+
+            try:
+                payload = self._read_json_body()
+            except ValueError as exc:
+                self._send_json({"status": "error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            triggered_by = payload.get("triggered_by", "manual")
+            if not isinstance(triggered_by, str):
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Field `triggered_by` must be a string."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            try:
+                run_entry = registry_store.launch_arena_optimizer_run(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                    triggered_by=triggered_by,
+                )
+                studio_state = registry_store.get_arena_optimizer_studio_state(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                )
+            except KeyError as exc:
+                self._send_json({"status": "error", "code": "arena_not_found", "message": str(exc)}, status=HTTPStatus.NOT_FOUND)
+                return
+            except ValueError:
+                validation_report = registry_store.validate_arena_optimizer_setup(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                )
+                studio_state = registry_store.get_arena_optimizer_studio_state(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                )
+                response_payload = _build_c5_optimizer_state_payload(arena_id=arena_id, studio_state=studio_state)
+                response_payload["status"] = "error"
+                response_payload["code"] = "optimizer_guardrail_blocked"
+                response_payload["message"] = "Optimizer launch blocked by guardrails."
+                response_payload["validation_report"] = validation_report
+                self._send_json(response_payload, status=HTTPStatus.CONFLICT)
+                return
+
+            response_payload = _build_c5_optimizer_state_payload(arena_id=arena_id, studio_state=studio_state)
+            response_payload["action"] = "launch_optimizer"
+            response_payload["run"] = _build_c5_launch_entry(run_entry)
+            self._send_json(response_payload, status=HTTPStatus.ACCEPTED)
 
         def _resolve_request_actor(self) -> tuple[str, str]:
             """Разрешает tenant/user контекст запроса из заголовков либо default окружения."""

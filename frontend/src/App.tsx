@@ -9,6 +9,7 @@ import {
   fetchArenaDatasetState,
   duplicateArena,
   fetchArenaPatternSelection,
+  fetchArenaOptimizerState,
   fetchCapabilityCatalog,
   fetchStubCapability,
   getArena,
@@ -19,18 +20,39 @@ import {
   replaceArenaDatasetRows,
   saveArenaPatternSelection,
   saveArenaDatasetVersion,
+  saveArenaOptimizerSetup,
+  saveArenaOptimizerVersion,
+  saveArenaEvaluationBudget,
+  saveArenaEvaluationEvaluators,
+  saveArenaEvaluationMetrics,
+  saveArenaEvaluationVersion,
   searchArenaPatterns,
   selectArenaDataset,
   selectArenaCandidatesForTests,
+  launchArenaOptimizer,
+  fetchArenaEvaluationState,
   validateArenaDataset,
+  validateArenaEvaluationProfile,
+  validateArenaOptimizerSetup,
 } from "./api";
 import type {
   ArenaRecord,
+  C4ComparativeMetric,
   C2CandidateDraftItem,
   C2CandidateSetDraft,
   C2ChatMessage,
+  C4DiagnosticSignal,
   C4DatasetDetail,
   C4DatasetSummary,
+  C4EvaluationBudget,
+  C4EvaluationVersion,
+  C4Evaluator,
+  C5OptimizerBudget,
+  C5OptimizerControl,
+  C5OptimizerLaunchEntry,
+  C5OptimizerMethod,
+  C5OptimizerRunPlan,
+  C5OptimizerVersion,
   C3PatternItem,
   Capability,
   StubPayload,
@@ -57,7 +79,7 @@ const FALLBACK_CAPABILITIES: Capability[] = [
   },
   { id: "c3", name: "Pattern Library + RAG", description: "Pattern retrieval controls for candidate generation.", status: "enabled", badge_count: 1 },
   { id: "c4", name: "Dataset & Metrics Studio", description: "Manage dataset lifecycle for benchmark runs.", status: "enabled", badge_count: 1 },
-  { id: "c5", name: "Optimizer Run Monitor", description: "Planned slice for run timeline and metrics monitor.", status: "planned", badge_count: 0 },
+  { id: "c5", name: "Optimizer Run Monitor", description: "Optimizer setup, launch guardrails and run queue.", status: "enabled", badge_count: 1 },
   { id: "c6", name: "Report + Champion Export/Import", description: "Planned slice for reports and native loop.", status: "planned", badge_count: 0 },
 ];
 
@@ -108,6 +130,21 @@ type UiState = {
   c4EditorDatasetId: string;
   c4EditorRows: Array<{ case_id: string; input: string; expected: string; notes: string }>;
   c4EditorImportJsonl: string;
+  c4ComparativeMetrics: C4ComparativeMetric[];
+  c4DiagnosticSignals: C4DiagnosticSignal[];
+  c4Evaluators: C4Evaluator[];
+  c4EvaluationBudget: C4EvaluationBudget;
+  c4EvaluationVersions: C4EvaluationVersion[];
+  c4EvaluationValidationStatus: "not_run" | "ready" | "warnings" | "invalid";
+  c4EvaluationValidationIssues: Array<{ severity: string; code: string; message: string }>;
+  c5Methods: C5OptimizerMethod[];
+  c5Controls: C5OptimizerControl[];
+  c5RunPlan: C5OptimizerRunPlan;
+  c5Budget: C5OptimizerBudget;
+  c5Versions: C5OptimizerVersion[];
+  c5LaunchHistory: C5OptimizerLaunchEntry[];
+  c5ValidationStatus: "not_run" | "ready" | "warnings" | "invalid";
+  c5ValidationIssues: Array<{ severity: string; code: string; message: string }>;
   c4NewDatasetName: string;
   c4NewDatasetDescription: string;
   c4ValidationIssues: Array<{ severity: string; code: string; row_index: number | null; message: string }>;
@@ -154,6 +191,21 @@ export function App(): JSX.Element {
     c4EditorDatasetId: "",
     c4EditorRows: [],
     c4EditorImportJsonl: "",
+    c4ComparativeMetrics: [],
+    c4DiagnosticSignals: [],
+    c4Evaluators: [],
+    c4EvaluationBudget: { max_cases: 0, max_llm_calls: 0, max_cost_usd: 0 },
+    c4EvaluationVersions: [],
+    c4EvaluationValidationStatus: "not_run",
+    c4EvaluationValidationIssues: [],
+    c5Methods: [],
+    c5Controls: [],
+    c5RunPlan: { epochs_total: 0, candidates_per_epoch: 0, max_parallel_trials: 0, early_stop_patience: 0 },
+    c5Budget: { max_cases: 0, max_llm_calls: 0, max_cost_usd: 0, max_runtime_minutes: 0 },
+    c5Versions: [],
+    c5LaunchHistory: [],
+    c5ValidationStatus: "not_run",
+    c5ValidationIssues: [],
     c4NewDatasetName: "",
     c4NewDatasetDescription: "",
     c4ValidationIssues: [],
@@ -290,6 +342,21 @@ export function App(): JSX.Element {
       c4EditorDatasetId: "",
       c4EditorRows: [],
       c4EditorImportJsonl: "",
+      c4ComparativeMetrics: [],
+      c4DiagnosticSignals: [],
+      c4Evaluators: [],
+      c4EvaluationBudget: { max_cases: 0, max_llm_calls: 0, max_cost_usd: 0 },
+      c4EvaluationVersions: [],
+      c4EvaluationValidationStatus: "not_run",
+      c4EvaluationValidationIssues: [],
+      c5Methods: [],
+      c5Controls: [],
+      c5RunPlan: { epochs_total: 0, candidates_per_epoch: 0, max_parallel_trials: 0, early_stop_patience: 0 },
+      c5Budget: { max_cases: 0, max_llm_calls: 0, max_cost_usd: 0, max_runtime_minutes: 0 },
+      c5Versions: [],
+      c5LaunchHistory: [],
+      c5ValidationStatus: "not_run",
+      c5ValidationIssues: [],
       c4NewDatasetName: "",
       c4NewDatasetDescription: "",
       c4ValidationIssues: [],
@@ -368,6 +435,8 @@ export function App(): JSX.Element {
       }));
       await loadC3PatternState(arenaId, "", false);
       await loadC4DatasetState(arenaId, false);
+      await loadC4EvaluationState(arenaId, false);
+      await loadC5OptimizerState(arenaId, false);
     } catch (error) {
       setState((prev) => ({
         ...prev,
@@ -392,6 +461,21 @@ export function App(): JSX.Element {
         c4EditorDatasetId: "",
         c4EditorRows: [],
         c4EditorImportJsonl: "",
+        c4ComparativeMetrics: [],
+        c4DiagnosticSignals: [],
+        c4Evaluators: [],
+        c4EvaluationBudget: { max_cases: 0, max_llm_calls: 0, max_cost_usd: 0 },
+        c4EvaluationVersions: [],
+        c4EvaluationValidationStatus: "not_run",
+        c4EvaluationValidationIssues: [],
+        c5Methods: [],
+        c5Controls: [],
+        c5RunPlan: { epochs_total: 0, candidates_per_epoch: 0, max_parallel_trials: 0, early_stop_patience: 0 },
+        c5Budget: { max_cases: 0, max_llm_calls: 0, max_cost_usd: 0, max_runtime_minutes: 0 },
+        c5Versions: [],
+        c5LaunchHistory: [],
+        c5ValidationStatus: "not_run",
+        c5ValidationIssues: [],
         c4ValidationIssues: [],
         c4ValidationStatus: "not_run",
         budgetPercent: 100,
@@ -535,6 +619,64 @@ export function App(): JSX.Element {
       c4ValidationStatus: "not_run",
       budgetPercent: writeSnapshot ? 100 : prev.budgetPercent,
       budgetStage: writeSnapshot ? "c4 dataset studio ready" : prev.budgetStage,
+      jsonText: writeSnapshot ? prettyJson(snapshot) : prev.jsonText,
+      lastPayload: writeSnapshot ? snapshot : prev.lastPayload,
+    }));
+  }
+
+  // Русский комментарий: загружает состояние C4 Metrics & Evaluators Studio для активной арены.
+  async function loadC4EvaluationState(arenaId: string, writeSnapshot = true): Promise<void> {
+    const response = await fetchArenaEvaluationState(arenaId);
+    const snapshot = {
+      status: "success",
+      capability_id: "c4",
+      action: "load_evaluation_studio",
+      arena_id: arenaId,
+      comparative_total: response.comparative_metrics.length,
+      diagnostic_total: response.diagnostic_signals.length,
+      evaluators_total: response.evaluators.length,
+    };
+    setState((prev) => ({
+      ...prev,
+      c4ComparativeMetrics: response.comparative_metrics,
+      c4DiagnosticSignals: response.diagnostic_signals,
+      c4Evaluators: response.evaluators,
+      c4EvaluationBudget: response.budget,
+      c4EvaluationVersions: response.versions,
+      c4EvaluationValidationStatus: "not_run",
+      c4EvaluationValidationIssues: [],
+      budgetPercent: writeSnapshot ? 100 : prev.budgetPercent,
+      budgetStage: writeSnapshot ? "c4 evaluation studio ready" : prev.budgetStage,
+      jsonText: writeSnapshot ? prettyJson(snapshot) : prev.jsonText,
+      lastPayload: writeSnapshot ? snapshot : prev.lastPayload,
+    }));
+  }
+
+  // Русский комментарий: загружает состояние C5 Optimizer Setup Studio для активной арены.
+  async function loadC5OptimizerState(arenaId: string, writeSnapshot = true): Promise<void> {
+    const response = await fetchArenaOptimizerState(arenaId);
+    const snapshot = {
+      status: "success",
+      capability_id: "c5",
+      action: "load_optimizer_setup",
+      arena_id: arenaId,
+      methods_total: response.methods.length,
+      controls_total: response.controls.length,
+      versions_total: response.versions.length,
+      launches_total: response.launch_history.length,
+    };
+    setState((prev) => ({
+      ...prev,
+      c5Methods: response.methods,
+      c5Controls: response.controls,
+      c5RunPlan: response.run_plan,
+      c5Budget: response.budget,
+      c5Versions: response.versions,
+      c5LaunchHistory: response.launch_history,
+      c5ValidationStatus: "not_run",
+      c5ValidationIssues: [],
+      budgetPercent: writeSnapshot ? 100 : prev.budgetPercent,
+      budgetStage: writeSnapshot ? "c5 optimizer setup ready" : prev.budgetStage,
       jsonText: writeSnapshot ? prettyJson(snapshot) : prev.jsonText,
       lastPayload: writeSnapshot ? snapshot : prev.lastPayload,
     }));
@@ -909,6 +1051,416 @@ export function App(): JSX.Element {
     }
   }
 
+  // Русский комментарий: локально переключает сравнительную метрику в evaluation profile.
+  function handleToggleC4ComparativeMetric(metricId: string): void {
+    setState((prev) => ({
+      ...prev,
+      c4ComparativeMetrics: prev.c4ComparativeMetrics.map((item) =>
+        item.metric_id === metricId ? { ...item, enabled: !item.enabled } : item
+      ),
+    }));
+  }
+
+  // Русский комментарий: обновляет вес сравнительной метрики в evaluation profile.
+  function handleChangeC4ComparativeMetricWeight(metricId: string, value: string): void {
+    const parsedValue = Number.parseFloat(value);
+    const nextWeight = Number.isFinite(parsedValue) ? parsedValue : 0;
+    setState((prev) => ({
+      ...prev,
+      c4ComparativeMetrics: prev.c4ComparativeMetrics.map((item) =>
+        item.metric_id === metricId ? { ...item, weight: nextWeight } : item
+      ),
+    }));
+  }
+
+  // Русский комментарий: локально переключает diagnostic сигнал в evaluation profile.
+  function handleToggleC4DiagnosticSignal(signalId: string): void {
+    setState((prev) => ({
+      ...prev,
+      c4DiagnosticSignals: prev.c4DiagnosticSignals.map((item) =>
+        item.signal_id === signalId ? { ...item, enabled: !item.enabled } : item
+      ),
+    }));
+  }
+
+  // Русский комментарий: локально переключает evaluator adapter в evaluation profile.
+  function handleToggleC4Evaluator(evaluatorId: string): void {
+    setState((prev) => ({
+      ...prev,
+      c4Evaluators: prev.c4Evaluators.map((item) =>
+        item.evaluator_id === evaluatorId ? { ...item, enabled: !item.enabled } : item
+      ),
+    }));
+  }
+
+  // Русский комментарий: обновляет одно поле бюджетных ограничений evaluation profile.
+  function handleChangeC4EvaluationBudgetField(field: "max_cases" | "max_llm_calls" | "max_cost_usd", value: string): void {
+    const parsedValue = field === "max_cost_usd" ? Number.parseFloat(value) : Number.parseInt(value, 10);
+    const nextValue = Number.isFinite(parsedValue) ? parsedValue : 0;
+    setState((prev) => ({
+      ...prev,
+      c4EvaluationBudget: {
+        ...prev.c4EvaluationBudget,
+        [field]: nextValue,
+      },
+    }));
+  }
+
+  // Русский комментарий: сохраняет блок метрик evaluation profile в backend.
+  async function handleSaveC4EvaluationMetrics(): Promise<void> {
+    if (!state.activeArenaId) {
+      return;
+    }
+    setState((prev) => ({ ...prev, budgetStage: "saving evaluation metrics", budgetPercent: 60 }));
+    try {
+      const response = await saveArenaEvaluationMetrics(
+        state.activeArenaId,
+        state.c4ComparativeMetrics,
+        state.c4DiagnosticSignals
+      );
+      const snapshot = {
+        status: "success",
+        capability_id: "c4",
+        action: response.action ?? "save_evaluation_metrics",
+        arena_id: state.activeArenaId,
+      };
+      setState((prev) => ({
+        ...prev,
+        c4ComparativeMetrics: response.comparative_metrics,
+        c4DiagnosticSignals: response.diagnostic_signals,
+        c4Evaluators: response.evaluators,
+        c4EvaluationBudget: response.budget,
+        c4EvaluationVersions: response.versions,
+        budgetPercent: 100,
+        budgetStage: "evaluation metrics saved",
+        jsonText: prettyJson(snapshot),
+        lastPayload: snapshot,
+      }));
+    } catch (error) {
+      setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
+    }
+  }
+
+  // Русский комментарий: сохраняет блок evaluator-адаптеров evaluation profile в backend.
+  async function handleSaveC4EvaluationEvaluators(): Promise<void> {
+    if (!state.activeArenaId) {
+      return;
+    }
+    setState((prev) => ({ ...prev, budgetStage: "saving evaluators", budgetPercent: 60 }));
+    try {
+      const response = await saveArenaEvaluationEvaluators(state.activeArenaId, state.c4Evaluators);
+      const snapshot = {
+        status: "success",
+        capability_id: "c4",
+        action: response.action ?? "save_evaluation_evaluators",
+        arena_id: state.activeArenaId,
+      };
+      setState((prev) => ({
+        ...prev,
+        c4ComparativeMetrics: response.comparative_metrics,
+        c4DiagnosticSignals: response.diagnostic_signals,
+        c4Evaluators: response.evaluators,
+        c4EvaluationBudget: response.budget,
+        c4EvaluationVersions: response.versions,
+        budgetPercent: 100,
+        budgetStage: "evaluation evaluators saved",
+        jsonText: prettyJson(snapshot),
+        lastPayload: snapshot,
+      }));
+    } catch (error) {
+      setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
+    }
+  }
+
+  // Русский комментарий: сохраняет блок budget evaluation profile в backend.
+  async function handleSaveC4EvaluationBudget(): Promise<void> {
+    if (!state.activeArenaId) {
+      return;
+    }
+    setState((prev) => ({ ...prev, budgetStage: "saving evaluation budget", budgetPercent: 60 }));
+    try {
+      const response = await saveArenaEvaluationBudget(state.activeArenaId, state.c4EvaluationBudget);
+      const snapshot = {
+        status: "success",
+        capability_id: "c4",
+        action: response.action ?? "save_evaluation_budget",
+        arena_id: state.activeArenaId,
+      };
+      setState((prev) => ({
+        ...prev,
+        c4ComparativeMetrics: response.comparative_metrics,
+        c4DiagnosticSignals: response.diagnostic_signals,
+        c4Evaluators: response.evaluators,
+        c4EvaluationBudget: response.budget,
+        c4EvaluationVersions: response.versions,
+        budgetPercent: 100,
+        budgetStage: "evaluation budget saved",
+        jsonText: prettyJson(snapshot),
+        lastPayload: snapshot,
+      }));
+    } catch (error) {
+      setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
+    }
+  }
+
+  // Русский комментарий: запускает validate-проверку evaluation profile и показывает issues.
+  async function handleValidateC4EvaluationProfile(): Promise<void> {
+    if (!state.activeArenaId) {
+      return;
+    }
+    setState((prev) => ({ ...prev, budgetStage: "validating evaluation profile", budgetPercent: 65 }));
+    try {
+      const response = await validateArenaEvaluationProfile(state.activeArenaId);
+      const validationReport = response.validation_report;
+      const snapshot = {
+        status: "success",
+        capability_id: "c4",
+        action: response.action ?? "validate_evaluation_profile",
+        arena_id: state.activeArenaId,
+        validation_status: validationReport?.status ?? "unknown",
+        issues_total: validationReport?.issues.length ?? 0,
+      };
+      setState((prev) => ({
+        ...prev,
+        c4ComparativeMetrics: response.comparative_metrics,
+        c4DiagnosticSignals: response.diagnostic_signals,
+        c4Evaluators: response.evaluators,
+        c4EvaluationBudget: response.budget,
+        c4EvaluationVersions: response.versions,
+        c4EvaluationValidationStatus: validationReport?.status ?? "invalid",
+        c4EvaluationValidationIssues: validationReport?.issues ?? [],
+        budgetPercent: 100,
+        budgetStage: "evaluation profile validated",
+        jsonText: prettyJson(snapshot),
+        lastPayload: snapshot,
+      }));
+    } catch (error) {
+      setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
+    }
+  }
+
+  // Русский комментарий: сохраняет snapshot-версию evaluation profile.
+  async function handleSaveC4EvaluationVersion(): Promise<void> {
+    if (!state.activeArenaId) {
+      return;
+    }
+    const label = `eval-${new Date().toISOString().slice(0, 19)}`;
+    setState((prev) => ({ ...prev, budgetStage: "saving evaluation version", budgetPercent: 65 }));
+    try {
+      const response = await saveArenaEvaluationVersion(state.activeArenaId, label, "manual");
+      const snapshot = {
+        status: "success",
+        capability_id: "c4",
+        action: response.action ?? "save_evaluation_version",
+        arena_id: state.activeArenaId,
+        version_id: response.version?.version_id ?? "",
+      };
+      setState((prev) => ({
+        ...prev,
+        c4ComparativeMetrics: response.comparative_metrics,
+        c4DiagnosticSignals: response.diagnostic_signals,
+        c4Evaluators: response.evaluators,
+        c4EvaluationBudget: response.budget,
+        c4EvaluationVersions: response.versions,
+        budgetPercent: 100,
+        budgetStage: "evaluation version saved",
+        jsonText: prettyJson(snapshot),
+        lastPayload: snapshot,
+      }));
+    } catch (error) {
+      setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
+    }
+  }
+
+  // Русский комментарий: локально переключает optimizer method в C5 setup.
+  function handleToggleC5Method(methodId: string): void {
+    setState((prev) => ({
+      ...prev,
+      c5Methods: prev.c5Methods.map((method) => (method.method_id === methodId ? { ...method, enabled: !method.enabled } : method)),
+    }));
+  }
+
+  // Русский комментарий: локально переключает optimizer control в C5 setup.
+  function handleToggleC5Control(controlId: string): void {
+    setState((prev) => ({
+      ...prev,
+      c5Controls: prev.c5Controls.map((control) => (control.control_id === controlId ? { ...control, enabled: !control.enabled } : control)),
+    }));
+  }
+
+  // Русский комментарий: обновляет одно поле run_plan в C5 setup.
+  function handleChangeC5RunPlanField(
+    field: keyof C5OptimizerRunPlan,
+    rawValue: string,
+  ): void {
+    const numericValue = Number(rawValue);
+    setState((prev) => ({
+      ...prev,
+      c5RunPlan: {
+        ...prev.c5RunPlan,
+        [field]: Number.isFinite(numericValue) ? numericValue : 0,
+      },
+    }));
+  }
+
+  // Русский комментарий: обновляет одно поле budget в C5 setup.
+  function handleChangeC5BudgetField(
+    field: keyof C5OptimizerBudget,
+    rawValue: string,
+  ): void {
+    const numericValue = Number(rawValue);
+    setState((prev) => ({
+      ...prev,
+      c5Budget: {
+        ...prev.c5Budget,
+        [field]: Number.isFinite(numericValue) ? numericValue : 0,
+      },
+    }));
+  }
+
+  // Русский комментарий: сохраняет текущий C5 optimizer setup в backend.
+  async function handleSaveC5OptimizerSetup(): Promise<void> {
+    if (!state.activeArenaId) {
+      return;
+    }
+    setState((prev) => ({ ...prev, budgetStage: "saving optimizer setup", budgetPercent: 60 }));
+    try {
+      const response = await saveArenaOptimizerSetup(state.activeArenaId, {
+        methods: state.c5Methods,
+        controls: state.c5Controls,
+        run_plan: state.c5RunPlan,
+        budget: state.c5Budget,
+      });
+      const snapshot = {
+        status: "success",
+        capability_id: "c5",
+        action: response.action ?? "save_optimizer_setup",
+        arena_id: state.activeArenaId,
+        methods_total: response.methods.length,
+        controls_total: response.controls.length,
+      };
+      setState((prev) => ({
+        ...prev,
+        c5Methods: response.methods,
+        c5Controls: response.controls,
+        c5RunPlan: response.run_plan,
+        c5Budget: response.budget,
+        c5Versions: response.versions,
+        c5LaunchHistory: response.launch_history,
+        budgetPercent: 100,
+        budgetStage: "optimizer setup saved",
+        jsonText: prettyJson(snapshot),
+        lastPayload: snapshot,
+      }));
+    } catch (error) {
+      setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
+    }
+  }
+
+  // Русский комментарий: запускает preflight-валидацию C5 setup и отображает issues.
+  async function handleValidateC5OptimizerSetup(): Promise<void> {
+    if (!state.activeArenaId) {
+      return;
+    }
+    setState((prev) => ({ ...prev, budgetStage: "validating optimizer setup", budgetPercent: 65 }));
+    try {
+      const response = await validateArenaOptimizerSetup(state.activeArenaId);
+      const validationReport = response.validation_report;
+      const snapshot = {
+        status: "success",
+        capability_id: "c5",
+        action: response.action ?? "validate_optimizer_setup",
+        arena_id: state.activeArenaId,
+        validation_status: validationReport?.status ?? "not_run",
+        issues_total: validationReport?.issues.length ?? 0,
+      };
+      setState((prev) => ({
+        ...prev,
+        c5Methods: response.methods,
+        c5Controls: response.controls,
+        c5RunPlan: response.run_plan,
+        c5Budget: response.budget,
+        c5Versions: response.versions,
+        c5LaunchHistory: response.launch_history,
+        c5ValidationStatus: validationReport?.status ?? "not_run",
+        c5ValidationIssues: validationReport?.issues ?? [],
+        budgetPercent: 100,
+        budgetStage: "optimizer setup validated",
+        jsonText: prettyJson(snapshot),
+        lastPayload: snapshot,
+      }));
+    } catch (error) {
+      setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
+    }
+  }
+
+  // Русский комментарий: сохраняет snapshot-версию C5 setup.
+  async function handleSaveC5OptimizerVersion(): Promise<void> {
+    if (!state.activeArenaId) {
+      return;
+    }
+    setState((prev) => ({ ...prev, budgetStage: "saving optimizer version", budgetPercent: 65 }));
+    try {
+      const response = await saveArenaOptimizerVersion(state.activeArenaId, "optimizer-v1", "manual");
+      const snapshot = {
+        status: "success",
+        capability_id: "c5",
+        action: response.action ?? "save_optimizer_version",
+        arena_id: state.activeArenaId,
+        version_id: response.version?.version_id ?? "",
+      };
+      setState((prev) => ({
+        ...prev,
+        c5Methods: response.methods,
+        c5Controls: response.controls,
+        c5RunPlan: response.run_plan,
+        c5Budget: response.budget,
+        c5Versions: response.versions,
+        c5LaunchHistory: response.launch_history,
+        budgetPercent: 100,
+        budgetStage: "optimizer version saved",
+        jsonText: prettyJson(snapshot),
+        lastPayload: snapshot,
+      }));
+    } catch (error) {
+      setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
+    }
+  }
+
+  // Русский комментарий: выполняет launch C5 optimizer после guardrail проверки на backend.
+  async function handleLaunchC5Optimizer(): Promise<void> {
+    if (!state.activeArenaId) {
+      return;
+    }
+    setState((prev) => ({ ...prev, budgetStage: "launching optimizer", budgetPercent: 70 }));
+    try {
+      const response = await launchArenaOptimizer(state.activeArenaId, "manual");
+      const snapshot = {
+        status: response.status,
+        capability_id: "c5",
+        action: response.action ?? "launch_optimizer",
+        arena_id: state.activeArenaId,
+        run_id: response.run?.run_id ?? null,
+        run_status: response.run?.status ?? null,
+      };
+      setState((prev) => ({
+        ...prev,
+        c5Methods: response.methods,
+        c5Controls: response.controls,
+        c5RunPlan: response.run_plan,
+        c5Budget: response.budget,
+        c5Versions: response.versions,
+        c5LaunchHistory: response.launch_history,
+        budgetPercent: 100,
+        budgetStage: "optimizer launch accepted",
+        jsonText: prettyJson(snapshot),
+        lastPayload: snapshot,
+      }));
+    } catch (error) {
+      setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
+    }
+  }
+
   // Русский комментарий: переключение capability в workspace.
   async function handleSwitchCapability(capabilityId: string): Promise<void> {
     setState((prev) => ({
@@ -945,6 +1497,19 @@ export function App(): JSX.Element {
       }
       try {
         await loadC4DatasetState(state.activeArenaId, true);
+        await loadC4EvaluationState(state.activeArenaId, false);
+      } catch (error) {
+        setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
+      }
+      return;
+    }
+    if (capabilityId === "c5") {
+      if (!state.activeArenaId) {
+        setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "notice", message: "Select battle first, then use C5 optimizer setup." }) }));
+        return;
+      }
+      try {
+        await loadC5OptimizerState(state.activeArenaId, true);
       } catch (error) {
         setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
       }
@@ -1955,6 +2520,381 @@ export function App(): JSX.Element {
                             ) : null}
                           </div>
                         )}
+                        <div className="c4-eval-panel">
+                          <div className="candidate-list-head">
+                            <span>Metrics & evaluators studio</span>
+                            <div className="candidate-list-head-right">
+                              <span className="muted">versions {state.c4EvaluationVersions.length}</span>
+                              <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleValidateC4EvaluationProfile(); }} disabled={!state.activeArenaId}>
+                                Validate profile
+                              </button>
+                              <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EvaluationVersion(); }} disabled={!state.activeArenaId}>
+                                Save version
+                              </button>
+                            </div>
+                          </div>
+                          <div className="c4-eval-grid">
+                            <section className="c4-eval-card">
+                              <div className="c4-eval-card-title">Comparative metrics</div>
+                              <div className="c4-eval-list">
+                                {state.c4ComparativeMetrics.map((metric) => (
+                                  <label key={metric.metric_id} className="c4-eval-item">
+                                    <input
+                                      type="checkbox"
+                                      checked={metric.enabled}
+                                      onChange={() => {
+                                        handleToggleC4ComparativeMetric(metric.metric_id);
+                                      }}
+                                      aria-label={`toggle-metric-${metric.metric_id}`}
+                                    />
+                                    <div className="c4-eval-item-body">
+                                      <div className="c4-eval-item-title">{metric.title}</div>
+                                      <div className="c4-eval-item-sub">{metric.description}</div>
+                                    </div>
+                                    <input
+                                      className="c4-weight-input"
+                                      type="number"
+                                      step="0.05"
+                                      value={metric.weight}
+                                      onChange={(event) => {
+                                        handleChangeC4ComparativeMetricWeight(metric.metric_id, event.target.value);
+                                      }}
+                                    />
+                                  </label>
+                                ))}
+                              </div>
+                              <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EvaluationMetrics(); }} disabled={!state.activeArenaId}>
+                                Save metrics
+                              </button>
+                            </section>
+                            <section className="c4-eval-card">
+                              <div className="c4-eval-card-title">Diagnostic signals</div>
+                              <div className="c4-eval-list">
+                                {state.c4DiagnosticSignals.map((signal) => (
+                                  <label key={signal.signal_id} className="c4-eval-item">
+                                    <input
+                                      type="checkbox"
+                                      checked={signal.enabled}
+                                      onChange={() => {
+                                        handleToggleC4DiagnosticSignal(signal.signal_id);
+                                      }}
+                                      aria-label={`toggle-signal-${signal.signal_id}`}
+                                    />
+                                    <div className="c4-eval-item-body">
+                                      <div className="c4-eval-item-title">{signal.title}</div>
+                                      <div className="c4-eval-item-sub">{signal.description}</div>
+                                    </div>
+                                  </label>
+                                ))}
+                              </div>
+                              <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EvaluationMetrics(); }} disabled={!state.activeArenaId}>
+                                Save diagnostics
+                              </button>
+                            </section>
+                            <section className="c4-eval-card">
+                              <div className="c4-eval-card-title">Evaluators</div>
+                              <div className="c4-eval-list">
+                                {state.c4Evaluators.map((evaluator) => (
+                                  <label key={evaluator.evaluator_id} className="c4-eval-item">
+                                    <input
+                                      type="checkbox"
+                                      checked={evaluator.enabled}
+                                      onChange={() => {
+                                        handleToggleC4Evaluator(evaluator.evaluator_id);
+                                      }}
+                                      aria-label={`toggle-evaluator-${evaluator.evaluator_id}`}
+                                    />
+                                    <div className="c4-eval-item-body">
+                                      <div className="c4-eval-item-title">{evaluator.title}</div>
+                                      <div className="c4-eval-item-sub">{evaluator.description}</div>
+                                    </div>
+                                  </label>
+                                ))}
+                              </div>
+                              <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EvaluationEvaluators(); }} disabled={!state.activeArenaId}>
+                                Save evaluators
+                              </button>
+                            </section>
+                            <section className="c4-eval-card">
+                              <div className="c4-eval-card-title">Budget limits</div>
+                              <div className="c4-budget-fields">
+                                <label>
+                                  <span>max cases</span>
+                                  <input
+                                    type="number"
+                                    value={state.c4EvaluationBudget.max_cases}
+                                    onChange={(event) => {
+                                      handleChangeC4EvaluationBudgetField("max_cases", event.target.value);
+                                    }}
+                                  />
+                                </label>
+                                <label>
+                                  <span>max llm calls</span>
+                                  <input
+                                    type="number"
+                                    value={state.c4EvaluationBudget.max_llm_calls}
+                                    onChange={(event) => {
+                                      handleChangeC4EvaluationBudgetField("max_llm_calls", event.target.value);
+                                    }}
+                                  />
+                                </label>
+                                <label>
+                                  <span>max cost usd</span>
+                                  <input
+                                    type="number"
+                                    step="0.1"
+                                    value={state.c4EvaluationBudget.max_cost_usd}
+                                    onChange={(event) => {
+                                      handleChangeC4EvaluationBudgetField("max_cost_usd", event.target.value);
+                                    }}
+                                  />
+                                </label>
+                              </div>
+                              <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EvaluationBudget(); }} disabled={!state.activeArenaId}>
+                                Save budget
+                              </button>
+                            </section>
+                          </div>
+                          {state.c4EvaluationValidationStatus !== "not_run" ? (
+                            <div className="issues-box">
+                              <div className={`issue-row ${state.c4EvaluationValidationStatus === "ready" ? "info" : "warning"}`}>
+                                Evaluation profile status: {state.c4EvaluationValidationStatus}
+                              </div>
+                              {state.c4EvaluationValidationIssues.map((issue, issueIndex) => (
+                                <div key={`${issue.code}:${issueIndex}`} className={`issue-row ${issue.severity === "error" ? "error" : "warning"}`}>
+                                  [{issue.code}] {issue.message}
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
+                          <div className="c4-version-list">
+                            {state.c4EvaluationVersions.length === 0 ? (
+                              <span className="candidate-step-chip">No evaluation versions yet.</span>
+                            ) : state.c4EvaluationVersions.map((version) => (
+                              <span key={version.version_id} className="candidate-step-chip">
+                                {version.label} · cmp {version.enabled_comparative_total} · diag {version.enabled_diagnostic_total} · eval {version.enabled_evaluators_total}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </section>
+                      <section className={`workspace-json-panel${state.c2JsonCollapsed ? " is-collapsed" : ""}`}>
+                        <button
+                          type="button"
+                          className="workspace-json-toggle"
+                          onClick={handleToggleWorkspaceJson}
+                          aria-expanded={!state.c2JsonCollapsed}
+                          aria-controls="workspace-json-panel-body"
+                        >
+                          <span>Runtime snapshot</span>
+                          <i data-lucide={state.c2JsonCollapsed ? "chevron-down" : "chevron-up"} />
+                        </button>
+                        {!state.c2JsonCollapsed ? (
+                          <pre id="workspace-json-panel-body" className="json-view json-view--workspace">{state.jsonText}</pre>
+                        ) : null}
+                      </section>
+                    </div>
+                  </section>
+                ) : activeCapability.id === "c5" ? (
+                  <section className="trace-view trace-view--workspace">
+                    <header className="tv-head">
+                      <div className="tv-title">
+                        <i data-lucide="activity" />
+                        <span>Optimizer setup + launch guardrails</span>
+                        <span className="tv-arch">{state.c5LaunchHistory.length} launches</span>
+                      </div>
+                    </header>
+                    <div className="tv-body tv-body--workspace">
+                      <section className="c4-panel">
+                        <div className="candidate-list-head">
+                          <span>Optimizer profile · methods / controls / budget</span>
+                          <div className="candidate-list-head-right">
+                            <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC5OptimizerSetup(); }} disabled={!state.activeArenaId}>
+                              Save setup
+                            </button>
+                            <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleValidateC5OptimizerSetup(); }} disabled={!state.activeArenaId}>
+                              Validate
+                            </button>
+                            <button type="button" className="tb-btn tb-btn-primary" onClick={() => { void handleLaunchC5Optimizer(); }} disabled={!state.activeArenaId}>
+                              Launch
+                            </button>
+                          </div>
+                        </div>
+                        <div className="c5-eval-panel">
+                          <div className="c5-eval-grid">
+                            <section className="c5-eval-card">
+                              <div className="c5-eval-card-title">Methods</div>
+                              <div className="c5-eval-list">
+                                {state.c5Methods.map((method) => (
+                                  <label key={method.method_id} className="c5-eval-item">
+                                    <input
+                                      type="checkbox"
+                                      checked={method.enabled}
+                                      onChange={() => {
+                                        handleToggleC5Method(method.method_id);
+                                      }}
+                                      aria-label={`toggle-method-${method.method_id}`}
+                                    />
+                                    <div className="c5-eval-item-body">
+                                      <div className="c5-eval-item-title">{method.title}</div>
+                                      <div className="c5-eval-item-sub">{method.description}</div>
+                                    </div>
+                                  </label>
+                                ))}
+                              </div>
+                            </section>
+                            <section className="c5-eval-card">
+                              <div className="c5-eval-card-title">Optimization controls</div>
+                              <div className="c5-eval-list">
+                                {state.c5Controls.map((control) => (
+                                  <label key={control.control_id} className="c5-eval-item">
+                                    <input
+                                      type="checkbox"
+                                      checked={control.enabled}
+                                      onChange={() => {
+                                        handleToggleC5Control(control.control_id);
+                                      }}
+                                      aria-label={`toggle-control-${control.control_id}`}
+                                    />
+                                    <div className="c5-eval-item-body">
+                                      <div className="c5-eval-item-title">{control.title}</div>
+                                      <div className="c5-eval-item-sub">{control.description}</div>
+                                    </div>
+                                  </label>
+                                ))}
+                              </div>
+                            </section>
+                            <section className="c5-eval-card">
+                              <div className="c5-eval-card-title">Run plan</div>
+                              <div className="c5-budget-fields">
+                                <label>
+                                  <span>epochs total</span>
+                                  <input
+                                    type="number"
+                                    value={state.c5RunPlan.epochs_total}
+                                    onChange={(event) => {
+                                      handleChangeC5RunPlanField("epochs_total", event.target.value);
+                                    }}
+                                  />
+                                </label>
+                                <label>
+                                  <span>candidates / epoch</span>
+                                  <input
+                                    type="number"
+                                    value={state.c5RunPlan.candidates_per_epoch}
+                                    onChange={(event) => {
+                                      handleChangeC5RunPlanField("candidates_per_epoch", event.target.value);
+                                    }}
+                                  />
+                                </label>
+                                <label>
+                                  <span>parallel trials</span>
+                                  <input
+                                    type="number"
+                                    value={state.c5RunPlan.max_parallel_trials}
+                                    onChange={(event) => {
+                                      handleChangeC5RunPlanField("max_parallel_trials", event.target.value);
+                                    }}
+                                  />
+                                </label>
+                                <label>
+                                  <span>early stop patience</span>
+                                  <input
+                                    type="number"
+                                    value={state.c5RunPlan.early_stop_patience}
+                                    onChange={(event) => {
+                                      handleChangeC5RunPlanField("early_stop_patience", event.target.value);
+                                    }}
+                                  />
+                                </label>
+                              </div>
+                            </section>
+                            <section className="c5-eval-card">
+                              <div className="c5-eval-card-title">Budget limits</div>
+                              <div className="c5-budget-fields">
+                                <label>
+                                  <span>max cases</span>
+                                  <input
+                                    type="number"
+                                    value={state.c5Budget.max_cases}
+                                    onChange={(event) => {
+                                      handleChangeC5BudgetField("max_cases", event.target.value);
+                                    }}
+                                  />
+                                </label>
+                                <label>
+                                  <span>max llm calls</span>
+                                  <input
+                                    type="number"
+                                    value={state.c5Budget.max_llm_calls}
+                                    onChange={(event) => {
+                                      handleChangeC5BudgetField("max_llm_calls", event.target.value);
+                                    }}
+                                  />
+                                </label>
+                                <label>
+                                  <span>max cost usd</span>
+                                  <input
+                                    type="number"
+                                    step="0.1"
+                                    value={state.c5Budget.max_cost_usd}
+                                    onChange={(event) => {
+                                      handleChangeC5BudgetField("max_cost_usd", event.target.value);
+                                    }}
+                                  />
+                                </label>
+                                <label>
+                                  <span>max runtime min</span>
+                                  <input
+                                    type="number"
+                                    value={state.c5Budget.max_runtime_minutes}
+                                    onChange={(event) => {
+                                      handleChangeC5BudgetField("max_runtime_minutes", event.target.value);
+                                    }}
+                                  />
+                                </label>
+                              </div>
+                            </section>
+                          </div>
+                          {state.c5ValidationStatus !== "not_run" ? (
+                            <div className="issues-box">
+                              <div className={`issue-row ${state.c5ValidationStatus === "ready" ? "info" : "warning"}`}>
+                                Optimizer preflight status: {state.c5ValidationStatus}
+                              </div>
+                              {state.c5ValidationIssues.map((issue, issueIndex) => (
+                                <div key={`${issue.code}:${issueIndex}`} className={`issue-row ${issue.severity === "error" ? "error" : "warning"}`}>
+                                  [{issue.code}] {issue.message}
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
+                          <div className="c5-actions-row">
+                            <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC5OptimizerVersion(); }} disabled={!state.activeArenaId}>
+                              Save profile version
+                            </button>
+                          </div>
+                          <div className="c5-version-list">
+                            {state.c5Versions.length === 0 ? (
+                              <span className="candidate-step-chip">No optimizer versions yet.</span>
+                            ) : state.c5Versions.map((version) => (
+                              <span key={version.version_id} className="candidate-step-chip">
+                                {version.label} · methods {version.enabled_methods_total} · controls {version.enabled_controls_total} · epochs {version.epochs_total}
+                              </span>
+                            ))}
+                          </div>
+                          <div className="c5-launch-list">
+                            <div className="c5-eval-card-title">Launch queue (latest)</div>
+                            {state.c5LaunchHistory.length === 0 ? (
+                              <div className="issue-row info">No optimizer launches yet.</div>
+                            ) : (
+                              state.c5LaunchHistory.map((entry) => (
+                                <div key={entry.run_id} className="candidate-step-chip">
+                                  {entry.run_id} · {entry.status} · {entry.method_id} · epochs {entry.epochs_total} · cand {entry.selected_candidates_total}
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
                       </section>
                       <section className={`workspace-json-panel${state.c2JsonCollapsed ? " is-collapsed" : ""}`}>
                         <button

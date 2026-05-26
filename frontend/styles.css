@@ -1278,6 +1278,120 @@ code { font-family: var(--font-mono); }
   padding: 7px 9px;
 }
 
+.c4-eval-panel,
+.c5-eval-panel {
+  border: 1px solid var(--border-muted);
+  border-radius: 12px;
+  background: var(--gray-25);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.c4-eval-grid,
+.c5-eval-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.c4-eval-card,
+.c5-eval-card {
+  border: 1px solid var(--border-muted);
+  border-radius: 10px;
+  background: var(--gray-0);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.c4-eval-card-title,
+.c5-eval-card-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+.c4-eval-list,
+.c5-eval-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.c4-eval-item,
+.c5-eval-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: start;
+}
+
+.c4-eval-item-body,
+.c5-eval-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.c4-eval-item-title,
+.c5-eval-item-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.c4-eval-item-sub,
+.c5-eval-item-sub {
+  font-size: 11px;
+  color: var(--gray-600);
+  line-height: 1.35;
+}
+
+.c4-weight-input {
+  width: 84px;
+}
+
+.c4-budget-fields,
+.c5-budget-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.c4-budget-fields label,
+.c5-budget-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--gray-600);
+}
+
+.c4-budget-fields input,
+.c5-budget-fields input {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--gray-0);
+  color: var(--gray-900);
+  font-size: 12px;
+  padding: 7px 9px;
+}
+
+.c5-actions-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.c5-version-list,
+.c5-launch-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .candidate-step-chip {
   border: 1px solid var(--border-muted);
   border-radius: 999px;
@@ -2043,6 +2157,13 @@ code { font-family: var(--font-mono); }
   .c4-toolbar,
   .c4-row-editor,
   .c4-import-block {
+    grid-template-columns: 1fr;
+  }
+
+  .c4-eval-grid,
+  .c4-budget-fields,
+  .c5-eval-grid,
+  .c5-budget-fields {
     grid-template-columns: 1fr;
   }
 

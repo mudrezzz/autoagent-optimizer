@@ -5,6 +5,8 @@
   ArenaMutationResponse,
   C3PatternSearchResponse,
   C3PatternSelectionResponse,
+  C5OptimizerStateResponse,
+  C4EvaluationStateResponse,
   C4DatasetStateResponse,
   C2SelectForTestsResponse,
   C2ChatPostMessageResponse,
@@ -332,6 +334,182 @@ export async function saveArenaDatasetVersion(
     throw new Error(payload.message || `Failed to save dataset version: HTTP ${response.status}`);
   }
   return parseJsonOrThrow<C4DatasetStateResponse>(response);
+}
+
+// Русский комментарий: читает текущее состояние C4 Metrics & Evaluators Studio для арены.
+export async function fetchArenaEvaluationState(arenaId: string): Promise<C4EvaluationStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/evaluation/state`);
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to load C4 evaluation state: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C4EvaluationStateResponse>(response);
+}
+
+// Русский комментарий: сохраняет comparative/diagnostic метрики evaluation profile.
+export async function saveArenaEvaluationMetrics(
+  arenaId: string,
+  comparativeMetrics: Array<{ metric_id: string; title: string; description: string; enabled: boolean; weight: number }>,
+  diagnosticSignals: Array<{ signal_id: string; title: string; description: string; enabled: boolean }>,
+): Promise<C4EvaluationStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/evaluation/metrics/save`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      comparative_metrics: comparativeMetrics,
+      diagnostic_signals: diagnosticSignals,
+    }),
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to save C4 evaluation metrics: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C4EvaluationStateResponse>(response);
+}
+
+// Русский комментарий: сохраняет evaluator-адаптеры evaluation profile.
+export async function saveArenaEvaluationEvaluators(
+  arenaId: string,
+  evaluators: Array<{ evaluator_id: string; title: string; description: string; enabled: boolean }>,
+): Promise<C4EvaluationStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/evaluation/evaluators/save`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ evaluators }),
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to save C4 evaluators: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C4EvaluationStateResponse>(response);
+}
+
+// Русский комментарий: сохраняет бюджет evaluation profile.
+export async function saveArenaEvaluationBudget(
+  arenaId: string,
+  budget: { max_cases: number; max_llm_calls: number; max_cost_usd: number },
+): Promise<C4EvaluationStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/evaluation/budget/save`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ budget }),
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to save C4 budget: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C4EvaluationStateResponse>(response);
+}
+
+// Русский комментарий: запускает валидацию evaluation profile.
+export async function validateArenaEvaluationProfile(arenaId: string): Promise<C4EvaluationStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/evaluation/validate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to validate C4 evaluation profile: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C4EvaluationStateResponse>(response);
+}
+
+// Русский комментарий: сохраняет snapshot-версию evaluation profile.
+export async function saveArenaEvaluationVersion(
+  arenaId: string,
+  label: string,
+  source = "manual",
+): Promise<C4EvaluationStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/evaluation/save-version`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ label, source }),
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to save C4 evaluation version: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C4EvaluationStateResponse>(response);
+}
+
+// Русский комментарий: читает текущее состояние C5 Optimizer Setup Studio для арены.
+export async function fetchArenaOptimizerState(arenaId: string): Promise<C5OptimizerStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/optimizer/state`);
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to load C5 optimizer state: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C5OptimizerStateResponse>(response);
+}
+
+// Русский комментарий: сохраняет C5 optimizer setup (methods/controls/run_plan/budget).
+export async function saveArenaOptimizerSetup(
+  arenaId: string,
+  setup: {
+    methods: Array<{ method_id: string; title: string; description: string; enabled: boolean }>;
+    controls: Array<{ control_id: string; title: string; description: string; enabled: boolean }>;
+    run_plan: { epochs_total: number; candidates_per_epoch: number; max_parallel_trials: number; early_stop_patience: number };
+    budget: { max_cases: number; max_llm_calls: number; max_cost_usd: number; max_runtime_minutes: number };
+  },
+): Promise<C5OptimizerStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/optimizer/save`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(setup),
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to save C5 optimizer setup: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C5OptimizerStateResponse>(response);
+}
+
+// Русский комментарий: валидирует C5 guardrails перед запуском оптимизации.
+export async function validateArenaOptimizerSetup(arenaId: string): Promise<C5OptimizerStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/optimizer/validate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to validate C5 optimizer setup: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C5OptimizerStateResponse>(response);
+}
+
+// Русский комментарий: сохраняет snapshot-версию C5 optimizer setup профиля.
+export async function saveArenaOptimizerVersion(
+  arenaId: string,
+  label: string,
+  source = "manual",
+): Promise<C5OptimizerStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/optimizer/save-version`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ label, source }),
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to save C5 optimizer version: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C5OptimizerStateResponse>(response);
+}
+
+// Русский комментарий: запускает C5 optimizer после прохождения preflight-guardrails.
+export async function launchArenaOptimizer(arenaId: string, triggeredBy = "manual"): Promise<C5OptimizerStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/optimizer/launch`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ triggered_by: triggeredBy }),
+  });
+  const payload = await parseJsonOrThrow<C5OptimizerStateResponse | ErrorPayload>(response);
+  if (!response.ok) {
+    const errorPayload = payload as ErrorPayload;
+    throw new Error(errorPayload.message || `Failed to launch C5 optimizer: HTTP ${response.status}`);
+  }
+  return payload as C5OptimizerStateResponse;
 }
 
 // Русский комментарий: legacy debug endpoint validate+compile оставлен для обратной совместимости.

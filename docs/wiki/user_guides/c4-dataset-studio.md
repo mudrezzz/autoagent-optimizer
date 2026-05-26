@@ -10,6 +10,12 @@ C4 используется для подготовки тестового на�
 4. Открыть `Edit` и перейти в отдельный экран редактирования dataset.
 5. В editor-экране редактировать/удалять/добавлять строки и импортировать JSONL.
 6. Проверить dataset (`Validate`) и сохранить snapshot (`Save version`).
+7. Настроить профиль оценки в `Metrics & evaluators studio`:
+   - comparative metrics,
+   - diagnostic signals,
+   - evaluators,
+   - budget limits.
+8. Проверить профиль через `Validate profile` и сохранить версию `Save version`.
 
 ## Минимальный поток
 
@@ -20,6 +26,8 @@ C4 используется для подготовки тестового на�
 5. Обновите строки, затем нажмите `Save changes`.
 6. Нажмите `Validate`.
 7. Если ошибок нет, нажмите `Save version`.
+8. В блоке `Metrics & evaluators studio` настройте метрики/evaluators/budget и сохраните их.
+9. Нажмите `Validate profile`, затем `Save version` для профиля оценки.
 
 ## Формат кейса
 

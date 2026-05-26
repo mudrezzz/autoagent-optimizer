@@ -91,6 +91,8 @@ class WorkspaceRegistryStore:
                 "candidate_set_draft": None,
                 "pattern_selection": _build_default_pattern_selection(),
                 "dataset_studio": _build_default_dataset_studio_state(),
+                "evaluation_studio": _build_default_evaluation_studio_state(),
+                "optimizer_studio": _build_default_optimizer_studio_state(),
             }
             data["workspaces"].append(workspace)
             self._write_store(data)
@@ -178,6 +180,8 @@ class WorkspaceRegistryStore:
                 "candidate_set_draft": None,
                 "pattern_selection": _build_default_pattern_selection(),
                 "dataset_studio": _build_default_dataset_studio_state(),
+                "evaluation_studio": _build_default_evaluation_studio_state(),
+                "optimizer_studio": _build_default_optimizer_studio_state(),
             }
             data["workspaces"].append(workspace_copy)
             self._write_store(data)
@@ -864,6 +868,356 @@ class WorkspaceRegistryStore:
                 "status": "ok" if not any(item.get("severity") == "error" for item in issues) else "failed",
             }
 
+    def get_arena_evaluation_studio_state(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+    ) -> dict[str, Any]:
+        """Возвращает состояние C4 Metrics & Evaluators Studio для выбранной арены."""
+
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            normalized_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
+            workspace["evaluation_studio"] = normalized_state
+            self._write_store(data)
+            return dict(normalized_state)
+
+    def save_arena_evaluation_metrics(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        comparative_metrics: list[dict[str, Any]],
+        diagnostic_signals: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        """Сохраняет блок comparative/diagnostic метрик evaluation profile."""
+
+        normalized_comparative_metrics = _normalize_comparative_metrics(comparative_metrics)
+        normalized_diagnostic_signals = _normalize_diagnostic_signals(diagnostic_signals)
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            studio_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
+            studio_state["comparative_metrics"] = normalized_comparative_metrics
+            studio_state["diagnostic_signals"] = normalized_diagnostic_signals
+            studio_state["updated_at"] = _utc_now_iso()
+            workspace["evaluation_studio"] = studio_state
+            self._write_store(data)
+            return dict(studio_state)
+
+    def save_arena_evaluation_evaluators(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        evaluators: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        """Сохраняет блок evaluator-адаптеров evaluation profile."""
+
+        normalized_evaluators = _normalize_evaluators(evaluators)
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            studio_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
+            studio_state["evaluators"] = normalized_evaluators
+            studio_state["updated_at"] = _utc_now_iso()
+            workspace["evaluation_studio"] = studio_state
+            self._write_store(data)
+            return dict(studio_state)
+
+    def save_arena_evaluation_budget(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        budget: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Сохраняет бюджетные ограничения evaluation profile."""
+
+        normalized_budget = _normalize_evaluation_budget(budget)
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            studio_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
+            studio_state["budget"] = normalized_budget
+            studio_state["updated_at"] = _utc_now_iso()
+            workspace["evaluation_studio"] = studio_state
+            self._write_store(data)
+            return dict(studio_state)
+
+    def validate_arena_evaluation_profile(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+    ) -> dict[str, Any]:
+        """Выполняет базовую проверку evaluation profile и возвращает issues-репорт."""
+
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            studio_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
+            return _build_evaluation_profile_validation_report(studio_state=studio_state)
+
+    def save_arena_evaluation_version(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        label: str,
+        source: str,
+    ) -> dict[str, Any]:
+        """Сохраняет snapshot-версию evaluation profile."""
+
+        normalized_label = label.strip() or f"snapshot-{_utc_now_iso()}"
+        normalized_source = source.strip() or "manual"
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            studio_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
+            version = {
+                "version_id": f"evv_{uuid4().hex[:10]}",
+                "label": normalized_label,
+                "created_at": _utc_now_iso(),
+                "source": normalized_source,
+                "comparative_metrics": [dict(item) for item in studio_state.get("comparative_metrics", [])],
+                "diagnostic_signals": [dict(item) for item in studio_state.get("diagnostic_signals", [])],
+                "evaluators": [dict(item) for item in studio_state.get("evaluators", [])],
+                "budget": dict(studio_state.get("budget", {})),
+            }
+            versions = studio_state.get("versions", [])
+            versions.append(version)
+            studio_state["versions"] = versions
+            studio_state["updated_at"] = _utc_now_iso()
+            workspace["evaluation_studio"] = studio_state
+            self._write_store(data)
+            return dict(version)
+
+    def get_arena_optimizer_studio_state(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+    ) -> dict[str, Any]:
+        """Возвращает состояние C5 Optimizer Setup Studio для выбранной арены."""
+
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            normalized_state = _normalize_optimizer_studio_state(workspace.get("optimizer_studio"))
+            workspace["optimizer_studio"] = normalized_state
+            self._write_store(data)
+            return dict(normalized_state)
+
+    def save_arena_optimizer_setup(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        methods: list[dict[str, Any]],
+        controls: list[dict[str, Any]],
+        run_plan: dict[str, Any],
+        budget: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Сохраняет конфигурацию optimizer setup (methods/controls/run-plan/budget)."""
+
+        normalized_methods = _normalize_optimizer_methods(methods)
+        normalized_controls = _normalize_optimizer_controls(controls)
+        normalized_run_plan = _normalize_optimizer_run_plan(run_plan)
+        normalized_budget = _normalize_optimizer_budget(budget)
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            studio_state = _normalize_optimizer_studio_state(workspace.get("optimizer_studio"))
+            studio_state["methods"] = normalized_methods
+            studio_state["controls"] = normalized_controls
+            studio_state["run_plan"] = normalized_run_plan
+            studio_state["budget"] = normalized_budget
+            studio_state["updated_at"] = _utc_now_iso()
+            workspace["optimizer_studio"] = studio_state
+            self._write_store(data)
+            return dict(studio_state)
+
+    def validate_arena_optimizer_setup(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+    ) -> dict[str, Any]:
+        """Валидирует C5 optimizer setup и возвращает guardrail-отчет готовности запуска."""
+
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            optimizer_state = _normalize_optimizer_studio_state(workspace.get("optimizer_studio"))
+            dataset_state = _normalize_dataset_studio_state(workspace.get("dataset_studio"))
+            evaluation_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
+            candidate_set_draft = workspace.get("candidate_set_draft")
+            issues = _build_optimizer_setup_issues(
+                optimizer_state=optimizer_state,
+                dataset_state=dataset_state,
+                evaluation_state=evaluation_state,
+                candidate_set_draft=candidate_set_draft if isinstance(candidate_set_draft, dict) else None,
+            )
+            status = "ready"
+            if any(item.get("severity") == "error" for item in issues):
+                status = "invalid"
+            elif issues:
+                status = "warnings"
+            return {
+                "status": status,
+                "issues": issues,
+                "updated_at": str(optimizer_state.get("updated_at", "")),
+            }
+
+    def save_arena_optimizer_version(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        label: str,
+        source: str,
+    ) -> dict[str, Any]:
+        """Сохраняет snapshot-версию optimizer setup профиля."""
+
+        normalized_label = label.strip() or f"snapshot-{_utc_now_iso()}"
+        normalized_source = source.strip() or "manual"
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            studio_state = _normalize_optimizer_studio_state(workspace.get("optimizer_studio"))
+            version = {
+                "version_id": f"opv_{uuid4().hex[:10]}",
+                "label": normalized_label,
+                "created_at": _utc_now_iso(),
+                "source": normalized_source,
+                "methods": [dict(item) for item in studio_state.get("methods", [])],
+                "controls": [dict(item) for item in studio_state.get("controls", [])],
+                "run_plan": dict(studio_state.get("run_plan", {})),
+                "budget": dict(studio_state.get("budget", {})),
+            }
+            versions = studio_state.get("versions", [])
+            versions.append(version)
+            studio_state["versions"] = versions
+            studio_state["updated_at"] = _utc_now_iso()
+            workspace["optimizer_studio"] = studio_state
+            self._write_store(data)
+            return dict(version)
+
+    def launch_arena_optimizer_run(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        triggered_by: str,
+    ) -> dict[str, Any]:
+        """Запускает C5 run-заявку после guardrail проверки и пишет launch_history."""
+
+        normalized_triggered_by = triggered_by.strip() or "manual"
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            optimizer_state = _normalize_optimizer_studio_state(workspace.get("optimizer_studio"))
+            dataset_state = _normalize_dataset_studio_state(workspace.get("dataset_studio"))
+            evaluation_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
+            candidate_set_draft = workspace.get("candidate_set_draft")
+            issues = _build_optimizer_setup_issues(
+                optimizer_state=optimizer_state,
+                dataset_state=dataset_state,
+                evaluation_state=evaluation_state,
+                candidate_set_draft=candidate_set_draft if isinstance(candidate_set_draft, dict) else None,
+            )
+            if any(item.get("severity") == "error" for item in issues):
+                raise ValueError("Optimizer launch blocked by guardrails.")
+
+            enabled_methods = [item for item in optimizer_state.get("methods", []) if bool(item.get("enabled", False))]
+            method_id = str(enabled_methods[0].get("method_id", "")) if enabled_methods else ""
+            run_entry = {
+                "run_id": f"run_{uuid4().hex[:10]}",
+                "created_at": _utc_now_iso(),
+                "status": "queued",
+                "method_id": method_id,
+                "epochs_total": int(optimizer_state.get("run_plan", {}).get("epochs_total", 0) or 0),
+                "selected_candidates_total": _count_candidates_selected_for_tests(candidate_set_draft if isinstance(candidate_set_draft, dict) else None),
+                "assigned_datasets_total": len(dataset_state.get("assigned_dataset_ids", [])),
+                "triggered_by": normalized_triggered_by,
+            }
+            launch_history = optimizer_state.get("launch_history", [])
+            launch_history.append(run_entry)
+            optimizer_state["launch_history"] = launch_history[-20:]
+            optimizer_state["updated_at"] = _utc_now_iso()
+            workspace["optimizer_studio"] = optimizer_state
+            self._write_store(data)
+            return dict(run_entry)
+
     def _read_store(self) -> dict[str, Any]:
         """Читает JSON-store и гарантирует корректный базовый контракт."""
 
@@ -1222,3 +1576,657 @@ def _normalize_dataset_id_list(raw_value: Any) -> list[str]:
         seen.add(value)
         normalized.append(value)
     return normalized
+
+
+def _build_default_evaluation_studio_state() -> dict[str, Any]:
+    """Строит default-состояние C4 Metrics & Evaluators Studio для новой арены."""
+
+    now = _utc_now_iso()
+    return {
+        "comparative_metrics": [
+            {
+                "metric_id": "quality_f1",
+                "title": "Quality F1@K",
+                "description": "Primary quality metric used for ranking.",
+                "enabled": True,
+                "weight": 0.6,
+            },
+            {
+                "metric_id": "cost_per_case",
+                "title": "Cost / case",
+                "description": "Average spend per evaluated case.",
+                "enabled": True,
+                "weight": 0.2,
+            },
+            {
+                "metric_id": "latency_p95",
+                "title": "Latency P95",
+                "description": "Tail latency quality guardrail.",
+                "enabled": True,
+                "weight": 0.2,
+            },
+        ],
+        "diagnostic_signals": [
+            {
+                "signal_id": "retrieval_coverage",
+                "title": "Retrieval coverage",
+                "description": "Tracks whether retrieval stage found relevant evidence.",
+                "enabled": True,
+            },
+            {
+                "signal_id": "rerank_gain",
+                "title": "Rerank gain",
+                "description": "Shows ranking improvement over raw retrieval.",
+                "enabled": True,
+            },
+            {
+                "signal_id": "synthesis_drift",
+                "title": "Synthesis drift",
+                "description": "Measures answer drift from provided evidence.",
+                "enabled": True,
+            },
+        ],
+        "evaluators": [
+            {
+                "evaluator_id": "golden_oracle",
+                "title": "Golden dataset oracle",
+                "description": "Deterministic baseline evaluator on expected outputs.",
+                "enabled": True,
+            },
+            {
+                "evaluator_id": "llm_judge",
+                "title": "LLM as a judge",
+                "description": "Model-based semantic quality review.",
+                "enabled": False,
+            },
+            {
+                "evaluator_id": "executable_validator",
+                "title": "Executable validator",
+                "description": "External executable checks (tests/code/render).",
+                "enabled": False,
+            },
+        ],
+        "budget": {
+            "max_cases": 20,
+            "max_llm_calls": 100,
+            "max_cost_usd": 5.0,
+        },
+        "versions": [],
+        "updated_at": now,
+    }
+
+
+def _normalize_evaluation_studio_state(raw_state: Any) -> dict[str, Any]:
+    """Нормализует состояние C4 Metrics & Evaluators Studio."""
+
+    default_state = _build_default_evaluation_studio_state()
+    if not isinstance(raw_state, dict):
+        return default_state
+    comparative_raw = raw_state.get("comparative_metrics", default_state.get("comparative_metrics", []))
+    diagnostic_raw = raw_state.get("diagnostic_signals", default_state.get("diagnostic_signals", []))
+    evaluators_raw = raw_state.get("evaluators", default_state.get("evaluators", []))
+    budget_raw = raw_state.get("budget", default_state.get("budget", {}))
+    versions_raw = raw_state.get("versions", [])
+    updated_at = str(raw_state.get("updated_at", "")).strip() or _utc_now_iso()
+    versions: list[dict[str, Any]] = []
+    if isinstance(versions_raw, list):
+        for item in versions_raw:
+            if isinstance(item, dict):
+                versions.append(_normalize_evaluation_version(item))
+    return {
+        "comparative_metrics": _normalize_comparative_metrics(comparative_raw),
+        "diagnostic_signals": _normalize_diagnostic_signals(diagnostic_raw),
+        "evaluators": _normalize_evaluators(evaluators_raw),
+        "budget": _normalize_evaluation_budget(budget_raw),
+        "versions": versions,
+        "updated_at": updated_at,
+    }
+
+
+def _normalize_comparative_metrics(raw_metrics: Any) -> list[dict[str, Any]]:
+    """Нормализует список comparative метрик в стабильный формат."""
+
+    if not isinstance(raw_metrics, list):
+        raise ValueError("Comparative metrics must be an array.")
+    normalized: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in raw_metrics:
+        if not isinstance(item, dict):
+            raise ValueError("Comparative metrics must contain objects only.")
+        metric_id = str(item.get("metric_id", "")).strip()
+        if not metric_id or metric_id in seen:
+            continue
+        seen.add(metric_id)
+        try:
+            weight = float(item.get("weight", 0.0) or 0.0)
+        except (TypeError, ValueError):
+            weight = 0.0
+        normalized.append(
+            {
+                "metric_id": metric_id,
+                "title": str(item.get("title", metric_id)).strip() or metric_id,
+                "description": str(item.get("description", "")).strip(),
+                "enabled": bool(item.get("enabled", False)),
+                "weight": round(weight, 6),
+            }
+        )
+    if not normalized:
+        raise ValueError("Comparative metrics list must contain at least one metric.")
+    return normalized
+
+
+def _normalize_diagnostic_signals(raw_signals: Any) -> list[dict[str, Any]]:
+    """Нормализует список diagnostic сигналов в стабильный формат."""
+
+    if not isinstance(raw_signals, list):
+        raise ValueError("Diagnostic signals must be an array.")
+    normalized: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in raw_signals:
+        if not isinstance(item, dict):
+            raise ValueError("Diagnostic signals must contain objects only.")
+        signal_id = str(item.get("signal_id", "")).strip()
+        if not signal_id or signal_id in seen:
+            continue
+        seen.add(signal_id)
+        normalized.append(
+            {
+                "signal_id": signal_id,
+                "title": str(item.get("title", signal_id)).strip() or signal_id,
+                "description": str(item.get("description", "")).strip(),
+                "enabled": bool(item.get("enabled", False)),
+            }
+        )
+    if not normalized:
+        raise ValueError("Diagnostic signals list must contain at least one signal.")
+    return normalized
+
+
+def _normalize_evaluators(raw_evaluators: Any) -> list[dict[str, Any]]:
+    """Нормализует список evaluator-адаптеров в стабильный формат."""
+
+    if not isinstance(raw_evaluators, list):
+        raise ValueError("Evaluators must be an array.")
+    normalized: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in raw_evaluators:
+        if not isinstance(item, dict):
+            raise ValueError("Evaluators must contain objects only.")
+        evaluator_id = str(item.get("evaluator_id", "")).strip()
+        if not evaluator_id or evaluator_id in seen:
+            continue
+        seen.add(evaluator_id)
+        normalized.append(
+            {
+                "evaluator_id": evaluator_id,
+                "title": str(item.get("title", evaluator_id)).strip() or evaluator_id,
+                "description": str(item.get("description", "")).strip(),
+                "enabled": bool(item.get("enabled", False)),
+            }
+        )
+    if not normalized:
+        raise ValueError("Evaluators list must contain at least one evaluator.")
+    return normalized
+
+
+def _normalize_evaluation_budget(raw_budget: Any) -> dict[str, Any]:
+    """Нормализует бюджет evaluation profile."""
+
+    if not isinstance(raw_budget, dict):
+        raise ValueError("Budget must be an object.")
+    try:
+        max_cases = int(raw_budget.get("max_cases", 0) or 0)
+    except (TypeError, ValueError):
+        max_cases = 0
+    try:
+        max_llm_calls = int(raw_budget.get("max_llm_calls", 0) or 0)
+    except (TypeError, ValueError):
+        max_llm_calls = 0
+    try:
+        max_cost_usd = float(raw_budget.get("max_cost_usd", 0.0) or 0.0)
+    except (TypeError, ValueError):
+        max_cost_usd = 0.0
+    return {
+        "max_cases": max_cases,
+        "max_llm_calls": max_llm_calls,
+        "max_cost_usd": round(max_cost_usd, 6),
+    }
+
+
+def _normalize_evaluation_version(raw_version: dict[str, Any]) -> dict[str, Any]:
+    """Нормализует snapshot-версию evaluation profile."""
+
+    version_id = str(raw_version.get("version_id", "")).strip() or f"evv_{uuid4().hex[:10]}"
+    label = str(raw_version.get("label", "")).strip() or version_id
+    created_at = str(raw_version.get("created_at", "")).strip() or _utc_now_iso()
+    source = str(raw_version.get("source", "")).strip() or "manual"
+    comparative_metrics_raw = raw_version.get("comparative_metrics", [])
+    diagnostic_signals_raw = raw_version.get("diagnostic_signals", [])
+    evaluators_raw = raw_version.get("evaluators", [])
+    budget_raw = raw_version.get("budget", {})
+    return {
+        "version_id": version_id,
+        "label": label,
+        "created_at": created_at,
+        "source": source,
+        "comparative_metrics": _normalize_comparative_metrics(comparative_metrics_raw),
+        "diagnostic_signals": _normalize_diagnostic_signals(diagnostic_signals_raw),
+        "evaluators": _normalize_evaluators(evaluators_raw),
+        "budget": _normalize_evaluation_budget(budget_raw),
+    }
+
+
+def _build_evaluation_profile_validation_report(*, studio_state: dict[str, Any]) -> dict[str, Any]:
+    """Строит валидированный отчет C4 evaluation profile без повторного чтения store."""
+
+    comparative_metrics = studio_state.get("comparative_metrics", [])
+    diagnostic_signals = studio_state.get("diagnostic_signals", [])
+    evaluators = studio_state.get("evaluators", [])
+    budget = studio_state.get("budget", {})
+    issues: list[dict[str, Any]] = []
+
+    enabled_comparative_metrics = [item for item in comparative_metrics if bool(item.get("enabled", False))]
+    if not enabled_comparative_metrics:
+        issues.append(
+            {
+                "severity": "error",
+                "code": "missing_comparative_metric",
+                "message": "At least one comparative metric must be enabled.",
+            }
+        )
+    weight_sum = sum(float(item.get("weight", 0.0) or 0.0) for item in enabled_comparative_metrics)
+    if enabled_comparative_metrics and weight_sum <= 0:
+        issues.append(
+            {
+                "severity": "error",
+                "code": "invalid_metric_weights",
+                "message": "Comparative metric weights must have a positive total.",
+            }
+        )
+    if not any(bool(item.get("enabled", False)) for item in diagnostic_signals):
+        issues.append(
+            {
+                "severity": "warning",
+                "code": "missing_diagnostic_signal",
+                "message": "No diagnostic signal is enabled.",
+            }
+        )
+    if not any(bool(item.get("enabled", False)) for item in evaluators):
+        issues.append(
+            {
+                "severity": "error",
+                "code": "missing_evaluator",
+                "message": "At least one evaluator must be enabled.",
+            }
+        )
+
+    max_cases = int(budget.get("max_cases", 0) or 0)
+    max_llm_calls = int(budget.get("max_llm_calls", 0) or 0)
+    max_cost_usd = float(budget.get("max_cost_usd", 0.0) or 0.0)
+    if max_cases <= 0:
+        issues.append({"severity": "error", "code": "invalid_budget_cases", "message": "Budget `max_cases` must be greater than 0."})
+    if max_llm_calls <= 0:
+        issues.append({"severity": "warning", "code": "invalid_budget_llm_calls", "message": "Budget `max_llm_calls` should be greater than 0."})
+    if max_cost_usd <= 0:
+        issues.append({"severity": "warning", "code": "invalid_budget_cost", "message": "Budget `max_cost_usd` should be greater than 0."})
+
+    status = "ready"
+    if any(item.get("severity") == "error" for item in issues):
+        status = "invalid"
+    elif issues:
+        status = "warnings"
+    return {
+        "status": status,
+        "issues": issues,
+        "updated_at": str(studio_state.get("updated_at", "")),
+    }
+
+
+def _build_default_optimizer_studio_state() -> dict[str, Any]:
+    """Строит default-состояние C5 Optimizer Setup Studio для новой арены."""
+
+    now = _utc_now_iso()
+    return {
+        "methods": [
+            {
+                "method_id": "random_search",
+                "title": "Random search",
+                "description": "Быстрый baseline по случайному обходу параметров.",
+                "enabled": True,
+            },
+            {
+                "method_id": "grid_search",
+                "title": "Grid search",
+                "description": "Детерминированный перебор фиксированных конфигураций.",
+                "enabled": False,
+            },
+            {
+                "method_id": "optuna_tpe",
+                "title": "Optuna TPE",
+                "description": "Байесовская стратегия для более глубокого поиска.",
+                "enabled": False,
+            },
+        ],
+        "controls": [
+            {
+                "control_id": "tune_prompts",
+                "title": "Tune prompts",
+                "description": "Разрешает эволюцию prompt-слоя кандидатов.",
+                "enabled": True,
+            },
+            {
+                "control_id": "tune_pattern_mix",
+                "title": "Tune pattern mix",
+                "description": "Разрешает менять комбинации pattern-blocks.",
+                "enabled": True,
+            },
+            {
+                "control_id": "allow_new_nodes",
+                "title": "Allow new nodes",
+                "description": "Разрешает добавлять новые node-компоненты.",
+                "enabled": False,
+            },
+            {
+                "control_id": "freeze_tools",
+                "title": "Freeze tools",
+                "description": "Фиксирует tool-слой, чтобы не ломать контракт.",
+                "enabled": True,
+            },
+        ],
+        "run_plan": {
+            "epochs_total": 3,
+            "candidates_per_epoch": 4,
+            "max_parallel_trials": 2,
+            "early_stop_patience": 1,
+        },
+        "budget": {
+            "max_cases": 24,
+            "max_llm_calls": 200,
+            "max_cost_usd": 8.0,
+            "max_runtime_minutes": 30,
+        },
+        "versions": [],
+        "launch_history": [],
+        "updated_at": now,
+    }
+
+
+def _normalize_optimizer_studio_state(raw_state: Any) -> dict[str, Any]:
+    """Нормализует состояние C5 Optimizer Setup Studio."""
+
+    default_state = _build_default_optimizer_studio_state()
+    if not isinstance(raw_state, dict):
+        return default_state
+    methods_raw = raw_state.get("methods", default_state.get("methods", []))
+    controls_raw = raw_state.get("controls", default_state.get("controls", []))
+    run_plan_raw = raw_state.get("run_plan", default_state.get("run_plan", {}))
+    budget_raw = raw_state.get("budget", default_state.get("budget", {}))
+    versions_raw = raw_state.get("versions", [])
+    launch_history_raw = raw_state.get("launch_history", [])
+    updated_at = str(raw_state.get("updated_at", "")).strip() or _utc_now_iso()
+
+    versions: list[dict[str, Any]] = []
+    if isinstance(versions_raw, list):
+        for item in versions_raw:
+            if isinstance(item, dict):
+                versions.append(_normalize_optimizer_version(item))
+
+    launch_history: list[dict[str, Any]] = []
+    if isinstance(launch_history_raw, list):
+        for item in launch_history_raw:
+            if not isinstance(item, dict):
+                continue
+            launch_history.append(
+                {
+                    "run_id": str(item.get("run_id", "")).strip() or f"run_{uuid4().hex[:10]}",
+                    "created_at": str(item.get("created_at", "")).strip() or _utc_now_iso(),
+                    "status": str(item.get("status", "queued")).strip() or "queued",
+                    "method_id": str(item.get("method_id", "")).strip(),
+                    "epochs_total": int(item.get("epochs_total", 0) or 0),
+                    "selected_candidates_total": int(item.get("selected_candidates_total", 0) or 0),
+                    "assigned_datasets_total": int(item.get("assigned_datasets_total", 0) or 0),
+                    "triggered_by": str(item.get("triggered_by", "manual")).strip() or "manual",
+                }
+            )
+
+    return {
+        "methods": _normalize_optimizer_methods(methods_raw),
+        "controls": _normalize_optimizer_controls(controls_raw),
+        "run_plan": _normalize_optimizer_run_plan(run_plan_raw),
+        "budget": _normalize_optimizer_budget(budget_raw),
+        "versions": versions,
+        "launch_history": launch_history[-20:],
+        "updated_at": updated_at,
+    }
+
+
+def _normalize_optimizer_methods(raw_methods: Any) -> list[dict[str, Any]]:
+    """Нормализует список optimizer methods."""
+
+    if not isinstance(raw_methods, list):
+        raise ValueError("Optimizer methods must be an array.")
+    normalized: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in raw_methods:
+        if not isinstance(item, dict):
+            raise ValueError("Optimizer methods must contain objects only.")
+        method_id = str(item.get("method_id", "")).strip()
+        if not method_id or method_id in seen:
+            continue
+        seen.add(method_id)
+        normalized.append(
+            {
+                "method_id": method_id,
+                "title": str(item.get("title", method_id)).strip() or method_id,
+                "description": str(item.get("description", "")).strip(),
+                "enabled": bool(item.get("enabled", False)),
+            }
+        )
+    if not normalized:
+        raise ValueError("Optimizer methods list must contain at least one method.")
+    return normalized
+
+
+def _normalize_optimizer_controls(raw_controls: Any) -> list[dict[str, Any]]:
+    """Нормализует список optimizer controls."""
+
+    if not isinstance(raw_controls, list):
+        raise ValueError("Optimizer controls must be an array.")
+    normalized: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in raw_controls:
+        if not isinstance(item, dict):
+            raise ValueError("Optimizer controls must contain objects only.")
+        control_id = str(item.get("control_id", "")).strip()
+        if not control_id or control_id in seen:
+            continue
+        seen.add(control_id)
+        normalized.append(
+            {
+                "control_id": control_id,
+                "title": str(item.get("title", control_id)).strip() or control_id,
+                "description": str(item.get("description", "")).strip(),
+                "enabled": bool(item.get("enabled", False)),
+            }
+        )
+    if not normalized:
+        raise ValueError("Optimizer controls list must contain at least one control.")
+    return normalized
+
+
+def _normalize_optimizer_run_plan(raw_run_plan: Any) -> dict[str, Any]:
+    """Нормализует блок run-plan C5 optimizer setup."""
+
+    if not isinstance(raw_run_plan, dict):
+        raise ValueError("Optimizer run_plan must be an object.")
+    try:
+        epochs_total = int(raw_run_plan.get("epochs_total", 0) or 0)
+    except (TypeError, ValueError):
+        epochs_total = 0
+    try:
+        candidates_per_epoch = int(raw_run_plan.get("candidates_per_epoch", 0) or 0)
+    except (TypeError, ValueError):
+        candidates_per_epoch = 0
+    try:
+        max_parallel_trials = int(raw_run_plan.get("max_parallel_trials", 0) or 0)
+    except (TypeError, ValueError):
+        max_parallel_trials = 0
+    try:
+        early_stop_patience = int(raw_run_plan.get("early_stop_patience", 0) or 0)
+    except (TypeError, ValueError):
+        early_stop_patience = 0
+    return {
+        "epochs_total": epochs_total,
+        "candidates_per_epoch": candidates_per_epoch,
+        "max_parallel_trials": max_parallel_trials,
+        "early_stop_patience": early_stop_patience,
+    }
+
+
+def _normalize_optimizer_budget(raw_budget: Any) -> dict[str, Any]:
+    """Нормализует бюджетные ограничения C5 optimizer setup."""
+
+    if not isinstance(raw_budget, dict):
+        raise ValueError("Optimizer budget must be an object.")
+    try:
+        max_cases = int(raw_budget.get("max_cases", 0) or 0)
+    except (TypeError, ValueError):
+        max_cases = 0
+    try:
+        max_llm_calls = int(raw_budget.get("max_llm_calls", 0) or 0)
+    except (TypeError, ValueError):
+        max_llm_calls = 0
+    try:
+        max_cost_usd = float(raw_budget.get("max_cost_usd", 0.0) or 0.0)
+    except (TypeError, ValueError):
+        max_cost_usd = 0.0
+    try:
+        max_runtime_minutes = int(raw_budget.get("max_runtime_minutes", 0) or 0)
+    except (TypeError, ValueError):
+        max_runtime_minutes = 0
+    return {
+        "max_cases": max_cases,
+        "max_llm_calls": max_llm_calls,
+        "max_cost_usd": round(max_cost_usd, 6),
+        "max_runtime_minutes": max_runtime_minutes,
+    }
+
+
+def _normalize_optimizer_version(raw_version: dict[str, Any]) -> dict[str, Any]:
+    """Нормализует snapshot-версию C5 optimizer setup."""
+
+    version_id = str(raw_version.get("version_id", "")).strip() or f"opv_{uuid4().hex[:10]}"
+    label = str(raw_version.get("label", "")).strip() or version_id
+    created_at = str(raw_version.get("created_at", "")).strip() or _utc_now_iso()
+    source = str(raw_version.get("source", "")).strip() or "manual"
+    methods_raw = raw_version.get("methods", [])
+    controls_raw = raw_version.get("controls", [])
+    run_plan_raw = raw_version.get("run_plan", {})
+    budget_raw = raw_version.get("budget", {})
+    return {
+        "version_id": version_id,
+        "label": label,
+        "created_at": created_at,
+        "source": source,
+        "methods": _normalize_optimizer_methods(methods_raw),
+        "controls": _normalize_optimizer_controls(controls_raw),
+        "run_plan": _normalize_optimizer_run_plan(run_plan_raw),
+        "budget": _normalize_optimizer_budget(budget_raw),
+    }
+
+
+def _build_optimizer_setup_issues(
+    *,
+    optimizer_state: dict[str, Any],
+    dataset_state: dict[str, Any],
+    evaluation_state: dict[str, Any],
+    candidate_set_draft: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Строит список guardrail-issues для preflight запуска optimizer."""
+
+    issues: list[dict[str, Any]] = []
+    methods = optimizer_state.get("methods", [])
+    run_plan = optimizer_state.get("run_plan", {})
+    budget = optimizer_state.get("budget", {})
+    assigned_dataset_ids = dataset_state.get("assigned_dataset_ids", [])
+    selected_candidates_total = _count_candidates_selected_for_tests(candidate_set_draft)
+    compile_gate_status = _extract_candidate_compile_gate_status(candidate_set_draft)
+
+    if not any(bool(item.get("enabled", False)) for item in methods):
+        issues.append({"severity": "error", "code": "missing_optimizer_method", "message": "Enable at least one optimizer method."})
+    if int(run_plan.get("epochs_total", 0) or 0) <= 0:
+        issues.append({"severity": "error", "code": "invalid_epochs_total", "message": "Run plan `epochs_total` must be greater than 0."})
+    if int(run_plan.get("candidates_per_epoch", 0) or 0) <= 0:
+        issues.append(
+            {"severity": "error", "code": "invalid_candidates_per_epoch", "message": "Run plan `candidates_per_epoch` must be greater than 0."}
+        )
+    if int(run_plan.get("max_parallel_trials", 0) or 0) <= 0:
+        issues.append({"severity": "warning", "code": "invalid_parallel_trials", "message": "Run plan `max_parallel_trials` should be greater than 0."})
+
+    if int(budget.get("max_cases", 0) or 0) <= 0:
+        issues.append({"severity": "error", "code": "invalid_optimizer_budget_cases", "message": "Budget `max_cases` must be greater than 0."})
+    if int(budget.get("max_llm_calls", 0) or 0) <= 0:
+        issues.append({"severity": "warning", "code": "invalid_optimizer_budget_llm_calls", "message": "Budget `max_llm_calls` should be greater than 0."})
+    if float(budget.get("max_cost_usd", 0.0) or 0.0) <= 0:
+        issues.append({"severity": "warning", "code": "invalid_optimizer_budget_cost", "message": "Budget `max_cost_usd` should be greater than 0."})
+    if int(budget.get("max_runtime_minutes", 0) or 0) <= 0:
+        issues.append({"severity": "warning", "code": "invalid_optimizer_budget_runtime", "message": "Budget `max_runtime_minutes` should be greater than 0."})
+
+    if candidate_set_draft is None:
+        issues.append({"severity": "error", "code": "missing_candidate_draft", "message": "Generate candidate architectures in C2 before running optimizer."})
+    else:
+        if selected_candidates_total <= 0:
+            issues.append(
+                {
+                    "severity": "error",
+                    "code": "no_candidates_selected_for_tests",
+                    "message": "Select at least one candidate for tests in C2.",
+                }
+            )
+        if compile_gate_status != "ready":
+            issues.append(
+                {
+                    "severity": "error",
+                    "code": "compile_gate_not_ready",
+                    "message": "Candidate compile gate is not ready. Run `Select for tests` in C2 first.",
+                }
+            )
+
+    if not isinstance(assigned_dataset_ids, list) or len(assigned_dataset_ids) <= 0:
+        issues.append({"severity": "error", "code": "missing_assigned_dataset", "message": "Assign at least one dataset in C4 before optimizer launch."})
+
+    evaluation_report = _build_evaluation_profile_validation_report(studio_state=evaluation_state)
+    if str(evaluation_report.get("status", "")) == "invalid":
+        issues.append({"severity": "error", "code": "evaluation_profile_invalid", "message": "C4 evaluation profile is invalid. Fix C4 issues first."})
+    elif str(evaluation_report.get("status", "")) == "warnings":
+        issues.append(
+            {
+                "severity": "warning",
+                "code": "evaluation_profile_warnings",
+                "message": "C4 evaluation profile has warnings; launch is allowed but quality may be unstable.",
+            }
+        )
+
+    return issues
+
+
+def _count_candidates_selected_for_tests(candidate_set_draft: dict[str, Any] | None) -> int:
+    """Подсчитывает выбранных кандидатов `selected_for_tests` в candidate set."""
+
+    if not isinstance(candidate_set_draft, dict):
+        return 0
+    candidates = candidate_set_draft.get("candidates", [])
+    if not isinstance(candidates, list):
+        return 0
+    return len([item for item in candidates if isinstance(item, dict) and bool(item.get("selected_for_tests", False))])
+
+
+def _extract_candidate_compile_gate_status(candidate_set_draft: dict[str, Any] | None) -> str:
+    """Извлекает статус compile gate из candidate set draft."""
+
+    if not isinstance(candidate_set_draft, dict):
+        return "missing"
+    compile_gate = candidate_set_draft.get("compile_gate", {})
+    if not isinstance(compile_gate, dict):
+        return "missing"
+    return str(compile_gate.get("status", "")).strip() or "missing"

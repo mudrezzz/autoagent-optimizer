@@ -323,6 +323,156 @@ export type C4DatasetStateResponse = {
   };
 };
 
+// Русский комментарий: comparative метрика evaluation profile.
+export type C4ComparativeMetric = {
+  metric_id: string;
+  title: string;
+  description: string;
+  enabled: boolean;
+  weight: number;
+};
+
+// Русский комментарий: diagnostic сигнал evaluation profile.
+export type C4DiagnosticSignal = {
+  signal_id: string;
+  title: string;
+  description: string;
+  enabled: boolean;
+};
+
+// Русский комментарий: evaluator adapter для evaluation profile.
+export type C4Evaluator = {
+  evaluator_id: string;
+  title: string;
+  description: string;
+  enabled: boolean;
+};
+
+// Русский комментарий: бюджет evaluation profile.
+export type C4EvaluationBudget = {
+  max_cases: number;
+  max_llm_calls: number;
+  max_cost_usd: number;
+};
+
+// Русский комментарий: версия evaluation profile.
+export type C4EvaluationVersion = {
+  version_id: string;
+  label: string;
+  created_at: string;
+  source: string;
+  enabled_comparative_total: number;
+  enabled_diagnostic_total: number;
+  enabled_evaluators_total: number;
+};
+
+// Русский комментарий: ответ состояния C4 Metrics & Evaluators Studio.
+export type C4EvaluationStateResponse = {
+  status: "success";
+  capability_id: "c4";
+  arena_id: string;
+  comparative_metrics: C4ComparativeMetric[];
+  diagnostic_signals: C4DiagnosticSignal[];
+  evaluators: C4Evaluator[];
+  budget: C4EvaluationBudget;
+  versions: C4EvaluationVersion[];
+  updated_at: string;
+  action?: string;
+  version?: C4EvaluationVersion;
+  validation_report?: {
+    status: "ready" | "warnings" | "invalid";
+    updated_at: string;
+    issues: Array<{
+      severity: "error" | "warning" | string;
+      code: string;
+      message: string;
+    }>;
+  };
+};
+
+// Русский комментарий: метод оптимизации C5 Optimizer Setup.
+export type C5OptimizerMethod = {
+  method_id: string;
+  title: string;
+  description: string;
+  enabled: boolean;
+};
+
+// Русский комментарий: control-переключатель C5 для области оптимизации.
+export type C5OptimizerControl = {
+  control_id: string;
+  title: string;
+  description: string;
+  enabled: boolean;
+};
+
+// Русский комментарий: run-plan ограничения C5.
+export type C5OptimizerRunPlan = {
+  epochs_total: number;
+  candidates_per_epoch: number;
+  max_parallel_trials: number;
+  early_stop_patience: number;
+};
+
+// Русский комментарий: бюджетные ограничения C5.
+export type C5OptimizerBudget = {
+  max_cases: number;
+  max_llm_calls: number;
+  max_cost_usd: number;
+  max_runtime_minutes: number;
+};
+
+// Русский комментарий: версия optimizer setup профиля C5.
+export type C5OptimizerVersion = {
+  version_id: string;
+  label: string;
+  created_at: string;
+  source: string;
+  enabled_methods_total: number;
+  enabled_controls_total: number;
+  epochs_total: number;
+};
+
+// Русский комментарий: запись run history для C5 launch.
+export type C5OptimizerLaunchEntry = {
+  run_id: string;
+  created_at: string;
+  status: string;
+  method_id: string;
+  epochs_total: number;
+  selected_candidates_total: number;
+  assigned_datasets_total: number;
+  triggered_by: string;
+};
+
+// Русский комментарий: ответ состояния C5 Optimizer Setup Studio.
+export type C5OptimizerStateResponse = {
+  status: "success" | "error";
+  capability_id: "c5";
+  arena_id: string;
+  methods: C5OptimizerMethod[];
+  controls: C5OptimizerControl[];
+  run_plan: C5OptimizerRunPlan;
+  budget: C5OptimizerBudget;
+  versions: C5OptimizerVersion[];
+  launch_history: C5OptimizerLaunchEntry[];
+  updated_at: string;
+  action?: string;
+  code?: string;
+  message?: string;
+  version?: C5OptimizerVersion;
+  run?: C5OptimizerLaunchEntry;
+  validation_report?: {
+    status: "ready" | "warnings" | "invalid";
+    updated_at: string;
+    issues: Array<{
+      severity: "error" | "warning" | string;
+      code: string;
+      message: string;
+    }>;
+  };
+};
+
 // Русский комментарий: тип issue в compile report legacy debug endpoint.
 export type CompileIssue = {
   severity: "warning" | "error" | string;

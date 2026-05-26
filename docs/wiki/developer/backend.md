@@ -103,3 +103,65 @@ Response включает:
 2. Ошибка для отсутствующего `case_id` или `input`.
 3. Ошибка для дубликатов `case_id`.
 4. Warning для пустого `expected`.
+
+## C4 evaluation endpoints
+
+`GET /api/arenas/{arena_id}/evaluation/state`
+
+`POST /api/arenas/{arena_id}/evaluation/metrics/save`
+
+`POST /api/arenas/{arena_id}/evaluation/evaluators/save`
+
+`POST /api/arenas/{arena_id}/evaluation/budget/save`
+
+`POST /api/arenas/{arena_id}/evaluation/validate`
+
+`POST /api/arenas/{arena_id}/evaluation/save-version`
+
+Validate-report status:
+
+1. `ready` — ошибок нет.
+2. `warnings` — только warning-issues.
+3. `invalid` — есть error-issues.
+
+## C5 optimizer endpoints
+
+`GET /api/arenas/{arena_id}/optimizer/state`
+
+`POST /api/arenas/{arena_id}/optimizer/save`
+
+```json
+{
+  "methods": [
+    { "method_id": "random_search", "title": "Random search", "description": "baseline", "enabled": true }
+  ],
+  "controls": [
+    { "control_id": "tune_prompts", "title": "Tune prompts", "description": "scope", "enabled": true }
+  ],
+  "run_plan": {
+    "epochs_total": 3,
+    "candidates_per_epoch": 4,
+    "max_parallel_trials": 2,
+    "early_stop_patience": 1
+  },
+  "budget": {
+    "max_cases": 24,
+    "max_llm_calls": 200,
+    "max_cost_usd": 8.0,
+    "max_runtime_minutes": 30
+  }
+}
+```
+
+`POST /api/arenas/{arena_id}/optimizer/validate`
+
+`POST /api/arenas/{arena_id}/optimizer/save-version`
+
+`POST /api/arenas/{arena_id}/optimizer/launch`
+
+Launch guardrails проверяют:
+
+1. C2 selected candidates + compile gate.
+2. C4 assigned datasets.
+3. C4 evaluation profile status.
+4. Валидность C5 run_plan/budget/methods.
