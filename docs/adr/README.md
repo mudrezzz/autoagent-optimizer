@@ -60,6 +60,7 @@
 31. [ADR-0031-frontend-shell-v2-1-s1-lightweight-python-dev-server.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0031-frontend-shell-v2-1-s1-lightweight-python-dev-server.md) - Accepted
 32. [ADR-0032-risk-based-test-gates-for-slice-delivery.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0032-risk-based-test-gates-for-slice-delivery.md) - Accepted
 33. [ADR-0033-mandatory-slice-wiki-and-github-pages.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0033-mandatory-slice-wiki-and-github-pages.md) - Accepted
+34. [ADR-0034-unified-checkbox-selection-ux-c2-c3.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0034-unified-checkbox-selection-ux-c2-c3.md) - Accepted
 
 ## Template
 

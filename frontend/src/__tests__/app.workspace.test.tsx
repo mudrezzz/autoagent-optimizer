@@ -380,6 +380,98 @@ describe("Battle workspace candidates", () => {
     expect(await screen.findByText("Pattern Cleaner")).toBeInTheDocument();
   });
 
+  it("uses C3 include checkbox and persists selection", async () => {
+    const user = userEvent.setup();
+    vi.mocked(saveArenaPatternSelection).mockResolvedValue({
+      status: "success",
+      capability_id: "c3",
+      arena_id: ARENA.workspace_id,
+      selection: {
+        include_pattern_ids: ["style.direct_llm"],
+        exclude_pattern_ids: [],
+        updated_at: "2026-05-26T00:00:00+00:00",
+      },
+    });
+    vi.mocked(searchArenaPatterns).mockResolvedValue({
+      status: "success",
+      capability_id: "c3",
+      arena_id: ARENA.workspace_id,
+      query: "",
+      query_tokens: [],
+      total_candidates: 2,
+      returned: 2,
+      selection: {
+        include_pattern_ids: ["style.direct_llm"],
+        exclude_pattern_ids: [],
+        updated_at: "2026-05-26T00:00:00+00:00",
+      },
+      patterns: [
+        {
+          pattern_id: "style.direct_llm",
+          title: "Direct LLM Rewrite",
+          summary: "Fast baseline.",
+          tags: ["rewrite"],
+          complexity: "low",
+          relevance: 0.4,
+          selection_state: "include",
+          retrieval_trace: ["query:empty"],
+          logo: { key: "direct", label: "DL" },
+          config_summary: { roles_total: 1, llm_calls_max: 1, deterministic_guards: 1, hitl_checkpoints: 0 },
+          agent_template: {
+            nodes: [
+              { id: "input", label: "input", kind: "input" },
+              { id: "rewrite", label: "llm.rewrite", kind: "llm" },
+              { id: "guard", label: "style.guard", kind: "validator" },
+              { id: "output", label: "output", kind: "output" },
+            ],
+            edges: [
+              { source: "input", target: "rewrite" },
+              { source: "rewrite", target: "guard" },
+              { source: "guard", target: "output" },
+            ],
+            rationale_steps: ["accept_input", "rewrite_llm", "style_guard", "return_output"],
+          },
+        },
+        {
+          pattern_id: "style.pattern_cleaner",
+          title: "Pattern Cleaner",
+          summary: "Cleanup pass.",
+          tags: ["cleanup"],
+          complexity: "medium",
+          relevance: 0.33,
+          selection_state: "neutral",
+          retrieval_trace: ["query:empty"],
+          logo: { key: "cleaner", label: "PC" },
+          config_summary: { roles_total: 2, llm_calls_max: 2, deterministic_guards: 1, hitl_checkpoints: 0 },
+          agent_template: {
+            nodes: [
+              { id: "input", label: "input", kind: "input" },
+              { id: "draft", label: "llm.rewrite", kind: "llm" },
+              { id: "cleanup", label: "llm.cleanup", kind: "llm" },
+              { id: "guard", label: "style.guard", kind: "validator" },
+              { id: "output", label: "output", kind: "output" },
+            ],
+            edges: [
+              { source: "input", target: "draft" },
+              { source: "draft", target: "cleanup" },
+              { source: "cleanup", target: "guard" },
+              { source: "guard", target: "output" },
+            ],
+            rationale_steps: ["accept_input", "rewrite_draft", "cleanup_pass", "style_guard", "return_output"],
+          },
+        },
+      ],
+    });
+
+    renderWorkspace();
+    const c3Button = await screen.findByRole("button", { name: /Pattern Library \+ RAG/i });
+    await user.click(c3Button);
+    const includeCheckbox = await screen.findByLabelText("c3-include-style.direct_llm");
+    await user.click(includeCheckbox);
+
+    expect(vi.mocked(saveArenaPatternSelection)).toHaveBeenCalledWith(ARENA.workspace_id, ["style.direct_llm"], []);
+  });
+
   it("expands C3 pattern details accordion and renders template graph", async () => {
     const user = userEvent.setup();
     renderWorkspace();

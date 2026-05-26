@@ -1057,11 +1057,27 @@ code { font-family: var(--font-mono); }
   gap: 6px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  align-items: center;
 }
 
-.c3-pattern-actions .tb-btn.is-active {
-  background: var(--accent-bg);
-  border-color: var(--accent-400);
+.c3-selection-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--gray-700);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--gray-0);
+  padding: 4px 7px;
+  cursor: pointer;
+}
+
+.c3-selection-checkbox input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent);
+  cursor: pointer;
 }
 
 .c3-pattern-details-panel {

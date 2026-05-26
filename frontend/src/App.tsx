@@ -1121,15 +1121,36 @@ export function App(): JSX.Element {
                                     <div className="c3-pattern-score-label">retrieval score</div>
                                     <div className="c3-pattern-trace">{pattern.retrieval_trace.join(" · ")}</div>
                                     <div className="c3-pattern-actions">
-                                      <button type="button" className={`tb-btn tb-btn-ghost${includeActive ? " is-active" : ""}`} onClick={() => { void handleC3PatternSelectionAction(pattern.pattern_id, includeActive ? "neutral" : "include"); }}>
-                                        Include
-                                      </button>
-                                      <button type="button" className={`tb-btn tb-btn-ghost${excludeActive ? " is-active" : ""}`} onClick={() => { void handleC3PatternSelectionAction(pattern.pattern_id, excludeActive ? "neutral" : "exclude"); }}>
-                                        Exclude
-                                      </button>
-                                      <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleC3PatternSelectionAction(pattern.pattern_id, "neutral"); }}>
-                                        Clear
-                                      </button>
+                                      {/* Единый UX: выбор паттернов в C3 делаем через чекбоксы, как и выбор кандидатов в C2. */}
+                                      <label className="c3-selection-checkbox">
+                                        <input
+                                          type="checkbox"
+                                          checked={includeActive}
+                                          aria-label={`c3-include-${pattern.pattern_id}`}
+                                          onChange={(event) => {
+                                            void handleC3PatternSelectionAction(
+                                              pattern.pattern_id,
+                                              event.target.checked ? "include" : "neutral",
+                                            );
+                                          }}
+                                        />
+                                        <span>Include</span>
+                                      </label>
+                                      {/* Вторая ось выбора: исключить паттерн. Сброс выполняется снятием чекбокса. */}
+                                      <label className="c3-selection-checkbox">
+                                        <input
+                                          type="checkbox"
+                                          checked={excludeActive}
+                                          aria-label={`c3-exclude-${pattern.pattern_id}`}
+                                          onChange={(event) => {
+                                            void handleC3PatternSelectionAction(
+                                              pattern.pattern_id,
+                                              event.target.checked ? "exclude" : "neutral",
+                                            );
+                                          }}
+                                        />
+                                        <span>Exclude</span>
+                                      </label>
                                       <button
                                         type="button"
                                         className="tb-btn tb-btn-ghost"
