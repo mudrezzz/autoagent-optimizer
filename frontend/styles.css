@@ -1112,6 +1112,39 @@ code { font-family: var(--font-mono); }
   min-height: 0;
 }
 
+.c4-tab-strip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--border-muted);
+  border-radius: 10px;
+  background: var(--gray-50);
+  width: fit-content;
+}
+
+.c4-tab-btn {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--gray-700);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+
+.c4-tab-btn:hover {
+  color: var(--gray-900);
+  background: var(--gray-0);
+}
+
+.c4-tab-btn.is-active {
+  color: var(--accent-700);
+  background: var(--gray-0);
+  border-color: var(--accent-300);
+}
+
 .c4-create-row {
   display: grid;
   grid-template-columns: minmax(170px, 0.7fr) minmax(220px, 1fr) auto;

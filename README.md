@@ -6,7 +6,7 @@ OSS-first платформа для архитектурного поиска, w
 
 - `Phase`: MVP-2 transition (product realignment + evaluation fabric)
 - `Iteration`: Roadmap v3 - vertical product slices
-- `Overall`: In Progress (V2.3.S1 + V2.3.S1a + V2.3.S2 + V2.3.S2b + V2.3.S2c + V2.3.S2d + V2.3.S3 + V2.3.S4 + V2.3.S4a + V2.3.S5 + V2.3.S5a + V2.3.S6 + V2.3.S7 done, product capabilities C1-C6 in rollout)
+- `Overall`: In Progress (V2.3.S1 + V2.3.S1a + V2.3.S2 + V2.3.S2b + V2.3.S2c + V2.3.S2d + V2.3.S3 + V2.3.S4 + V2.3.S4a + V2.3.S5 + V2.3.S5a + V2.3.S6 + V2.3.S6a + V2.3.S7 done, product capabilities C1-C6 in rollout)
 - `Next Slice`: V2.3.S8 C5 Run Monitor + version manifest timeline
 
 Подробный статус:
@@ -33,6 +33,7 @@ OSS-first платформа для архитектурного поиска, w
 9.  frontend   `design_system` (tokens, , , voice)    .
 10. UX- frontend   North Star  [app-v3.png](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/design_system/screenshots/app-v3.png)    [Frontend_Architecture_v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/specs/Frontend_Architecture_v0.md).
 11. Для каждого слайса обязательно обновляем wiki (`docs/wiki`) и фиксируем страницу в ADR через поле `User Docs Page`.
+12. Для UI-слайса обязательно обновляем реальные скриншоты в `docs/wiki/assets/screenshots/*` (не макеты), и ссылки на них в user guides.
 
 ## GitHub Wiki (Pages)
 

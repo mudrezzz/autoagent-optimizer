@@ -65,6 +65,7 @@
 36. [ADR-0036-c4-ux-unification-and-dataset-editor.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0036-c4-ux-unification-and-dataset-editor.md) - Accepted
 37. [ADR-0037-c4-metrics-and-evaluators-studio-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0037-c4-metrics-and-evaluators-studio-v0.md) - Accepted
 38. [ADR-0038-c5-optimizer-setup-and-guardrail-launch-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0038-c5-optimizer-setup-and-guardrail-launch-v0.md) - Accepted
+39. [ADR-0039-c4-ux-split-datasets-metrics-tabs.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0039-c4-ux-split-datasets-metrics-tabs.md) - Accepted
 
 ## Template
 

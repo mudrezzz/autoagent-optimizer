@@ -741,7 +741,7 @@ describe("Battle workspace candidates", () => {
     const c4Button = await screen.findByRole("button", { name: /Dataset & Metrics Studio/i });
     await user.click(c4Button);
 
-    expect(await screen.findByText("Dataset studio")).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "Datasets" })).toBeInTheDocument();
     await user.click(await screen.findByLabelText("select-dset_demo_1-for-arena"));
     await user.click(await screen.findByRole("button", { name: "Save" }));
     expect(vi.mocked(assignArenaDatasets)).toHaveBeenCalledWith(ARENA.workspace_id, ["dset_demo_1"]);
@@ -800,6 +800,7 @@ describe("Battle workspace candidates", () => {
     renderWorkspace();
     const c4Button = await screen.findByRole("button", { name: /Dataset & Metrics Studio/i });
     await user.click(c4Button);
+    await user.click(await screen.findByRole("tab", { name: "Metrics" }));
 
     const metricToggle = await screen.findByLabelText("toggle-metric-cost_per_case");
     await user.click(metricToggle);

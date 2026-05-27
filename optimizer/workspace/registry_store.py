@@ -898,6 +898,7 @@ class WorkspaceRegistryStore:
         arena_id: str,
         comparative_metrics: list[dict[str, Any]],
         diagnostic_signals: list[dict[str, Any]],
+        profile_id: str | None = None,
     ) -> dict[str, Any]:
         """Сохраняет блок comparative/diagnostic метрик evaluation profile."""
 
@@ -912,8 +913,14 @@ class WorkspaceRegistryStore:
                 workspace_id=arena_id,
             )
             studio_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
-            studio_state["comparative_metrics"] = normalized_comparative_metrics
-            studio_state["diagnostic_signals"] = normalized_diagnostic_signals
+            target_profile = _find_target_evaluation_profile(
+                studio_state=studio_state,
+                profile_id=profile_id,
+            )
+            target_profile["comparative_metrics"] = normalized_comparative_metrics
+            target_profile["diagnostic_signals"] = normalized_diagnostic_signals
+            target_profile["updated_at"] = _utc_now_iso()
+            _sync_evaluation_studio_legacy_mirror_fields(studio_state)
             studio_state["updated_at"] = _utc_now_iso()
             workspace["evaluation_studio"] = studio_state
             self._write_store(data)
@@ -926,6 +933,7 @@ class WorkspaceRegistryStore:
         owner_user_id: str,
         arena_id: str,
         evaluators: list[dict[str, Any]],
+        profile_id: str | None = None,
     ) -> dict[str, Any]:
         """Сохраняет блок evaluator-адаптеров evaluation profile."""
 
@@ -939,7 +947,13 @@ class WorkspaceRegistryStore:
                 workspace_id=arena_id,
             )
             studio_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
-            studio_state["evaluators"] = normalized_evaluators
+            target_profile = _find_target_evaluation_profile(
+                studio_state=studio_state,
+                profile_id=profile_id,
+            )
+            target_profile["evaluators"] = normalized_evaluators
+            target_profile["updated_at"] = _utc_now_iso()
+            _sync_evaluation_studio_legacy_mirror_fields(studio_state)
             studio_state["updated_at"] = _utc_now_iso()
             workspace["evaluation_studio"] = studio_state
             self._write_store(data)
@@ -952,6 +966,7 @@ class WorkspaceRegistryStore:
         owner_user_id: str,
         arena_id: str,
         budget: dict[str, Any],
+        profile_id: str | None = None,
     ) -> dict[str, Any]:
         """Сохраняет бюджетные ограничения evaluation profile."""
 
@@ -965,7 +980,13 @@ class WorkspaceRegistryStore:
                 workspace_id=arena_id,
             )
             studio_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
-            studio_state["budget"] = normalized_budget
+            target_profile = _find_target_evaluation_profile(
+                studio_state=studio_state,
+                profile_id=profile_id,
+            )
+            target_profile["budget"] = normalized_budget
+            target_profile["updated_at"] = _utc_now_iso()
+            _sync_evaluation_studio_legacy_mirror_fields(studio_state)
             studio_state["updated_at"] = _utc_now_iso()
             workspace["evaluation_studio"] = studio_state
             self._write_store(data)
@@ -977,6 +998,7 @@ class WorkspaceRegistryStore:
         tenant_id: str,
         owner_user_id: str,
         arena_id: str,
+        profile_id: str | None = None,
     ) -> dict[str, Any]:
         """Выполняет базовую проверку evaluation profile и возвращает issues-репорт."""
 
@@ -989,7 +1011,11 @@ class WorkspaceRegistryStore:
                 workspace_id=arena_id,
             )
             studio_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
-            return _build_evaluation_profile_validation_report(studio_state=studio_state)
+            target_profile = _find_target_evaluation_profile(
+                studio_state=studio_state,
+                profile_id=profile_id,
+            )
+            return _build_evaluation_profile_validation_report(profile=target_profile)
 
     def save_arena_evaluation_version(
         self,
@@ -999,6 +1025,7 @@ class WorkspaceRegistryStore:
         arena_id: str,
         label: str,
         source: str,
+        profile_id: str | None = None,
     ) -> dict[str, Any]:
         """Сохраняет snapshot-версию evaluation profile."""
 
@@ -1013,23 +1040,135 @@ class WorkspaceRegistryStore:
                 workspace_id=arena_id,
             )
             studio_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
+            target_profile = _find_target_evaluation_profile(
+                studio_state=studio_state,
+                profile_id=profile_id,
+            )
             version = {
                 "version_id": f"evv_{uuid4().hex[:10]}",
                 "label": normalized_label,
                 "created_at": _utc_now_iso(),
                 "source": normalized_source,
-                "comparative_metrics": [dict(item) for item in studio_state.get("comparative_metrics", [])],
-                "diagnostic_signals": [dict(item) for item in studio_state.get("diagnostic_signals", [])],
-                "evaluators": [dict(item) for item in studio_state.get("evaluators", [])],
-                "budget": dict(studio_state.get("budget", {})),
+                "comparative_metrics": [dict(item) for item in target_profile.get("comparative_metrics", [])],
+                "diagnostic_signals": [dict(item) for item in target_profile.get("diagnostic_signals", [])],
+                "evaluators": [dict(item) for item in target_profile.get("evaluators", [])],
+                "budget": dict(target_profile.get("budget", {})),
             }
-            versions = studio_state.get("versions", [])
+            versions = target_profile.get("versions", [])
             versions.append(version)
-            studio_state["versions"] = versions
+            target_profile["versions"] = versions
+            target_profile["updated_at"] = _utc_now_iso()
+            _sync_evaluation_studio_legacy_mirror_fields(studio_state)
             studio_state["updated_at"] = _utc_now_iso()
             workspace["evaluation_studio"] = studio_state
             self._write_store(data)
             return dict(version)
+
+    def create_arena_evaluation_profile(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        name: str,
+        description: str,
+    ) -> dict[str, Any]:
+        """Создает новый metrics-profile в C4 Metrics Studio и делает его активным."""
+
+        normalized_name = name.strip()
+        normalized_description = description.strip()
+        if not normalized_name:
+            raise ValueError("Evaluation profile name must be a non-empty string.")
+
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            studio_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
+            profiles = studio_state.get("profiles", [])
+            if any(str(item.get("name", "")).strip().lower() == normalized_name.lower() for item in profiles):
+                raise ValueError("Evaluation profile with the same name already exists.")
+            profile = _build_default_evaluation_profile(
+                profile_id=f"ep_{uuid4().hex[:10]}",
+                name=normalized_name,
+                description=normalized_description,
+            )
+            profiles.append(profile)
+            studio_state["profiles"] = profiles
+            studio_state["active_profile_id"] = str(profile.get("profile_id", ""))
+            studio_state["assigned_profile_ids"] = _normalize_evaluation_profile_id_list(
+                [*studio_state.get("assigned_profile_ids", []), studio_state["active_profile_id"]]
+            )
+            _sync_evaluation_studio_legacy_mirror_fields(studio_state)
+            studio_state["updated_at"] = _utc_now_iso()
+            workspace["evaluation_studio"] = studio_state
+            self._write_store(data)
+            return dict(profile)
+
+    def set_active_arena_evaluation_profile(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        profile_id: str,
+    ) -> dict[str, Any]:
+        """Устанавливает активный metrics-profile для выбранной арены."""
+
+        normalized_profile_id = profile_id.strip()
+        if not normalized_profile_id:
+            raise ValueError("Evaluation profile id must be a non-empty string.")
+
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            studio_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
+            _find_evaluation_profile_by_id(studio_state=studio_state, profile_id=normalized_profile_id)
+            studio_state["active_profile_id"] = normalized_profile_id
+            _sync_evaluation_studio_legacy_mirror_fields(studio_state)
+            studio_state["updated_at"] = _utc_now_iso()
+            workspace["evaluation_studio"] = studio_state
+            self._write_store(data)
+            return dict(studio_state)
+
+    def save_arena_assigned_evaluation_profiles(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        profile_ids: list[str],
+    ) -> dict[str, Any]:
+        """Сохраняет выбранный пользователем набор metrics-profile для арены."""
+
+        normalized_profile_ids = _normalize_evaluation_profile_id_list(profile_ids)
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            studio_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
+            known_profile_ids = {str(item.get("profile_id", "")) for item in studio_state.get("profiles", [])}
+            unknown_profile_ids = [item for item in normalized_profile_ids if item not in known_profile_ids]
+            if unknown_profile_ids:
+                raise KeyError(f"Evaluation profile not found: {unknown_profile_ids[0]}")
+            studio_state["assigned_profile_ids"] = normalized_profile_ids
+            studio_state["updated_at"] = _utc_now_iso()
+            workspace["evaluation_studio"] = studio_state
+            self._write_store(data)
+            return dict(studio_state)
 
     def get_arena_optimizer_studio_state(
         self,
@@ -1581,78 +1720,150 @@ def _normalize_dataset_id_list(raw_value: Any) -> list[str]:
 def _build_default_evaluation_studio_state() -> dict[str, Any]:
     """Строит default-состояние C4 Metrics & Evaluators Studio для новой арены."""
 
+    default_profile = _build_default_evaluation_profile(
+        profile_id="ep_default",
+        name="Default evaluation profile",
+        description="Initial comparative/diagnostic configuration.",
+    )
     now = _utc_now_iso()
     return {
-        "comparative_metrics": [
-            {
-                "metric_id": "quality_f1",
-                "title": "Quality F1@K",
-                "description": "Primary quality metric used for ranking.",
-                "enabled": True,
-                "weight": 0.6,
-            },
-            {
-                "metric_id": "cost_per_case",
-                "title": "Cost / case",
-                "description": "Average spend per evaluated case.",
-                "enabled": True,
-                "weight": 0.2,
-            },
-            {
-                "metric_id": "latency_p95",
-                "title": "Latency P95",
-                "description": "Tail latency quality guardrail.",
-                "enabled": True,
-                "weight": 0.2,
-            },
-        ],
-        "diagnostic_signals": [
-            {
-                "signal_id": "retrieval_coverage",
-                "title": "Retrieval coverage",
-                "description": "Tracks whether retrieval stage found relevant evidence.",
-                "enabled": True,
-            },
-            {
-                "signal_id": "rerank_gain",
-                "title": "Rerank gain",
-                "description": "Shows ranking improvement over raw retrieval.",
-                "enabled": True,
-            },
-            {
-                "signal_id": "synthesis_drift",
-                "title": "Synthesis drift",
-                "description": "Measures answer drift from provided evidence.",
-                "enabled": True,
-            },
-        ],
-        "evaluators": [
-            {
-                "evaluator_id": "golden_oracle",
-                "title": "Golden dataset oracle",
-                "description": "Deterministic baseline evaluator on expected outputs.",
-                "enabled": True,
-            },
-            {
-                "evaluator_id": "llm_judge",
-                "title": "LLM as a judge",
-                "description": "Model-based semantic quality review.",
-                "enabled": False,
-            },
-            {
-                "evaluator_id": "executable_validator",
-                "title": "Executable validator",
-                "description": "External executable checks (tests/code/render).",
-                "enabled": False,
-            },
-        ],
-        "budget": {
-            "max_cases": 20,
-            "max_llm_calls": 100,
-            "max_cost_usd": 5.0,
-        },
-        "versions": [],
+        "active_profile_id": str(default_profile.get("profile_id", "")),
+        "assigned_profile_ids": [str(default_profile.get("profile_id", ""))],
+        "profiles": [default_profile],
+        # Русский комментарий: зеркалим активный профиль в legacy-поля для обратной совместимости API.
+        "comparative_metrics": [dict(item) for item in default_profile.get("comparative_metrics", [])],
+        "diagnostic_signals": [dict(item) for item in default_profile.get("diagnostic_signals", [])],
+        "evaluators": [dict(item) for item in default_profile.get("evaluators", [])],
+        "budget": dict(default_profile.get("budget", {})),
+        "versions": [dict(item) for item in default_profile.get("versions", [])],
         "updated_at": now,
+    }
+
+
+def _build_default_evaluation_profile(
+    *,
+    profile_id: str,
+    name: str,
+    description: str,
+    comparative_metrics: list[dict[str, Any]] | None = None,
+    diagnostic_signals: list[dict[str, Any]] | None = None,
+    evaluators: list[dict[str, Any]] | None = None,
+    budget: dict[str, Any] | None = None,
+    versions: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Строит default metrics-profile C4, который может использоваться и для миграции legacy-формата."""
+
+    now = _utc_now_iso()
+    base_comparative_metrics = comparative_metrics if comparative_metrics is not None else [
+        {
+            "metric_id": "quality_f1",
+            "title": "Quality F1@K",
+            "description": "Primary quality metric used for ranking.",
+            "enabled": True,
+            "weight": 0.6,
+        },
+        {
+            "metric_id": "cost_per_case",
+            "title": "Cost / case",
+            "description": "Average spend per evaluated case.",
+            "enabled": True,
+            "weight": 0.2,
+        },
+        {
+            "metric_id": "latency_p95",
+            "title": "Latency P95",
+            "description": "Tail latency quality guardrail.",
+            "enabled": True,
+            "weight": 0.2,
+        },
+    ]
+    base_diagnostic_signals = diagnostic_signals if diagnostic_signals is not None else [
+        {
+            "signal_id": "retrieval_coverage",
+            "title": "Retrieval coverage",
+            "description": "Tracks whether retrieval stage found relevant evidence.",
+            "enabled": True,
+        },
+        {
+            "signal_id": "rerank_gain",
+            "title": "Rerank gain",
+            "description": "Shows ranking improvement over raw retrieval.",
+            "enabled": True,
+        },
+        {
+            "signal_id": "synthesis_drift",
+            "title": "Synthesis drift",
+            "description": "Measures answer drift from provided evidence.",
+            "enabled": True,
+        },
+    ]
+    base_evaluators = evaluators if evaluators is not None else [
+        {
+            "evaluator_id": "golden_oracle",
+            "title": "Golden dataset oracle",
+            "description": "Deterministic baseline evaluator on expected outputs.",
+            "enabled": True,
+        },
+        {
+            "evaluator_id": "llm_judge",
+            "title": "LLM as a judge",
+            "description": "Model-based semantic quality review.",
+            "enabled": False,
+        },
+        {
+            "evaluator_id": "executable_validator",
+            "title": "Executable validator",
+            "description": "External executable checks (tests/code/render).",
+            "enabled": False,
+        },
+    ]
+    base_budget = budget if budget is not None else {"max_cases": 20, "max_llm_calls": 100, "max_cost_usd": 5.0}
+    base_versions = versions if versions is not None else []
+    return {
+        "profile_id": str(profile_id).strip() or f"ep_{uuid4().hex[:10]}",
+        "name": str(name).strip() or "Evaluation profile",
+        "description": str(description).strip(),
+        "comparative_metrics": _normalize_comparative_metrics(base_comparative_metrics),
+        "diagnostic_signals": _normalize_diagnostic_signals(base_diagnostic_signals),
+        "evaluators": _normalize_evaluators(base_evaluators),
+        "budget": _normalize_evaluation_budget(base_budget),
+        "versions": [_normalize_evaluation_version(item) for item in base_versions if isinstance(item, dict)],
+        "created_at": now,
+        "updated_at": now,
+    }
+
+
+def _normalize_evaluation_profile_payload(raw_profile: Any) -> dict[str, Any]:
+    """Нормализует один metrics-profile C4 в стабильный контракт хранения."""
+
+    if not isinstance(raw_profile, dict):
+        raise ValueError("Evaluation profile must be an object.")
+    profile_id = str(raw_profile.get("profile_id", "")).strip() or f"ep_{uuid4().hex[:10]}"
+    name = str(raw_profile.get("name", "")).strip() or profile_id
+    description = str(raw_profile.get("description", "")).strip()
+    comparative_raw = raw_profile.get("comparative_metrics", [])
+    diagnostic_raw = raw_profile.get("diagnostic_signals", [])
+    evaluators_raw = raw_profile.get("evaluators", [])
+    budget_raw = raw_profile.get("budget", {})
+    versions_raw = raw_profile.get("versions", [])
+    created_at = str(raw_profile.get("created_at", "")).strip() or _utc_now_iso()
+    updated_at = str(raw_profile.get("updated_at", "")).strip() or created_at
+    versions: list[dict[str, Any]] = []
+    if isinstance(versions_raw, list):
+        for item in versions_raw:
+            if isinstance(item, dict):
+                versions.append(_normalize_evaluation_version(item))
+    return {
+        "profile_id": profile_id,
+        "name": name,
+        "description": description,
+        "comparative_metrics": _normalize_comparative_metrics(comparative_raw),
+        "diagnostic_signals": _normalize_diagnostic_signals(diagnostic_raw),
+        "evaluators": _normalize_evaluators(evaluators_raw),
+        "budget": _normalize_evaluation_budget(budget_raw),
+        "versions": versions,
+        "created_at": created_at,
+        "updated_at": updated_at,
     }
 
 
@@ -1662,25 +1873,118 @@ def _normalize_evaluation_studio_state(raw_state: Any) -> dict[str, Any]:
     default_state = _build_default_evaluation_studio_state()
     if not isinstance(raw_state, dict):
         return default_state
-    comparative_raw = raw_state.get("comparative_metrics", default_state.get("comparative_metrics", []))
-    diagnostic_raw = raw_state.get("diagnostic_signals", default_state.get("diagnostic_signals", []))
-    evaluators_raw = raw_state.get("evaluators", default_state.get("evaluators", []))
-    budget_raw = raw_state.get("budget", default_state.get("budget", {}))
-    versions_raw = raw_state.get("versions", [])
+
+    profiles: list[dict[str, Any]] = []
+    profiles_raw = raw_state.get("profiles", [])
+    if isinstance(profiles_raw, list):
+        for item in profiles_raw:
+            if not isinstance(item, dict):
+                continue
+            try:
+                profiles.append(_normalize_evaluation_profile_payload(item))
+            except ValueError:
+                continue
+
+    # Русский комментарий: миграция legacy-полей в единый profile-формат.
+    if not profiles:
+        try:
+            legacy_profile = _build_default_evaluation_profile(
+                profile_id="ep_default",
+                name="Default evaluation profile",
+                description="Migrated from legacy C4 evaluation state.",
+                comparative_metrics=raw_state.get("comparative_metrics", default_state.get("comparative_metrics", [])),
+                diagnostic_signals=raw_state.get("diagnostic_signals", default_state.get("diagnostic_signals", [])),
+                evaluators=raw_state.get("evaluators", default_state.get("evaluators", [])),
+                budget=raw_state.get("budget", default_state.get("budget", {})),
+                versions=raw_state.get("versions", []),
+            )
+        except ValueError:
+            legacy_profile = _build_default_evaluation_profile(
+                profile_id="ep_default",
+                name="Default evaluation profile",
+                description="Recovered default profile.",
+            )
+        profiles = [legacy_profile]
+
+    known_profile_ids = {str(item.get("profile_id", "")) for item in profiles}
+    active_profile_id = str(raw_state.get("active_profile_id", "")).strip()
+    if active_profile_id not in known_profile_ids:
+        active_profile_id = str(profiles[0].get("profile_id", ""))
+    assigned_profile_ids = _normalize_evaluation_profile_id_list(raw_state.get("assigned_profile_ids", []))
+    assigned_profile_ids = [item for item in assigned_profile_ids if item in known_profile_ids]
+    if not assigned_profile_ids:
+        assigned_profile_ids = [active_profile_id]
     updated_at = str(raw_state.get("updated_at", "")).strip() or _utc_now_iso()
-    versions: list[dict[str, Any]] = []
-    if isinstance(versions_raw, list):
-        for item in versions_raw:
-            if isinstance(item, dict):
-                versions.append(_normalize_evaluation_version(item))
+    active_profile = _find_evaluation_profile_by_id(
+        studio_state={"profiles": profiles},
+        profile_id=active_profile_id,
+    )
     return {
-        "comparative_metrics": _normalize_comparative_metrics(comparative_raw),
-        "diagnostic_signals": _normalize_diagnostic_signals(diagnostic_raw),
-        "evaluators": _normalize_evaluators(evaluators_raw),
-        "budget": _normalize_evaluation_budget(budget_raw),
-        "versions": versions,
+        "active_profile_id": active_profile_id,
+        "assigned_profile_ids": assigned_profile_ids,
+        "profiles": profiles,
+        # Русский комментарий: legacy mirror-поля для текущего UI/API контракта.
+        "comparative_metrics": [dict(item) for item in active_profile.get("comparative_metrics", [])],
+        "diagnostic_signals": [dict(item) for item in active_profile.get("diagnostic_signals", [])],
+        "evaluators": [dict(item) for item in active_profile.get("evaluators", [])],
+        "budget": dict(active_profile.get("budget", {})),
+        "versions": [dict(item) for item in active_profile.get("versions", [])],
         "updated_at": updated_at,
     }
+
+
+def _normalize_evaluation_profile_id_list(raw_value: Any) -> list[str]:
+    """Нормализует список profile id в уникальный стабильный массив строк."""
+
+    if not isinstance(raw_value, list):
+        raise ValueError("Evaluation profile id list must be an array.")
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for item in raw_value:
+        if not isinstance(item, str):
+            raise ValueError("Evaluation profile id list must contain strings only.")
+        value = item.strip()
+        if not value or value in seen:
+            continue
+        seen.add(value)
+        normalized.append(value)
+    return normalized
+
+
+def _find_evaluation_profile_by_id(*, studio_state: dict[str, Any], profile_id: str) -> dict[str, Any]:
+    """Ищет metrics-profile по id и выбрасывает KeyError, если он отсутствует."""
+
+    normalized_profile_id = str(profile_id).strip()
+    profiles = studio_state.get("profiles", [])
+    for profile in profiles:
+        if str(profile.get("profile_id", "")) == normalized_profile_id:
+            return profile
+    raise KeyError(f"Evaluation profile not found: {normalized_profile_id}")
+
+
+def _find_target_evaluation_profile(*, studio_state: dict[str, Any], profile_id: str | None) -> dict[str, Any]:
+    """Возвращает target metrics-profile по profile_id или по active_profile_id."""
+
+    if profile_id is not None and str(profile_id).strip():
+        return _find_evaluation_profile_by_id(studio_state=studio_state, profile_id=str(profile_id))
+    active_profile_id = str(studio_state.get("active_profile_id", "")).strip()
+    if active_profile_id:
+        return _find_evaluation_profile_by_id(studio_state=studio_state, profile_id=active_profile_id)
+    profiles = studio_state.get("profiles", [])
+    if not profiles:
+        raise KeyError("Evaluation profile not found: active_profile_id is empty.")
+    return profiles[0]
+
+
+def _sync_evaluation_studio_legacy_mirror_fields(studio_state: dict[str, Any]) -> None:
+    """Синхронизирует legacy-поля C4 с активным профилем для обратной совместимости API-контрактов."""
+
+    active_profile = _find_target_evaluation_profile(studio_state=studio_state, profile_id=None)
+    studio_state["comparative_metrics"] = [dict(item) for item in active_profile.get("comparative_metrics", [])]
+    studio_state["diagnostic_signals"] = [dict(item) for item in active_profile.get("diagnostic_signals", [])]
+    studio_state["evaluators"] = [dict(item) for item in active_profile.get("evaluators", [])]
+    studio_state["budget"] = dict(active_profile.get("budget", {}))
+    studio_state["versions"] = [dict(item) for item in active_profile.get("versions", [])]
 
 
 def _normalize_comparative_metrics(raw_metrics: Any) -> list[dict[str, Any]]:
@@ -1816,13 +2120,13 @@ def _normalize_evaluation_version(raw_version: dict[str, Any]) -> dict[str, Any]
     }
 
 
-def _build_evaluation_profile_validation_report(*, studio_state: dict[str, Any]) -> dict[str, Any]:
+def _build_evaluation_profile_validation_report(*, profile: dict[str, Any]) -> dict[str, Any]:
     """Строит валидированный отчет C4 evaluation profile без повторного чтения store."""
 
-    comparative_metrics = studio_state.get("comparative_metrics", [])
-    diagnostic_signals = studio_state.get("diagnostic_signals", [])
-    evaluators = studio_state.get("evaluators", [])
-    budget = studio_state.get("budget", {})
+    comparative_metrics = profile.get("comparative_metrics", [])
+    diagnostic_signals = profile.get("diagnostic_signals", [])
+    evaluators = profile.get("evaluators", [])
+    budget = profile.get("budget", {})
     issues: list[dict[str, Any]] = []
 
     enabled_comparative_metrics = [item for item in comparative_metrics if bool(item.get("enabled", False))]
@@ -1878,7 +2182,7 @@ def _build_evaluation_profile_validation_report(*, studio_state: dict[str, Any])
     return {
         "status": status,
         "issues": issues,
-        "updated_at": str(studio_state.get("updated_at", "")),
+        "updated_at": str(profile.get("updated_at", "")),
     }
 
 
@@ -2195,7 +2499,8 @@ def _build_optimizer_setup_issues(
     if not isinstance(assigned_dataset_ids, list) or len(assigned_dataset_ids) <= 0:
         issues.append({"severity": "error", "code": "missing_assigned_dataset", "message": "Assign at least one dataset in C4 before optimizer launch."})
 
-    evaluation_report = _build_evaluation_profile_validation_report(studio_state=evaluation_state)
+    evaluation_profile = _find_target_evaluation_profile(studio_state=evaluation_state, profile_id=None)
+    evaluation_report = _build_evaluation_profile_validation_report(profile=evaluation_profile)
     if str(evaluation_report.get("status", "")) == "invalid":
         issues.append({"severity": "error", "code": "evaluation_profile_invalid", "message": "C4 evaluation profile is invalid. Fix C4 issues first."})
     elif str(evaluation_report.get("status", "")) == "warnings":

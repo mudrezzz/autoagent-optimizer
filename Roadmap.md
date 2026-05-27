@@ -141,6 +141,7 @@ Note: после `V2.3.S1` добавлен corrective slice `V2.3.S1a`, что�
 | V2.3.S5 | C4 Dataset Studio v0 | Done | upload/manual/synthetic/clean/check flows + versioned dataset artifacts |
 | V2.3.S5a | C4 UX unification + Dataset Editor | Done | candidate-like dataset list with checkbox+Save assignment, details preview rows, dedicated editor screen with breadcrumbs and row-level editing/import |
 | V2.3.S6 | C4 Metrics & Evaluators Studio v0 | Done | configurable comparative/diagnostic metrics + evaluator method selection |
+| V2.3.S6a | C4 corrective UX: separate Metrics tab + wiki real screenshots policy | Done | C4 split into `Datasets`/`Metrics` tabs, targeted FE/BE regression tests, real C4/C5 screenshots in user docs |
 | V2.3.S7 | C5 Optimizer setup + budget/epoch controls | Done | optimization method settings + budget limits + launch guardrails |
 | V2.3.S8 | C5 Run Monitor + version manifest timeline | Planned | progress/epochs/events/trace drilldown + run manifest visibility |
 | V2.3.S9 | C6 Report + Champion export/import loop | Planned | final report view + champion export + native import + re-benchmark trigger |
@@ -221,6 +222,7 @@ Note: после `V2.3.S1` добавлен corrective slice `V2.3.S1a`, что�
    (`colors_and_type.css`, `ui_kits/*`, `assets/*`, copy rules).
 8. При фронтовых изменениях также фиксируем соответствие UX North Star (`app-v3`: трехколоночный layout, run-centric header, KPI->architectures->trace, intervention rail).
 9. Wiki публикуется в GitHub Pages из текущего репозитория; для каждого закрытого слайса обязателен release-note в `docs/wiki/releases/*`.
+10. Любой UI-слайс обязан обновлять **реальные** скриншоты в `docs/wiki/assets/screenshots/*` и ссылки на них в `docs/wiki/user_guides/*`.
 
 ## Backlog Source
 

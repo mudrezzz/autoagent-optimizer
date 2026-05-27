@@ -20,6 +20,8 @@
    - `docs/wiki/releases/<slice-id>.md`
    - релевантные `docs/wiki/user_guides/*`
    - релевантные `docs/wiki/developer/*`
+   - для UI-изменений: актуальные **реальные** скриншоты из рабочего интерфейса в `docs/wiki/assets/screenshots/*`
+     (не из mock/design source), с обновлением ссылок в user guide.
 4. ADR-шаблон расширяется обязательным полем `User Docs Page`.
 5. DoD/Working Agreement обновляются: слайс не считается закрытым без wiki-обновления.
 
@@ -53,6 +55,7 @@
 1. `mkdocs build --strict` проходит локально/в CI.
 2. GitHub Pages workflow публикует сайт.
 3. В завершенных слайсах есть release note в `docs/wiki/releases/*`.
+4. Для UI-слайсов в user guide присутствуют актуальные реальные скриншоты из `docs/wiki/assets/screenshots/*`.
 
 ## Links
 

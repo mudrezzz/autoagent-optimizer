@@ -12,6 +12,10 @@ C5 — это этап перед запуском оптимизации.
 3. `Run plan` — эпохи, кандидаты на эпоху, параллелизм, early-stop.
 4. `Budget limits` — лимиты кейсов, LLM-вызовов, стоимости и времени.
 
+## Скриншот (реальный UI)
+
+![C5 Optimizer Setup](../assets/screenshots/real-workspace-c5.png)
+
 ## Основной flow
 
 1. Откройте capability `C5 Optimizer Run Monitor`.

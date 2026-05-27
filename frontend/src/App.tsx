@@ -126,6 +126,7 @@ type UiState = {
   c4SelectedDatasetIds: string[];
   c4SelectionDirty: boolean;
   c4ExpandedDatasetId: string;
+  c4StudioTab: "datasets" | "metrics";
   c4ViewMode: "list" | "edit";
   c4EditorDatasetId: string;
   c4EditorRows: Array<{ case_id: string; input: string; expected: string; notes: string }>;
@@ -187,6 +188,7 @@ export function App(): JSX.Element {
     c4SelectedDatasetIds: [],
     c4SelectionDirty: false,
     c4ExpandedDatasetId: "",
+    c4StudioTab: "datasets",
     c4ViewMode: "list",
     c4EditorDatasetId: "",
     c4EditorRows: [],
@@ -338,6 +340,7 @@ export function App(): JSX.Element {
       c4SelectedDatasetIds: [],
       c4SelectionDirty: false,
       c4ExpandedDatasetId: "",
+      c4StudioTab: "datasets",
       c4ViewMode: "list",
       c4EditorDatasetId: "",
       c4EditorRows: [],
@@ -457,6 +460,7 @@ export function App(): JSX.Element {
         c4SelectedDatasetIds: [],
         c4SelectionDirty: false,
         c4ExpandedDatasetId: "",
+        c4StudioTab: "datasets",
         c4ViewMode: "list",
         c4EditorDatasetId: "",
         c4EditorRows: [],
@@ -611,6 +615,7 @@ export function App(): JSX.Element {
       c4SelectedDatasetIds: response.assigned_dataset_ids,
       c4SelectionDirty: false,
       c4ExpandedDatasetId: "",
+      c4StudioTab: "datasets",
       c4ViewMode: "list",
       c4EditorDatasetId: "",
       c4EditorRows: [],
@@ -712,6 +717,7 @@ export function App(): JSX.Element {
         c4SelectedDatasetIds: response.assigned_dataset_ids,
         c4SelectionDirty: false,
         c4ExpandedDatasetId: "",
+        c4StudioTab: "datasets",
         c4ViewMode: "list",
         c4EditorDatasetId: "",
         c4EditorRows: [],
@@ -872,6 +878,15 @@ export function App(): JSX.Element {
       c4EditorImportJsonl: "",
       c4ValidationIssues: [],
       c4ValidationStatus: "not_run",
+    }));
+  }
+
+  // Русский комментарий: переключает вкладку C4 между dataset-потоком и metrics-потоком.
+  function handleSelectC4StudioTab(tab: "datasets" | "metrics"): void {
+    setState((prev) => ({
+      ...prev,
+      c4StudioTab: tab,
+      c4ViewMode: tab === "datasets" ? prev.c4ViewMode : "list",
     }));
   }
 
@@ -2272,13 +2287,38 @@ export function App(): JSX.Element {
                     <header className="tv-head">
                       <div className="tv-title">
                         <i data-lucide="database" />
-                        <span>Dataset studio</span>
+                        <span>Dataset & metrics studio</span>
                         <span className="tv-arch">{state.c4Datasets.length} datasets</span>
                       </div>
                     </header>
                     <div className="tv-body tv-body--workspace">
                       <section className="c4-panel">
-                        {state.c4ViewMode === "list" ? (
+                        <div className="c4-tab-strip" role="tablist" aria-label="C4 tabs">
+                          <button
+                            type="button"
+                            role="tab"
+                            aria-selected={state.c4StudioTab === "datasets"}
+                            className={`c4-tab-btn${state.c4StudioTab === "datasets" ? " is-active" : ""}`}
+                            onClick={() => {
+                              handleSelectC4StudioTab("datasets");
+                            }}
+                          >
+                            Datasets
+                          </button>
+                          <button
+                            type="button"
+                            role="tab"
+                            aria-selected={state.c4StudioTab === "metrics"}
+                            className={`c4-tab-btn${state.c4StudioTab === "metrics" ? " is-active" : ""}`}
+                            onClick={() => {
+                              handleSelectC4StudioTab("metrics");
+                            }}
+                          >
+                            Metrics
+                          </button>
+                        </div>
+                        {state.c4StudioTab === "datasets" ? (
+                          state.c4ViewMode === "list" ? (
                           <>
                             <div className="c4-create-row">
                               <input
@@ -2519,7 +2559,7 @@ export function App(): JSX.Element {
                               </div>
                             ) : null}
                           </div>
-                        )}
+                        )) : (
                         <div className="c4-eval-panel">
                           <div className="candidate-list-head">
                             <span>Metrics & evaluators studio</span>
@@ -2677,6 +2717,7 @@ export function App(): JSX.Element {
                             ))}
                           </div>
                         </div>
+                        )}
                       </section>
                       <section className={`workspace-json-panel${state.c2JsonCollapsed ? " is-collapsed" : ""}`}>
                         <button
