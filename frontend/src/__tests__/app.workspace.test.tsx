@@ -506,6 +506,23 @@ describe("Battle workspace candidates", () => {
     expect(await screen.findByText("Pattern Cleaner")).toBeInTheDocument();
   });
 
+  it("locks C4 wizard step when candidate draft is not generated yet", async () => {
+    vi.mocked(getArenaChatState).mockResolvedValue({
+      status: "success",
+      capability_id: "c2",
+      arena_id: ARENA.workspace_id,
+      arena_name: ARENA.name,
+      messages: [],
+      messages_total: 0,
+      candidate_set_draft: null,
+    });
+
+    renderWorkspace();
+    const c4Button = await screen.findByRole("button", { name: /Dataset & Metrics Studio/i });
+    expect(c4Button).toBeDisabled();
+    expect(c4Button).toHaveAttribute("title", expect.stringContaining("Generate candidates in C2"));
+  });
+
   it("uses C3 single checkbox selection and saves by explicit action", async () => {
     const user = userEvent.setup();
     vi.mocked(saveArenaPatternSelection).mockResolvedValue({

@@ -155,7 +155,7 @@ Note: после `V2.3.S1` добавлен corrective slice `V2.3.S1a`, что�
 
 | Slice | Description | Status | Output |
 |---|---|---|---|
-| V2.4.S1 | Wizard Engine v0 (menu as stateful flow) | Planned | unlock/lock DAG по шагам, статусы `locked/available/in_progress/completed/blocked` |
+| V2.4.S1 | Wizard Engine v0 (menu as stateful flow) | Done | unlock/lock DAG по шагам, статусы `locked/available/in_progress/completed/blocked` |
 | V2.4.S2 | IA split: C4 Datasets / C5 Metrics / C6 Evaluators | Planned | отдельные пункты меню и экраны, без смешения потоков |
 | V2.4.S3 | Candidate-feature-aware metrics availability | Planned | автодоступность метрик по структуре выбранных кандидатов |
 | V2.4.S4 | Evaluator x Metric matrix v0 | Planned | матричная настройка оценивания и preflight-проверка покрытия |

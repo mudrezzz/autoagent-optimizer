@@ -159,6 +159,16 @@ type UiState = {
   lastPayload: Record<string, unknown> | null;
 };
 
+// Русский комментарий: статус шага wizard-навигации внутри Battle Workspace.
+type WizardStepStatus = "locked" | "available" | "in_progress" | "completed" | "blocked";
+
+// Русский комментарий: расширенная модель capability для рендера wizard-меню.
+type CapabilityWizardItem = Capability & {
+  wizardStatus: WizardStepStatus;
+  wizardReason: string;
+  isInteractive: boolean;
+};
+
 // Русский комментарий: корневой компонент frontend shell.
 export function App(): JSX.Element {
   const [route, setRoute] = useState<ScreenRoute>(() => parseRoute(window.location.pathname));
@@ -237,6 +247,12 @@ export function App(): JSX.Element {
   const activeArena = useMemo(
     () => state.arenas.find((item) => item.workspace_id === state.activeArenaId) ?? null,
     [state.arenas, state.activeArenaId],
+  );
+
+  // Русский комментарий: workspace-меню работает как wizard с вычисляемыми статусами шагов.
+  const capabilityWizardItems = useMemo(
+    () => buildCapabilityWizardItems(state.capabilities, state, route.name === "battle_workspace"),
+    [state.capabilities, state, route.name],
   );
 
   // Русский комментарий: загрузка capability-каталога.
@@ -1477,7 +1493,22 @@ export function App(): JSX.Element {
   }
 
   // Русский комментарий: переключение capability в workspace.
-  async function handleSwitchCapability(capabilityId: string): Promise<void> {
+  async function handleSwitchCapability(capabilityId: string, item?: CapabilityWizardItem): Promise<void> {
+    if (item && !item.isInteractive) {
+      setState((prev) => ({
+        ...prev,
+        jsonText: prettyJson({
+          status: "notice",
+          capability_id: capabilityId,
+          message: item.wizardReason || "This wizard step is locked.",
+        }),
+      }));
+      return;
+    }
+    if (capabilityId === "c1") {
+      navigateToBattlesHub();
+      return;
+    }
     setState((prev) => ({
       ...prev,
       activeCapabilityId: capabilityId,
@@ -1965,21 +1996,23 @@ export function App(): JSX.Element {
         </div>
         <nav className="app-side-nav">
           {isBattleRoute
-            ? state.capabilities.map((capability) => {
-                const statusClass = capability.status === "enabled" ? "enabled" : "planned";
+            ? capabilityWizardItems.map((capability) => {
+                const statusClass = `wizard-${capability.wizardStatus}`;
                 const icon = CAPABILITY_ICONS[capability.id] ?? "dot";
                 return (
                   <button
                     key={capability.id}
                     type="button"
-                    className={`cap-link${state.activeCapabilityId === capability.id ? " active" : ""}${capability.status === "planned" ? " disabled" : ""}`}
+                    className={`cap-link${state.activeCapabilityId === capability.id ? " active" : ""}${!capability.isInteractive ? " disabled" : ""}`}
+                    title={capability.wizardReason}
+                    disabled={!capability.isInteractive}
                     onClick={() => {
-                      void handleSwitchCapability(capability.id);
+                      void handleSwitchCapability(capability.id, capability);
                     }}
                   >
                     <i data-lucide={icon} className="cap-icon" />
                     <span className="cap-name">{capability.name}</span>
-                    <span className={`cap-badge ${statusClass}`}>{capability.status}</span>
+                    <span className={`cap-badge ${statusClass}`}>{capability.wizardStatus.replace("_", " ")}</span>
                   </button>
                 );
               })
@@ -3224,6 +3257,215 @@ export function App(): JSX.Element {
       ) : null}
     </div>
   );
+}
+
+// Русский комментарий: вычисляет wizard-статусы capability-меню на основе текущего прогресса battle.
+function buildCapabilityWizardItems(capabilities: Capability[], state: UiState, isBattleRoute: boolean): CapabilityWizardItem[] {
+  if (!isBattleRoute) {
+    return capabilities.map((capability) => ({
+      ...capability,
+      wizardStatus: "available",
+      wizardReason: "Open battle workspace to start the wizard flow.",
+      isInteractive: true,
+    }));
+  }
+
+  const hasBattle = Boolean(state.activeArenaId);
+  const candidateTotal = state.c2CandidateSetDraft?.total ?? 0;
+  const hasCandidates = candidateTotal > 0;
+  const hasSelectedCandidates = state.c2SelectedForTestsIds.length > 0;
+  const hasDatasets = state.c4Datasets.length > 0;
+  const hasAssignedDatasets = state.c4AssignedDatasetIds.length > 0;
+  const hasEnabledComparativeMetrics = state.c4ComparativeMetrics.some((item) => item.enabled);
+  const hasEnabledEvaluators = state.c4Evaluators.some((item) => item.enabled);
+  const hasOptimizerRuns = state.c5LaunchHistory.length > 0;
+  const optimizerPreflightBlocked = state.c5ValidationStatus === "invalid";
+  const compileGateBlocked = state.c2CandidateSetDraft?.compile_gate?.status === "failed";
+
+  return capabilities.map((capability) => {
+    if (capability.id === "c1") {
+      return {
+        ...capability,
+        wizardStatus: "completed",
+        wizardReason: "Battle is already selected. Return to registry if you need another battle.",
+        isInteractive: true,
+      };
+    }
+
+    if (!hasBattle) {
+      return {
+        ...capability,
+        wizardStatus: "locked",
+        wizardReason: "Select a battle first.",
+        isInteractive: false,
+      };
+    }
+
+    if (capability.status === "planned" || capability.status === "disabled") {
+      return {
+        ...capability,
+        wizardStatus: "locked",
+        wizardReason: "This capability is not implemented yet in the current build.",
+        isInteractive: false,
+      };
+    }
+
+    if (capability.id === "c2") {
+      if (compileGateBlocked) {
+        return {
+          ...capability,
+          wizardStatus: "blocked",
+          wizardReason: "Candidate preparation failed. Fix C2 compile issues first.",
+          isInteractive: false,
+        };
+      }
+      if (hasSelectedCandidates) {
+        return {
+          ...capability,
+          wizardStatus: "completed",
+          wizardReason: "Candidates are selected for tests.",
+          isInteractive: true,
+        };
+      }
+      if (state.activeCapabilityId === "c2") {
+        return {
+          ...capability,
+          wizardStatus: "in_progress",
+          wizardReason: "Discuss task and generate/select candidates.",
+          isInteractive: true,
+        };
+      }
+      return {
+        ...capability,
+        wizardStatus: hasCandidates ? "available" : "in_progress",
+        wizardReason: hasCandidates ? "Candidate draft is ready. Select candidates for tests." : "Start task chat and generate first candidate draft.",
+        isInteractive: true,
+      };
+    }
+
+    if (capability.id === "c3") {
+      if (!hasCandidates) {
+        return {
+          ...capability,
+          wizardStatus: "locked",
+          wizardReason: "Generate candidate draft in C2 first.",
+          isInteractive: false,
+        };
+      }
+      if (state.c3SelectedPatternIds.length > 0) {
+        return {
+          ...capability,
+          wizardStatus: "completed",
+          wizardReason: "Pattern selection is saved.",
+          isInteractive: true,
+        };
+      }
+      return {
+        ...capability,
+        wizardStatus: state.activeCapabilityId === "c3" ? "in_progress" : "available",
+        wizardReason: "Review pattern library and pick seed architectures.",
+        isInteractive: true,
+      };
+    }
+
+    if (capability.id === "c4") {
+      if (!hasCandidates) {
+        return {
+          ...capability,
+          wizardStatus: "locked",
+          wizardReason: "Generate candidates in C2 before dataset/evaluation setup.",
+          isInteractive: false,
+        };
+      }
+      if (hasAssignedDatasets && hasEnabledComparativeMetrics && hasEnabledEvaluators) {
+        return {
+          ...capability,
+          wizardStatus: "completed",
+          wizardReason: "Datasets and evaluation profile are configured.",
+          isInteractive: true,
+        };
+      }
+      return {
+        ...capability,
+        wizardStatus: state.activeCapabilityId === "c4" ? "in_progress" : "available",
+        wizardReason: "Configure dataset assignment and evaluation profile.",
+        isInteractive: true,
+      };
+    }
+
+    if (capability.id === "c5") {
+      if (!hasCandidates) {
+        return {
+          ...capability,
+          wizardStatus: "locked",
+          wizardReason: "Generate candidates in C2 first.",
+          isInteractive: false,
+        };
+      }
+      if (!hasDatasets) {
+        return {
+          ...capability,
+          wizardStatus: "locked",
+          wizardReason: "Create at least one dataset in C4 first.",
+          isInteractive: false,
+        };
+      }
+      if (!hasEnabledComparativeMetrics || !hasEnabledEvaluators) {
+        return {
+          ...capability,
+          wizardStatus: "locked",
+          wizardReason: "Enable metrics and evaluators in C4 first.",
+          isInteractive: false,
+        };
+      }
+      if (optimizerPreflightBlocked) {
+        return {
+          ...capability,
+          wizardStatus: "blocked",
+          wizardReason: "Optimizer preflight is invalid. Fix issues before launch.",
+          isInteractive: false,
+        };
+      }
+      if (hasOptimizerRuns) {
+        return {
+          ...capability,
+          wizardStatus: "completed",
+          wizardReason: "Optimizer run history is available.",
+          isInteractive: true,
+        };
+      }
+      return {
+        ...capability,
+        wizardStatus: state.activeCapabilityId === "c5" ? "in_progress" : "available",
+        wizardReason: "Validate optimizer setup and launch benchmark run.",
+        isInteractive: true,
+      };
+    }
+
+    if (capability.id === "c6") {
+      if (!hasOptimizerRuns) {
+        return {
+          ...capability,
+          wizardStatus: "locked",
+          wizardReason: "Run optimizer in C5 before opening reports/champion export.",
+          isInteractive: false,
+        };
+      }
+      return {
+        ...capability,
+        wizardStatus: state.activeCapabilityId === "c6" ? "in_progress" : "available",
+        wizardReason: "Review report and export champion artifacts.",
+        isInteractive: true,
+      };
+    }
+
+    return {
+      ...capability,
+      wizardStatus: "available",
+      wizardReason: "Capability is available.",
+      isInteractive: true,
+    };
+  });
 }
 
 // Русский комментарий: определяет экран по текущему URL.

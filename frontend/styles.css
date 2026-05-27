@@ -161,7 +161,8 @@ code { font-family: var(--font-mono); }
 }
 
 .cap-link.disabled {
-  opacity: 0.9;
+  opacity: 0.72;
+  cursor: not-allowed;
 }
 
 .cap-icon {
@@ -187,14 +188,31 @@ code { font-family: var(--font-mono); }
   padding: 1px 7px;
 }
 
-.cap-badge.enabled {
+.cap-badge.enabled,
+.cap-badge.wizard-completed {
   background: rgba(99, 91, 255, 0.18);
   color: var(--indigo-700);
 }
 
-.cap-badge.planned {
+.cap-badge.planned,
+.cap-badge.wizard-locked {
   background: var(--gray-100);
   color: var(--gray-600);
+}
+
+.cap-badge.wizard-available {
+  background: var(--gray-100);
+  color: var(--gray-700);
+}
+
+.cap-badge.wizard-in_progress {
+  background: rgba(99, 91, 255, 0.12);
+  color: var(--indigo-700);
+}
+
+.cap-badge.wizard-blocked {
+  background: rgba(215, 58, 73, 0.12);
+  color: #b42318;
 }
 
 .app-sidebar-foot {
