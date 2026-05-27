@@ -1986,6 +1986,8 @@ export function App(): JSX.Element {
 
   const isBattleRoute = route.name === "battle_workspace";
   const isC2Enabled = activeCapability.id === "c2";
+  const c2PatternGateLocked = state.c3SelectedPatternIds.length === 0;
+  const canUseC2Chat = isC2Enabled && !c2PatternGateLocked;
   const isDatasetCapability = activeCapability.id === "c4";
   const isMetricsCapability = activeCapability.id === "c5";
   const isEvaluatorsCapability = activeCapability.id === "c6";
@@ -3000,7 +3002,7 @@ export function App(): JSX.Element {
                               onClick={() => {
                                 void handleSelectCandidatesForTests();
                               }}
-                              disabled={!isC2Enabled || !state.activeArenaId || !state.c2CandidateSetDraft}
+                              disabled={!state.activeArenaId || !state.c2CandidateSetDraft}
                             >
                               Select for tests
                             </button>
@@ -3015,7 +3017,7 @@ export function App(): JSX.Element {
                             <span className="candidate-col-metric">p95 latency</span>
                             <span className="candidate-col-action">details</span>
                           </div>
-                          {isC2Enabled && state.c2CandidateSetDraft ? state.c2CandidateSetDraft.candidates.map((candidate, index) => {
+                          {state.c2CandidateSetDraft ? state.c2CandidateSetDraft.candidates.map((candidate, index) => {
                             const metrics = buildCandidateMetrics(candidate.candidate_id);
                             const graphNodes = candidate.mini_graph?.nodes ?? [];
                             const isExpanded = state.c2ExpandedCandidateId === candidate.candidate_id;
@@ -3142,7 +3144,13 @@ export function App(): JSX.Element {
                                 ) : null}
                               </Fragment>
                             );
-                          }) : <div className="issue-row warning">No candidate draft yet. Use chat action "Generate candidates".</div>}
+                          }) : (
+                            <div className="issue-row warning">
+                              {c2PatternGateLocked
+                                ? "Select at least one pattern in C3, then open C2 and generate candidates."
+                                : "No candidate draft yet. Use chat action \"Generate candidates\"."}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <section className={`workspace-json-panel${state.c2JsonCollapsed ? " is-collapsed" : ""}`}>
@@ -3189,6 +3197,9 @@ export function App(): JSX.Element {
                 </div>
                 <div className="chat-composer">
                   <label className="c1-field-label" htmlFor="c2-chat-input">Message ({state.activeArenaId || "no battle selected"})</label>
+                  {isC2Enabled && c2PatternGateLocked ? (
+                    <div className="issue-row info">Before chat generation, select at least one architecture pattern in C3.</div>
+                  ) : null}
                   <textarea
                     id="c2-chat-input"
                     value={state.c2ChatInput}
@@ -3196,8 +3207,8 @@ export function App(): JSX.Element {
                       handleC2ChatInputChange(event.target.value);
                     }}
                     onKeyDown={handleC2ChatKeyDown}
-                    placeholder="Describe the optimization task in plain language..."
-                    disabled={!state.activeArenaId || !isC2Enabled}
+                    placeholder={isC2Enabled && c2PatternGateLocked ? "First select pattern(s) in C3 to unlock C2 generation..." : "Describe the optimization task in plain language..."}
+                    disabled={!state.activeArenaId || !canUseC2Chat}
                   />
                   <div className="c2-chat-actions">
                     <button
@@ -3206,7 +3217,7 @@ export function App(): JSX.Element {
                       onClick={() => {
                         void handleSendC2Message(false);
                       }}
-                      disabled={!state.activeArenaId || !isC2Enabled}
+                      disabled={!state.activeArenaId || !canUseC2Chat}
                     >
                       Send
                     </button>
@@ -3216,7 +3227,7 @@ export function App(): JSX.Element {
                       onClick={() => {
                         void handleSendC2Message(true);
                       }}
-                      disabled={!state.activeArenaId || !isC2Enabled}
+                      disabled={!state.activeArenaId || !canUseC2Chat}
                     >
                       Generate
                     </button>
