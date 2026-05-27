@@ -19,6 +19,7 @@
 3. стратегия состояния, роутинга и исполнения run;
 4. интеграция с дизайн-системой как обязательный стандарт;
 5. правила тестирования фронтенда и demo-acceptance.
+6. модель wizard-навигации с разблокировкой шагов по готовности.
 
 Не входит в v0:
 
@@ -90,16 +91,22 @@ Browser (React/TS SPA)
 1. `Battle Chat`
 2. `Candidates`
 3. `Datasets`
-4. `Metrics & Evaluators`
-5. `Optimizer Runs`
-6. `Reports`
-7. `Champion`
+4. `Metrics`
+5. `Evaluators`
+6. `Optimizer Runs`
+7. `Reports`
+8. `Champion`
 
 Каждый раздел имеет:
 
 1. `enabled` (функция доступна);
 2. `planned` (функция видна, но еще закрыта);
 3. `beta` (функция доступна с пометкой ограничений).
+
+Важное правило IA:
+
+1. Левое меню `Battle Workspace` работает как последовательный wizard, а не только как статическая навигация.
+2. Следующие шаги становятся доступными только после выполнения prerequisite-условий предыдущих шагов.
 
 ## Core User Flow (v0 target)
 
@@ -114,11 +121,13 @@ Browser (React/TS SPA)
 6. Пользователь подтверждает/исключает паттерны, получает набор candidate-агентов.
 7. Система внутренне валидирует/компилирует кандидатов (без ручной DSL-работы).
 8. Пользователь формирует dataset (ручной ввод/загрузка/-синтез/очистка).
-9. Пользователь настраивает метрики/evaluators и optimizer policy.
-10. Запускает оптимизацию, наблюдает прогресс/логи/метрики в глубину.
-11. Получает аналитический отчет, выбирает winner.
-12. Экспортирует champion в native.
-13. Опционально импортирует измененный native agent обратно и повторяет цикл оценки.
+9. Пользователь задает comparative/diagnostic метрики (отдельный шаг).
+10. Пользователь настраивает evaluators и матрицу `Evaluator x Metric` (отдельный шаг).
+11. Пользователь задает optimizer policy и budget.
+12. Запускает оптимизацию, наблюдает прогресс/логи/метрики в глубину.
+13. Получает аналитический отчет, выбирает winner.
+14. Экспортирует champion в native.
+15. Опционально импортирует измененный native agent обратно и повторяет цикл оценки.
 
 ## Layout Rules (SaaS)
 
@@ -154,11 +163,14 @@ Product capability map (новая целевая модель):
 1. `C1` Battle Registry
 2. `C2` Task Chat + Candidate Generation
 3. `C3` Pattern Library + RAG Retrieval
-4. `C4` Dataset & Metrics Studio
-5. `C5` Optimizer Run Monitor
-6. `C6` Report + Champion Export/Import
+4. `C4` Dataset Studio
+5. `C5` Metrics Studio
+6. `C6` Evaluators Studio
+7. `C7` Optimizer Run Monitor
+8. `C8` Report + Champion Export/Import
 
 Frontend не "угадывает" готовность, а читает capability-манифест от backend.
+Переходный режим допускает совместимость с legacy-ярлыками capability на период миграции.
 
 ## Frontend Module Boundaries
 
@@ -204,6 +216,25 @@ Frontend не "угадывает" готовность, а читает capabil
 5. `comparative_metrics`;
 6. `diagnostic_signals`;
 7. `artifacts`.
+
+## Wizard Gating Model
+
+Левое меню `Battle Workspace` подчиняется state-machine шагов:
+
+1. `locked`
+2. `available`
+3. `in_progress`
+4. `completed`
+5. `blocked`
+
+Базовые зависимости v0:
+
+1. `C3` доступен после выбора/открытия battle и входа в task-chat контур.
+2. `C4` доступен после того, как сформирован candidate set (минимум 1 кандидат).
+3. `C5` (Metrics) доступен после выбора кандидатов на тесты.
+4. `C6` (Evaluators) доступен после определения хотя бы одного comparative metric.
+5. `C7` (Optimizer) доступен после валидного `dataset + metrics + evaluators + budget` preflight.
+6. `C8` (Report/Champion) доступен после завершенного optimizer run.
 
 ## API Contract Strategy
 
@@ -262,6 +293,50 @@ UI отображает два разных слоя:
 3. используются для точечного улучшения архитектуры.
 
 Для разнотипных задач состав обоих слоев задается профилем оценки, а не хардкодом в UI.
+
+Правило доступности метрик:
+
+1. Метрики появляются/скрываются в зависимости от feature-map выбранных candidate-агентов.
+2. Если у candidate-set нет retrieval-stage, retrieval comparative метрики недоступны.
+3. Такие метрики могут оставаться diagnostic для отдельных кандидатов с соответствующим stage.
+
+## Evaluator x Metric Matrix
+
+`Evaluators` задаются отдельно от `Metrics` и связываются через матрицу:
+
+1. одна метрика может оцениваться разными evaluator-стратегиями;
+2. один evaluator может обслуживать несколько метрик;
+3. допускается гибридная схема:
+4. retrieval-метрика через dataset-oracle, итоговое качество через LLM-as-judge.
+
+Optimizer preflight проверяет покрытие: каждая comparative метрика должна иметь хотя бы один evaluator.
+
+## Dataset Contract Direction (Stage-aware)
+
+Dataset v2 не ограничивается только `input + final output`:
+
+1. `target_stage`: `retrieval | rerank | synthesis | final`;
+2. expected может быть stage-specific (`evidence ids`, `ranked list`, `structured output`, `final answer`);
+3. поддерживаются входные ресурсы типа `document set / archive` для retrieval-oriented тестов.
+
+Это позволяет корректно валидировать метрики вроде `retrieval coverage`, а не только final response quality.
+
+## Contextual Chat Behavior
+
+Правый чат является автоматизацией активной capability:
+
+1. на вкладке `Datasets` чат помогает с генерацией/чисткой/редактированием dataset;
+2. на вкладке `Metrics` чат предлагает и объясняет метрики;
+3. на вкладке `Evaluators` чат помогает собирать evaluator x metric matrix;
+4. при смене capability меняется контекст ассистента и допустимые действия.
+
+## Runtime Snapshot UX Policy
+
+`Runtime snapshot` не должен перекрывать основной контент capability-экрана:
+
+1. основной режим: скрыт из рабочего полотна;
+2. debug-режим: доступен в отдельном drawer/panel;
+3. в пользовательском режиме не влияет на скролл и визуальную иерархию.
 
 ## Budget and Cost UX
 

@@ -22,6 +22,7 @@
 ```text
 Input (Tenant + User + Battle + Task Brief + Constraints + Data + Budget)
   -> Product Experience Layer (Battles Hub / Battle Workspace)
+  -> Wizard Engine (capability gating/unlock flow)
   -> Copilot Orchestrator (task-to-candidates loop)
   -> Pattern Library + RAG Retrieval
   -> Architecture Generator
@@ -30,8 +31,9 @@ Input (Tenant + User + Battle + Task Brief + Constraints + Data + Budget)
   -> Renderer (LangGraph first)
   -> Execution Runtime
   -> White-box Trace + Metrics
-  -> Dataset + Evaluator Fabric
-  -> Evaluation Fabric (configurable evaluators + metrics)
+  -> Dataset Fabric (task/stage-aware datasets)
+  -> Metrics Fabric (comparative + diagnostic)
+  -> Evaluator Fabric (evaluator x metric matrix)
   -> Tournament + Optimization
   -> Evidence Pack + Champion Export/Import
 ```
@@ -81,6 +83,7 @@ Input (Tenant + User + Battle + Task Brief + Constraints + Data + Budget)
    - post-export benchmark loop (native artifact re-evaluation + regression gates).
 11. `Product Experience Layer`
    - capability-oriented frontend surfaces (`battles-hub` + `battle-workspace`).
+   - stateful wizard behavior in left navigation (next steps unlock only after prerequisites).
    - unified scenario runner for demo/validation.
    - explicit mapping `backend capability -> user-visible control -> e2e assertion`.
    - risk-based QA gates for delivery speed (`fast` / `targeted` / `full`) with full regression reserved for high-risk slices.
@@ -124,14 +127,17 @@ Input (Tenant + User + Battle + Task Brief + Constraints + Data + Budget)
 
 1.  `Project Chat`     ;
 2.  pattern library browser  include/exclude controls;
-3.  dataset/metrics/evaluator studio;
-4.  run-monitor    version-manifest;
-5.  native import UX path.
+3.  разделенные `dataset` / `metrics` / `evaluators` capability-экраны;
+4.  evaluator x metric matrix и coverage-preflight на UI уровне;
+5.  stage-aware dataset editor (`retrieval/rerank/synthesis/final`) на UI уровне;
+6.  run-monitor    version-manifest;
+7.  native import UX path.
 
 -:
 
 1.  copilot orchestrator (task brief -> candidate set);
 2.  pattern library RAG service;
+3.  evaluator x metric orchestration service;
 4.  unified version-manifest service;
 5.  dataset synthesis/cleaning assistant pipeline;
 6.  native import parser + compatibility pipeline.
@@ -194,7 +200,7 @@ Input (Tenant + User + Battle + Task Brief + Constraints + Data + Budget)
    - C4 corrective UX split: explicit `Datasets`/`Metrics` tabs with isolated user flows and regression tests.
    - C5 optimizer setup studio v0 (methods/controls/run-plan/budget, preflight guardrails, profile versioning, launch queue) via `/api/arenas/{id}/optimizer/*`.
 2. Next:
-   - Vertical product delivery track (`V2.3.*`) moves to C5 run-monitor timeline after C5 setup/launch guardrails slice completion.
+   - Vertical product delivery track shifts to `V2.4.*`: wizard orchestration + C4/C5/C6 decoupling + evaluator matrix + dataset v2.
    - Evaluation Fabric & MetricOps (`I5.*`) including evaluator adapter layer and post-export native evaluation loop.
 
 ## Decision Records

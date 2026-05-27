@@ -34,11 +34,14 @@
 | C1 | Battle Registry | `BE / FE / Demo / QA` |
 | C2 | Task Chat + Candidate Generation | `BE / FE / Demo / QA` |
 | C3 | Pattern Library + RAG Retrieval | `BE / FE / Demo / QA` |
-| C4 | Dataset & Metrics Studio | `BE / FE / Demo / QA` |
-| C5 | Optimizer Run Monitor | `BE / FE / Demo / QA` |
-| C6 | Report + Champion Export/Import | `BE / FE / Demo / QA` |
+| C4 | Dataset Studio | `BE / FE / Demo / QA` |
+| C5 | Metrics Studio | `BE / FE / Demo / QA` |
+| C6 | Evaluators Studio | `BE / FE / Demo / QA` |
+| C7 | Optimizer Run Monitor | `BE / FE / Demo / QA` |
+| C8 | Report + Champion Export/Import | `BE / FE / Demo / QA` |
 
 Legacy note: исторические DSL-first слайсы (validate/compile/run/arena/evidence/champion) остаются частью foundation, но больше не являются пользовательской capability-моделью.
+Transition note: текущий UI пока использует legacy ярлыки (`C4 Dataset & Metrics`, `C5 Optimizer`, `C6 Report`), миграция выполняется в `V2.4.*`.
 
 ---
 
@@ -145,6 +148,20 @@ Note: после `V2.3.S1` добавлен corrective slice `V2.3.S1a`, что�
 | V2.3.S7 | C5 Optimizer setup + budget/epoch controls | Done | optimization method settings + budget limits + launch guardrails |
 | V2.3.S8 | C5 Run Monitor + version manifest timeline | Planned | progress/epochs/events/trace drilldown + run manifest visibility |
 | V2.3.S9 | C6 Report + Champion export/import loop | Planned | final report view + champion export + native import + re-benchmark trigger |
+
+### Iteration V2.4 - Wizard IA + Evaluation Decoupling
+
+Цель: перейти от простого меню к последовательному capability-wizard и развести `datasets`, `metrics`, `evaluators` в отдельные продуктовые шаги.
+
+| Slice | Description | Status | Output |
+|---|---|---|---|
+| V2.4.S1 | Wizard Engine v0 (menu as stateful flow) | Planned | unlock/lock DAG по шагам, статусы `locked/available/in_progress/completed/blocked` |
+| V2.4.S2 | IA split: C4 Datasets / C5 Metrics / C6 Evaluators | Planned | отдельные пункты меню и экраны, без смешения потоков |
+| V2.4.S3 | Candidate-feature-aware metrics availability | Planned | автодоступность метрик по структуре выбранных кандидатов |
+| V2.4.S4 | Evaluator x Metric matrix v0 | Planned | матричная настройка оценивания и preflight-проверка покрытия |
+| V2.4.S5 | Dataset v2 schema (stage-aware targets) | Planned | поддержка retrieval/rerank/synthesis/final target типов и соответствующих expected-структур |
+| V2.4.S6 | Contextual right chat (tab-scoped copilot) | Planned | чат адаптируется к активной capability и выбранной сущности |
+| V2.4.S7 | Runtime snapshot UX cleanup | Planned | перенос snapshot в debug drawer/dev-tools, без перекрытия основного контента |
 
 ### Iteration I5 - Evaluation Fabric & MetricOps
 

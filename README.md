@@ -6,8 +6,8 @@ OSS-first платформа для архитектурного поиска, w
 
 - `Phase`: MVP-2 transition (product realignment + evaluation fabric)
 - `Iteration`: Roadmap v3 - vertical product slices
-- `Overall`: In Progress (V2.3.S1 + V2.3.S1a + V2.3.S2 + V2.3.S2b + V2.3.S2c + V2.3.S2d + V2.3.S3 + V2.3.S4 + V2.3.S4a + V2.3.S5 + V2.3.S5a + V2.3.S6 + V2.3.S6a + V2.3.S7 done, product capabilities C1-C6 in rollout)
-- `Next Slice`: V2.3.S8 C5 Run Monitor + version manifest timeline
+- `Overall`: In Progress (V2.3.S1 + V2.3.S1a + V2.3.S2 + V2.3.S2b + V2.3.S2c + V2.3.S2d + V2.3.S3 + V2.3.S4 + V2.3.S4a + V2.3.S5 + V2.3.S5a + V2.3.S6 + V2.3.S6a + V2.3.S7 done, wizard IA decoupling planned in V2.4)
+- `Next Slice`: V2.4.S1 Wizard Engine v0 (menu as stateful flow)
 
 Подробный статус:
 
@@ -80,9 +80,11 @@ mkdocs build --strict
 1. `C1` Battle Registry
 2. `C2` Task Chat + Candidate Generation
 3. `C3` Pattern Library + RAG Retrieval
-4. `C4` Dataset & Metrics Studio
-5. `C5` Optimizer Run Monitor
-6. `C6` Report + Champion Export/Import
+4. `C4` Dataset Studio
+5. `C5` Metrics Studio
+6. `C6` Evaluators Studio
+7. `C7` Optimizer Run Monitor
+8. `C8` Report + Champion Export/Import
 
 ## Repository Map
 
@@ -107,7 +109,7 @@ mkdocs build --strict
 - `optimizer/metrics` - middle-метрики и служебные агрегаторы для arena scoring.
 - `optimizer/evidence` - генерация Evidence Pack (`comparison` + `diagnostics` + explainable diff).
 - `optimizer/champion` - export Champion Bundle (`diagnostic_map`, `winner_graph_ir`, `generated_agent`, `manifest`).
-- `frontend` - app-v3-aligned React/TypeScript workbench, evolving toward product capabilities C1..C6 (battles/chat/patterns/datasets/runs/champion).
+- `frontend` - app-v3-aligned React/TypeScript workbench, evolving toward product capabilities C1..C8 (legacy labels for C4/C5/C6 are still supported during migration).
 - `optimizer/frontend/dev_server.py` - lightweight frontend dev server (serves `frontend/dist` build + capability API endpoints).
 - `optimizer/workspace` - JSON-backed battle/arena registry store for C1 product capability.
 - `optimizer/c2` - deterministic C2 brief-to-candidates generator, compile-readiness gate and arena-chat draft utilities.
@@ -133,7 +135,7 @@ mkdocs build --strict
 - `scripts/smoke_validate_dataset.ps1` - smoke-валидация golden dataset.
 - `scripts/smoke_run_oracle.ps1` - smoke-прогон executable oracle runner.
 - `scripts/smoke_export_champion_bundle.ps1` - smoke-прогон champion bundle export.
-- `scripts/smoke_frontend_shell.ps1` - smoke-прогон capability frontend shell (`C1..C6`).
+- `scripts/smoke_frontend_shell.ps1` - smoke-прогон capability frontend shell (`C1..C8` target model, backward compatible with legacy labels).
 
 
 ## I3.S3 Artifacts
