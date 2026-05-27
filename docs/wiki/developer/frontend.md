@@ -1,65 +1,65 @@
 ﻿# Frontend Guide
 
-## C2 UI contract
+## C2 UI Contract
 
-В списке кандидатов:
+In the candidate list:
 
-1. Чекбокс выбора кандидата в тестовый набор.
-2. Кнопка `Select for tests` для запуска внутренней подготовки.
-3. Детали кандидата через accordion.
+1. Candidate checkbox for test selection.
+2. `Select for tests` button to trigger internal preparation.
+3. Candidate details via accordion.
 
-## C3 UI contract
+## C3 UI Contract
 
-В библиотеке паттернов:
+In pattern library:
 
-1. Одна галочка `selected` на строку паттерна.
-2. Кнопка `Save` сохраняет текущий набор выбранных паттернов.
-3. До `Save` изменения остаются локальными (`dirty` state).
-4. Детали паттерна доступны через accordion (не меняют selection).
+1. One `selected` checkbox per pattern row.
+2. `Save` button persists the current selected pattern set.
+3. Before `Save`, changes stay local (`dirty` state).
+4. Pattern details are available via accordion and do not affect selection.
 
-## UX принципы
+## UX Principles
 
-1. Валидация/компиляция скрыты как внутренний технический шаг.
-2. Пользователь взаимодействует только с business-action: выбор кандидатов для тестов.
-3. Selection-паттерн унифицирован между C2/C3: single-checkbox + explicit save action.
-4. Ошибки показываются только если автоисправление не помогло.
+1. Validation/compile steps are hidden as internal technical operations.
+2. User interacts only with business actions (selecting candidates for tests).
+3. Selection pattern is unified between C2/C3: single checkbox + explicit save action.
+4. Errors are shown only after auto-fix/retry has failed.
 
-## Тесты
+## Tests
 
 1. `frontend/src/__tests__/app.workspace.test.tsx`
 
-## C4 UI contract
+## C4 UI Contract
 
-В C4 Dataset Studio:
+In C4 Dataset Studio:
 
-1. Экран разделен на два режима: `list` и `edit`.
-2. В `list` режиме dataset-ы отображаются как candidate-like rows с чекбоксами.
-3. Кнопка `Save` сохраняет назначение выбранных dataset-ов на арену.
-4. `Details` раскрывает превью первых 5 строк.
-5. `Edit` открывает отдельный editor-screen с breadcrumbs.
-6. В `edit` режиме доступны add/delete/edit rows, JSONL import, `Save changes`, `Validate`, `Save version`.
+1. The screen has two modes: `list` and `edit`.
+2. In `list` mode, datasets are shown as candidate-like rows with checkboxes.
+3. `Save` stores selected dataset assignment to arena.
+4. `Details` expands a preview of first 5 rows.
+5. `Edit` opens a dedicated editor screen with breadcrumbs.
+6. In `edit` mode: add/delete/edit rows, JSONL import, `Save changes`, `Validate`, `Save version`.
 
-В C4 Metrics & Evaluators Studio:
+In C4 Metrics & Evaluators Studio:
 
-1. Comparative metrics редактируются чекбоксами + weight и сохраняются `Save metrics`.
-2. Diagnostic signals редактируются чекбоксами и сохраняются `Save diagnostics`.
-3. Evaluators редактируются чекбоксами и сохраняются `Save evaluators`.
-4. Budget редактируется числами и сохраняется `Save budget`.
-5. `Validate profile` возвращает status + issues.
-6. `Save version` фиксирует snapshot evaluation profile.
+1. Comparative metrics are edited via checkboxes + weights and saved with `Save metrics`.
+2. Diagnostic signals are edited via checkboxes and saved with `Save diagnostics`.
+3. Evaluators are edited via checkboxes and saved with `Save evaluators`.
+4. Budget is edited via numeric fields and saved with `Save budget`.
+5. `Validate profile` returns status + issues.
+6. `Save version` snapshots the evaluation profile.
 
-Состояние загружается через `fetchArenaDatasetState` + `fetchArenaEvaluationState` и обновляется после каждого C4 действия.
+State is loaded through `fetchArenaDatasetState` + `fetchArenaEvaluationState` and refreshed after each C4 action.
 
-## C5 UI contract
+## C5 UI Contract
 
-В C5 Optimizer Setup:
+In C5 Optimizer Setup:
 
-1. `Methods` и `Optimization controls` редактируются чекбоксами.
-2. `Run plan` и `Budget limits` редактируются числовыми полями.
-3. `Save setup` сохраняет профиль в backend.
-4. `Validate` запускает preflight guardrails и возвращает status + issues.
-5. `Launch` создает queued run только если guardrails не содержат error.
-6. `Save profile version` фиксирует snapshot optimizer setup.
-7. `Launch queue` показывает последние run-записи.
+1. `Methods` and `Optimization controls` are checkbox-based.
+2. `Run plan` and `Budget limits` use numeric fields.
+3. `Save setup` persists the profile in backend.
+4. `Validate` runs preflight guardrails and returns status + issues.
+5. `Launch` creates a queued run only when guardrails have no errors.
+6. `Save profile version` snapshots optimizer setup.
+7. `Launch queue` shows recent run records.
 
-Состояние C5 загружается через `fetchArenaOptimizerState` и обновляется после каждого C5 действия.
+C5 state is loaded via `fetchArenaOptimizerState` and refreshed after each C5 action.

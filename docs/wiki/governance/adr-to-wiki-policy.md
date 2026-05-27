@@ -2,16 +2,16 @@
 
 ## Policy
 
-1. Каждый архитектурный слайс обязан иметь обновление пользовательской документации в wiki.
-2. В каждом ADR должно быть поле `User Docs Page`.
-3. ADR без ссылки на wiki-страницу считается неполным.
+1. Every architecture slice must include a user documentation update in the wiki.
+2. Every ADR must include a `User Docs Page` field.
+3. An ADR without a wiki link is considered incomplete.
 
-## Minimum update per slice
+## Minimum Update per Slice
 
-1. Одна release-страница по слайсу.
-2. Обновление релевантного user guide.
-3. Обновление релевантного developer guide (backend/frontend).
+1. One release note page for the slice.
+2. Update of the relevant user guide.
+3. Update of the relevant developer guide (backend/frontend).
 
 ## Publishing
 
-Wiki публикуется через GitHub Pages из текущего репозитория.
+The wiki is published through GitHub Pages from the current repository.

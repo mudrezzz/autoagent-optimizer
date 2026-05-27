@@ -1,42 +1,42 @@
 ﻿# C5 Optimizer Setup
 
-## Что это
+## What It Is
 
-C5 — это этап перед запуском оптимизации.
-Здесь вы сохраняете профиль запуска и проверяете preflight guardrails.
+C5 is the stage before optimization launch.
+Here you save launch profile and validate preflight guardrails.
 
-## Что настраивается
+## What You Configure
 
-1. `Methods` — стратегии поиска конфигураций (`random/grid/optuna` и т.д.).
-2. `Optimization controls` — какие части архитектуры можно менять.
-3. `Run plan` — эпохи, кандидаты на эпоху, параллелизм, early-stop.
-4. `Budget limits` — лимиты кейсов, LLM-вызовов, стоимости и времени.
+1. `Methods` - configuration search strategies (`random/grid/optuna`, etc.).
+2. `Optimization controls` - which architecture parts are allowed to change.
+3. `Run plan` - epochs, candidates per epoch, parallelism, early stop.
+4. `Budget limits` - limits for cases, LLM calls, cost, and runtime.
 
-## Скриншот (реальный UI)
+## Screenshot (Real UI)
 
 ![C5 Optimizer Setup](../assets/screenshots/real-workspace-c5.png)
 
-## Основной flow
+## Main Flow
 
-1. Откройте capability `C5 Optimizer Run Monitor`.
-2. Отметьте нужные методы и controls чекбоксами.
-3. Заполните `Run plan` и `Budget limits`.
-4. Нажмите `Save setup`.
-5. Нажмите `Validate` и проверьте статус preflight.
-6. Если статус `ready` или `warnings`, нажмите `Launch`.
-7. При необходимости нажмите `Save profile version`.
+1. Open capability `C5 Optimizer Run Monitor`.
+2. Select required methods and controls.
+3. Fill `Run plan` and `Budget limits`.
+4. Click `Save setup`.
+5. Click `Validate` and review preflight status.
+6. If status is `ready` or `warnings`, click `Launch`.
+7. Optionally click `Save profile version`.
 
-## Guardrails (что блокирует запуск)
+## Guardrails (Launch Blockers)
 
-1. Нет выбранных кандидатов для тестов в C2.
-2. Compile gate кандидатов не в состоянии `ready`.
-3. Нет назначенных dataset-ов в C4.
-4. C4 evaluation profile в статусе `invalid`.
-5. Невалидные run-plan/budget поля (например, epochs = 0).
+1. No candidates selected for tests in C2.
+2. Candidate compile gate is not `ready`.
+3. No datasets assigned in C4.
+4. C4 evaluation profile has `invalid` status.
+5. Invalid run-plan/budget fields (for example: `epochs_total = 0`).
 
-## Что увидите после запуска
+## What You See After Launch
 
-1. В `Launch queue` появится запись `run_id` со статусом `queued`.
-2. В `Runtime snapshot` — payload последнего действия launch.
+1. `Launch queue` gets a new `run_id` with `queued` status.
+2. `Runtime snapshot` shows payload of the latest launch action.
 
-Следующий слайс C5 расширяет это до детального Run Monitor timeline.
+The next C5 slice extends this into a detailed Run Monitor timeline.

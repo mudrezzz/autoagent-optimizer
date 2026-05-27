@@ -1,34 +1,33 @@
 ﻿# C2 Candidate Selection for Tests
 
-## Что изменилось (V2.3.S4)
+## What Changed (V2.3.S4)
 
-В C2 больше нет ручного шага `Assemble + Compile`.
+C2 no longer has a manual `Assemble + Compile` step.
 
-Новый UX:
+New UX:
 
-1. Отметьте чекбоксами кандидатов.
-2. Нажмите `Select for tests`.
-3. Система внутренне выполняет подготовку к тестам.
+1. Select candidates via checkboxes.
+2. Click `Select for tests`.
+3. System runs internal preparation automatically.
 
-## Реальный экран C2
+## Real C2 Screen
 
 ![C2 Candidate Selection](../assets/screenshots/real-workspace-c2.png)
 
-## Что делает система внутри
+## What Happens Internally
 
-1. Валидирует выбранный набор.
-2. Компилирует только выбранных кандидатов.
-3. Делает несколько попыток auto-retry.
-4. Пробует auto-fix для типовых `dsl_stub_ref`.
-5. Показывает issue только если подготовка не удалась.
+1. Validates selected set.
+2. Compiles selected candidates only.
+3. Runs multiple auto-retry attempts.
+4. Attempts auto-fix for known `dsl_stub_ref` issues.
+5. Shows user-facing issue only when preparation cannot be recovered.
 
-## Как понять, что все прошло успешно
+## How to Confirm Success
 
-1. Кандидат помечен как selected.
-2. Набор уходит в статус ready.
-3. В чате появляется системное сообщение о результате подготовки.
+1. Candidate is marked as selected.
+2. Candidate set reaches `ready` status.
+3. Chat shows system message about preparation result.
 
-## Когда появится issue
+## When an Issue Appears
 
-Issue показывается только после исчерпания внутренних попыток подготовки.
-
+Issue is shown only after internal preparation retries are exhausted.

@@ -1,58 +1,58 @@
 ﻿# C4 Dataset Studio
 
-C4 используется для подготовки тестового набора перед оптимизацией.
+C4 is used to prepare test datasets before optimization.
 
-## Что доступно в v0
+## Available in v0
 
-1. Создать dataset внутри Battle Workspace.
-2. Отметить dataset-ы чекбоксами и сохранить назначение в арену кнопкой `Save`.
-3. Открыть `Details` и увидеть превью первых 5 строк.
-4. Открыть `Edit` и перейти в отдельный экран редактирования dataset.
-5. В editor-экране редактировать/удалять/добавлять строки и импортировать JSONL.
-6. Проверить dataset (`Validate`) и сохранить snapshot (`Save version`).
-7. Перейти во вкладку `Metrics` и настроить профиль оценки:
-   - comparative metrics,
-   - diagnostic signals,
-   - evaluators,
-   - budget limits.
-8. Проверить профиль через `Validate profile` и сохранить версию `Save version`.
+1. Create a dataset inside Battle Workspace.
+2. Mark datasets via checkboxes and save arena assignment with `Save`.
+3. Open `Details` to preview first 5 rows.
+4. Open `Edit` to enter dedicated dataset editor screen.
+5. In editor: add/delete/edit rows and import JSONL.
+6. Validate dataset (`Validate`) and save snapshot (`Save version`).
+7. Open `Metrics` tab and configure evaluation profile:
+- comparative metrics,
+- diagnostic signals,
+- evaluators,
+- budget limits.
+8. Run `Validate profile` and save profile version with `Save version`.
 
-## Скриншоты (реальный UI)
+## Screenshots (Real UI)
 
-### Dataset tab
+### Dataset Tab
 
 ![C4 Dataset Tab](../assets/screenshots/real-workspace-c4-datasets.png)
 
-### Metrics tab
+### Metrics Tab
 
 ![C4 Metrics Tab](../assets/screenshots/real-workspace-c4-metrics.png)
 
-## Минимальный поток
+## Minimal Flow
 
-1. Откройте capability `C4 Dataset Studio`.
-2. Введите имя датасета и нажмите `Create dataset`.
-3. Отметьте датасет галочкой в списке и нажмите `Save`.
-4. Нажмите `Edit` у нужного датасета.
-5. Обновите строки, затем нажмите `Save changes`.
-6. Нажмите `Validate`.
-7. Если ошибок нет, нажмите `Save version`.
-8. Переключитесь на вкладку `Metrics`, настройте метрики/evaluators/budget и сохраните их.
-9. Нажмите `Validate profile`, затем `Save version` для профиля оценки.
+1. Open capability `C4 Dataset Studio`.
+2. Enter dataset name and click `Create dataset`.
+3. Select dataset in list and click `Save`.
+4. Click `Edit` on the target dataset.
+5. Update rows, then click `Save changes`.
+6. Click `Validate`.
+7. If there are no errors, click `Save version`.
+8. Switch to `Metrics`, configure metrics/evaluators/budget, and save each block.
+9. Click `Validate profile`, then `Save version` for evaluation profile.
 
-## Формат кейса
+## Case Row Format
 
-Каждая строка содержит:
+Each row contains:
 
-1. `case_id` — уникальный идентификатор кейса.
-2. `input` — исходный текст/запрос.
-3. `expected` — ожидаемое поведение/ответ.
-4. `notes` — дополнительный комментарий (опционально).
+1. `case_id` - unique case identifier.
+2. `input` - source text/query.
+3. `expected` - expected output/behavior.
+4. `notes` - optional comment.
 
-## Как читать Validate
+## How to Read Validate Results
 
-1. `error` — блокирующая проблема (например, пустой `input`, дубликат `case_id`, пустой dataset).
-2. `warning` — неблокирующее замечание (например, пустой `expected`).
+1. `error` - blocking issue (for example: empty `input`, duplicate `case_id`, empty dataset).
+2. `warning` - non-blocking issue (for example: empty `expected`).
 
-## Что дальше
+## Next Step
 
-После сохранения версии датасета переходите к следующему capability-слайсу (Optimizer Setup в C5).
+After saving dataset version, proceed to the next capability slice (Optimizer Setup in C5).

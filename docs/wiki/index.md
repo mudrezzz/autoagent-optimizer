@@ -1,18 +1,18 @@
-# AutoAgent Optimizer Wiki
+﻿# AutoAgent Optimizer Wiki
 
-Этот wiki-сайт публикуется из текущего репозитория через GitHub Pages.
+This wiki site is published from the current repository through GitHub Pages.
 
-## Для кого
+## Audience
 
-1. Пользователи продукта: как работать с capability-потоком и что ожидать от UX.
-2. Разработчики: как устроены backend/frontend контракты и как их расширять.
+1. Product users: how to work with the capability flow and what UX behavior to expect.
+2. Developers: how backend/frontend contracts are structured and how to extend them.
 
-## Правило проекта
+## Project Rule
 
-1. Каждый завершенный vertical slice обязан обновлять wiki (user + developer изменения по факту).
-2. В ADR должно быть поле `User Docs Page` со ссылкой на страницу в wiki.
+1. Every completed vertical slice must update the wiki (both user and developer sections when relevant).
+2. Every ADR must include a `User Docs Page` field pointing to the related wiki page.
 
-## Быстрые ссылки
+## Quick Links
 
 1. [User Guides / Overview](user_guides/overview.md)
 2. [User Guides / C2 Candidate Selection](user_guides/c2-select-for-tests.md)

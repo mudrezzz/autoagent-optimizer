@@ -1,6 +1,6 @@
 ﻿# Backend Guide
 
-## C2 endpoint
+## C2 Endpoint
 
 `POST /api/arenas/{arena_id}/candidates/select-for-tests`
 
@@ -13,23 +13,23 @@ Body:
 }
 ```
 
-Response включает:
+Response includes:
 
-1. `candidate_set_draft` с обновленными `selected_for_tests` и `compile_readiness`.
-2. `compile_gate` агрегат по выбранным кандидатам.
+1. `candidate_set_draft` with updated `selected_for_tests` and `compile_readiness`.
+2. `compile_gate` aggregate for selected candidates.
 
-## Контракт поведения
+## Behavior Contract
 
-1. Пустой выбор кандидатов -> validation error.
-2. Неизвестный `candidate_id` -> validation error.
-3. Внутренние retry/auto-fix до пользовательского issue.
+1. Empty candidate selection -> validation error.
+2. Unknown `candidate_id` -> validation error.
+3. Internal retry/auto-fix before surfacing a user-visible issue.
 
-## Тесты
+## Tests
 
 1. `tests/unit/test_c2_candidate_assembly.py`
 2. `tests/integration/test_frontend_dev_server.py`
 
-## C4 endpoints
+## C4 Endpoints
 
 `GET /api/arenas/{arena_id}/datasets/state`
 
@@ -97,14 +97,14 @@ Response включает:
 }
 ```
 
-Контракт валидации v0:
+Validation contract v0:
 
-1. Ошибка для пустого датасета.
-2. Ошибка для отсутствующего `case_id` или `input`.
-3. Ошибка для дубликатов `case_id`.
-4. Warning для пустого `expected`.
+1. Error for an empty dataset.
+2. Error for missing `case_id` or `input`.
+3. Error for duplicate `case_id`.
+4. Warning for empty `expected`.
 
-## C4 evaluation endpoints
+## C4 Evaluation Endpoints
 
 `GET /api/arenas/{arena_id}/evaluation/state`
 
@@ -118,13 +118,13 @@ Response включает:
 
 `POST /api/arenas/{arena_id}/evaluation/save-version`
 
-Validate-report status:
+Validate report statuses:
 
-1. `ready` — ошибок нет.
-2. `warnings` — только warning-issues.
-3. `invalid` — есть error-issues.
+1. `ready` - no issues.
+2. `warnings` - warning issues only.
+3. `invalid` - at least one error issue.
 
-## C5 optimizer endpoints
+## C5 Optimizer Endpoints
 
 `GET /api/arenas/{arena_id}/optimizer/state`
 
@@ -159,9 +159,9 @@ Validate-report status:
 
 `POST /api/arenas/{arena_id}/optimizer/launch`
 
-Launch guardrails проверяют:
+Launch guardrails verify:
 
-1. C2 selected candidates + compile gate.
+1. C2 selected candidates and compile gate.
 2. C4 assigned datasets.
 3. C4 evaluation profile status.
-4. Валидность C5 run_plan/budget/methods.
+4. Valid C5 run plan, budget, and methods.

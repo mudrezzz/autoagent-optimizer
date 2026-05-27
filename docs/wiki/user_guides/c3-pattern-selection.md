@@ -1,33 +1,32 @@
 ﻿# C3 Pattern Selection (Unified Checkbox UX)
 
-## Что изменилось (V2.3.S4a)
+## What Changed (V2.3.S4a)
 
-В C3 используется тот же паттерн выбора, что и в C2:
+C3 now uses the same selection model as C2:
 
-1. Одна галочка на каждый паттерн.
-2. Одна общая кнопка `Save` над списком.
+1. One checkbox per pattern row.
+2. One shared `Save` button above the list.
 
-## Как пользоваться
+## How to Use
 
-1. Откройте вкладку `Pattern Library + RAG`.
-2. Найдите нужный паттерн через поиск/фильтр.
-3. Отметьте галочкой паттерны, которые хотите учитывать при генерации кандидатов.
-4. Нажмите `Save`.
-5. Чтобы убрать паттерн из учета, снимите галочку и снова нажмите `Save`.
+1. Open `Pattern Library + RAG`.
+2. Find target patterns via search/filter.
+3. Check patterns you want to include for candidate generation.
+4. Click `Save`.
+5. To remove a pattern, uncheck it and click `Save` again.
 
-## Реальные экраны C3
+## Real C3 Screens
 
-### Список паттернов
+### Pattern List
 
 ![C3 Pattern Selection](../assets/screenshots/real-workspace-c3.png)
 
-### Раскрытые детали паттерна
+### Expanded Pattern Details
 
 ![C3 Pattern Details](../assets/screenshots/real-workspace-c3-details.png)
 
-## Что важно
+## Important Notes
 
-1. Выбор сохраняется в arena-состоянии и используется в следующей генерации кандидатов.
-2. Детали паттерна и схема (accordion) доступны отдельно и не влияют на selection.
-3. Сохранение явное: изменения применяются только после нажатия `Save`.
-
+1. Selection is stored in arena state and reused in next candidate generation.
+2. Pattern details and mini-graph accordion are independent from selection.
+3. Save is explicit: changes apply only after clicking `Save`.
