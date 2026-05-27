@@ -89,8 +89,8 @@ const ARENA: ArenaRecord = {
 // Русский комментарий: фикстура capability-каталога, где C2 активен и доступен.
 const CAPABILITIES: Capability[] = [
   { id: "c1", name: "Battle Registry", description: "Manage battle arenas.", status: "enabled", badge_count: 1 },
-  { id: "c2", name: "Task Chat + Candidates", description: "Generate candidates from chat.", status: "enabled", badge_count: 1 },
   { id: "c3", name: "Pattern Library + RAG", description: "Pattern retrieval", status: "enabled", badge_count: 1 },
+  { id: "c2", name: "Task Chat + Candidates", description: "Generate candidates from chat.", status: "enabled", badge_count: 1 },
   { id: "c4", name: "Datasets", description: "Dataset controls", status: "enabled", badge_count: 1 },
   { id: "c5", name: "Metrics", description: "Metrics controls", status: "enabled", badge_count: 1 },
   { id: "c6", name: "Evaluators", description: "Evaluators controls", status: "enabled", badge_count: 1 },
@@ -320,6 +320,16 @@ describe("Battle workspace candidates", () => {
         versions: [{ version_id: "dsv_demo_1", label: "v1", created_at: "2026-05-26T00:00:00+00:00", rows_total: 2, source: "manual" }],
       },
     });
+    vi.mocked(saveArenaPatternSelection).mockResolvedValue({
+      status: "success",
+      capability_id: "c3",
+      arena_id: ARENA.workspace_id,
+      selection: {
+        include_pattern_ids: ["style.direct_llm"],
+        exclude_pattern_ids: [],
+        updated_at: "2026-05-24T00:00:00+00:00",
+      },
+    });
     vi.mocked(fetchArenaEvaluationState).mockResolvedValue({
       status: "success",
       capability_id: "c4",
@@ -379,12 +389,14 @@ describe("Battle workspace candidates", () => {
     vi.mocked(duplicateArena).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(deleteArena).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(fetchStubCapability).mockRejectedValue(new Error("not used in this test"));
-    vi.mocked(saveArenaPatternSelection).mockRejectedValue(new Error("not used in this test"));
   });
 
   it("renders candidates list and allows selecting candidate row", async () => {
     const user = userEvent.setup();
     renderWorkspace();
+    await user.click(await screen.findByLabelText("select-style.direct_llm-for-generation"));
+    await user.click(await screen.findByRole("button", { name: "Save" }));
+    await user.click(await screen.findByRole("button", { name: /Task Chat \+ Candidates/i }));
 
     const firstCandidate = await screen.findByText("Direct LLM Rewriter");
     const secondCandidateButton = await screen.findByRole("button", { name: /Pattern Cleaner/i });
@@ -412,6 +424,9 @@ describe("Battle workspace candidates", () => {
   it("expands candidate details accordion and renders mini graph", async () => {
     const user = userEvent.setup();
     renderWorkspace();
+    await user.click(await screen.findByLabelText("select-style.direct_llm-for-generation"));
+    await user.click(await screen.findByRole("button", { name: "Save" }));
+    await user.click(await screen.findByRole("button", { name: /Task Chat \+ Candidates/i }));
 
     await waitFor(() => {
       expect(document.querySelectorAll(".candidate-details-toggle").length).toBeGreaterThan(0);
@@ -486,6 +501,9 @@ describe("Battle workspace candidates", () => {
     });
 
     renderWorkspace();
+    await user.click(await screen.findByLabelText("select-style.direct_llm-for-generation"));
+    await user.click(await screen.findByRole("button", { name: "Save" }));
+    await user.click(await screen.findByRole("button", { name: /Task Chat \+ Candidates/i }));
     const firstCheckbox = await screen.findByLabelText("select-cand_direct-for-tests");
     const secondCheckbox = await screen.findByLabelText("select-cand_cleaner-for-tests");
     await user.click(firstCheckbox);

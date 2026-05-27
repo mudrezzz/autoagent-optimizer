@@ -70,6 +70,7 @@ declare global {
 // Русский комментарий: fallback-каталог capability на случай временной недоступности capability API.
 const FALLBACK_CAPABILITIES: Capability[] = [
   { id: "c1", name: "Battle Registry", description: "Manage battle arenas.", status: "enabled", badge_count: 1 },
+  { id: "c3", name: "Pattern Library + RAG", description: "Pattern retrieval controls for candidate generation.", status: "enabled", badge_count: 1 },
   {
     id: "c2",
     name: "Task Chat + Candidates",
@@ -77,7 +78,6 @@ const FALLBACK_CAPABILITIES: Capability[] = [
     status: "enabled",
     badge_count: 1,
   },
-  { id: "c3", name: "Pattern Library + RAG", description: "Pattern retrieval controls for candidate generation.", status: "enabled", badge_count: 1 },
   { id: "c4", name: "Datasets", description: "Manage dataset lifecycle for benchmark runs.", status: "enabled", badge_count: 1 },
   { id: "c5", name: "Metrics", description: "Define comparative and diagnostic metrics.", status: "enabled", badge_count: 1 },
   { id: "c6", name: "Evaluators", description: "Configure evaluators and evaluation budget.", status: "enabled", badge_count: 1 },
@@ -178,7 +178,7 @@ export function App(): JSX.Element {
   const [route, setRoute] = useState<ScreenRoute>(() => parseRoute(window.location.pathname));
   const [state, setState] = useState<UiState>({
     capabilities: FALLBACK_CAPABILITIES,
-    activeCapabilityId: "c2",
+    activeCapabilityId: "c3",
     arenas: [],
     activeArenaId: "",
     c2ChatInput: "",
@@ -338,6 +338,7 @@ export function App(): JSX.Element {
     setRoute({ name: "battles_hub" });
     setState((prev) => ({
       ...prev,
+      activeCapabilityId: "c3",
       activeArenaId: "",
       c2ChatInput: "",
       c2Messages: [],
@@ -3306,7 +3307,32 @@ function buildCapabilityWizardItems(capabilities: Capability[], state: UiState, 
       };
     }
 
+    if (capability.id === "c3") {
+      if (state.c3SelectedPatternIds.length > 0) {
+        return {
+          ...capability,
+          wizardStatus: "completed",
+          wizardReason: "Pattern selection is saved.",
+          isInteractive: true,
+        };
+      }
+      return {
+        ...capability,
+        wizardStatus: state.activeCapabilityId === "c3" ? "in_progress" : "available",
+        wizardReason: "Review pattern library and pick seed architectures.",
+        isInteractive: true,
+      };
+    }
+
     if (capability.id === "c2") {
+      if (state.c3SelectedPatternIds.length === 0) {
+        return {
+          ...capability,
+          wizardStatus: "locked",
+          wizardReason: "Select at least one pattern in C3 before candidate generation.",
+          isInteractive: false,
+        };
+      }
       if (compileGateBlocked) {
         return {
           ...capability,
@@ -3323,43 +3349,10 @@ function buildCapabilityWizardItems(capabilities: Capability[], state: UiState, 
           isInteractive: true,
         };
       }
-      if (state.activeCapabilityId === "c2") {
-        return {
-          ...capability,
-          wizardStatus: "in_progress",
-          wizardReason: "Discuss task and generate/select candidates.",
-          isInteractive: true,
-        };
-      }
       return {
         ...capability,
-        wizardStatus: hasCandidates ? "available" : "in_progress",
-        wizardReason: hasCandidates ? "Candidate draft is ready. Select candidates for tests." : "Start task chat and generate first candidate draft.",
-        isInteractive: true,
-      };
-    }
-
-    if (capability.id === "c3") {
-      if (!hasCandidates) {
-        return {
-          ...capability,
-          wizardStatus: "locked",
-          wizardReason: "Generate candidate draft in C2 first.",
-          isInteractive: false,
-        };
-      }
-      if (state.c3SelectedPatternIds.length > 0) {
-        return {
-          ...capability,
-          wizardStatus: "completed",
-          wizardReason: "Pattern selection is saved.",
-          isInteractive: true,
-        };
-      }
-      return {
-        ...capability,
-        wizardStatus: state.activeCapabilityId === "c3" ? "in_progress" : "available",
-        wizardReason: "Review pattern library and pick seed architectures.",
+        wizardStatus: state.activeCapabilityId === "c2" ? "in_progress" : "available",
+        wizardReason: hasCandidates ? "Candidate draft is ready. Select candidates for tests." : "Generate candidate draft from selected patterns.",
         isInteractive: true,
       };
     }

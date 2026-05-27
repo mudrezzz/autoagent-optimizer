@@ -16,19 +16,19 @@ CAPABILITY_CATALOG: tuple[dict[str, str | int], ...] = (
         "badge_count": 1,
     },
     {
-        "id": "c2",
-        "name": "Task Chat + Candidates",
-        "description": "Постановка задачи в чате и генерация кандидатов.",
-        "status": "enabled",
-        "route": "/battles/chat",
-        "badge_count": 1,
-    },
-    {
         "id": "c3",
         "name": "Pattern Library + RAG",
         "description": "Поиск и выбор архитектурных паттернов для кандидатов.",
         "status": "enabled",
         "route": "/patterns",
+        "badge_count": 1,
+    },
+    {
+        "id": "c2",
+        "name": "Task Chat + Candidates",
+        "description": "Постановка задачи в чате и генерация кандидатов.",
+        "status": "enabled",
+        "route": "/battles/chat",
         "badge_count": 1,
     },
     {
