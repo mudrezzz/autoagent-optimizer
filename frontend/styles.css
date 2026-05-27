@@ -1127,6 +1127,7 @@ code { font-family: var(--font-mono); }
   display: flex;
   flex-direction: column;
   gap: 10px;
+  flex: 1;
   min-height: 0;
 }
 
@@ -1201,6 +1202,8 @@ code { font-family: var(--font-mono); }
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-height: 0;
+  overflow: auto;
 }
 
 .c4-breadcrumbs {
@@ -1338,6 +1341,9 @@ code { font-family: var(--font-mono); }
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
 }
 
 .c4-eval-grid,
@@ -2066,7 +2072,10 @@ code { font-family: var(--font-mono); }
 .candidate-list-scroll,
 .c3-list,
 .candidate-mini-graph,
-.json-view {
+.json-view,
+.c4-eval-panel,
+.c5-eval-panel,
+.c4-editor-screen {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
 }
@@ -2076,7 +2085,10 @@ code { font-family: var(--font-mono); }
 .candidate-list-scroll:hover,
 .c3-list:hover,
 .candidate-mini-graph:hover,
-.json-view:hover {
+.json-view:hover,
+.c4-eval-panel:hover,
+.c5-eval-panel:hover,
+.c4-editor-screen:hover {
   scrollbar-color: rgba(99, 91, 255, 0.45) transparent;
 }
 
@@ -2085,7 +2097,10 @@ code { font-family: var(--font-mono); }
 .candidate-list-scroll::-webkit-scrollbar,
 .c3-list::-webkit-scrollbar,
 .candidate-mini-graph::-webkit-scrollbar,
-.json-view::-webkit-scrollbar {
+.json-view::-webkit-scrollbar,
+.c4-eval-panel::-webkit-scrollbar,
+.c5-eval-panel::-webkit-scrollbar,
+.c4-editor-screen::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
@@ -2095,7 +2110,10 @@ code { font-family: var(--font-mono); }
 .candidate-list-scroll::-webkit-scrollbar-track,
 .c3-list::-webkit-scrollbar-track,
 .candidate-mini-graph::-webkit-scrollbar-track,
-.json-view::-webkit-scrollbar-track {
+.json-view::-webkit-scrollbar-track,
+.c4-eval-panel::-webkit-scrollbar-track,
+.c5-eval-panel::-webkit-scrollbar-track,
+.c4-editor-screen::-webkit-scrollbar-track {
   background: transparent;
 }
 
@@ -2104,7 +2122,10 @@ code { font-family: var(--font-mono); }
 .candidate-list-scroll::-webkit-scrollbar-thumb,
 .c3-list::-webkit-scrollbar-thumb,
 .candidate-mini-graph::-webkit-scrollbar-thumb,
-.json-view::-webkit-scrollbar-thumb {
+.json-view::-webkit-scrollbar-thumb,
+.c4-eval-panel::-webkit-scrollbar-thumb,
+.c5-eval-panel::-webkit-scrollbar-thumb,
+.c4-editor-screen::-webkit-scrollbar-thumb {
   background: transparent;
   border-radius: 999px;
 }
@@ -2114,7 +2135,10 @@ code { font-family: var(--font-mono); }
 .candidate-list-scroll:hover::-webkit-scrollbar-thumb,
 .c3-list:hover::-webkit-scrollbar-thumb,
 .candidate-mini-graph:hover::-webkit-scrollbar-thumb,
-.json-view:hover::-webkit-scrollbar-thumb {
+.json-view:hover::-webkit-scrollbar-thumb,
+.c4-eval-panel:hover::-webkit-scrollbar-thumb,
+.c5-eval-panel:hover::-webkit-scrollbar-thumb,
+.c4-editor-screen:hover::-webkit-scrollbar-thumb {
   background: rgba(99, 91, 255, 0.45);
 }
 

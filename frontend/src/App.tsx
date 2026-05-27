@@ -78,9 +78,11 @@ const FALLBACK_CAPABILITIES: Capability[] = [
     badge_count: 1,
   },
   { id: "c3", name: "Pattern Library + RAG", description: "Pattern retrieval controls for candidate generation.", status: "enabled", badge_count: 1 },
-  { id: "c4", name: "Dataset & Metrics Studio", description: "Manage dataset lifecycle for benchmark runs.", status: "enabled", badge_count: 1 },
-  { id: "c5", name: "Optimizer Run Monitor", description: "Optimizer setup, launch guardrails and run queue.", status: "enabled", badge_count: 1 },
-  { id: "c6", name: "Report + Champion Export/Import", description: "Planned slice for reports and native loop.", status: "planned", badge_count: 0 },
+  { id: "c4", name: "Datasets", description: "Manage dataset lifecycle for benchmark runs.", status: "enabled", badge_count: 1 },
+  { id: "c5", name: "Metrics", description: "Define comparative and diagnostic metrics.", status: "enabled", badge_count: 1 },
+  { id: "c6", name: "Evaluators", description: "Configure evaluators and evaluation budget.", status: "enabled", badge_count: 1 },
+  { id: "c7", name: "Optimizer Run Monitor", description: "Optimizer setup, launch guardrails and run queue.", status: "enabled", badge_count: 1 },
+  { id: "c8", name: "Report + Champion Export/Import", description: "Planned slice for reports and native loop.", status: "planned", badge_count: 0 },
 ];
 
 // Русский комментарий: иконки capability для меню рабочего экрана battle.
@@ -89,8 +91,10 @@ const CAPABILITY_ICONS: Record<string, string> = {
   c2: "messages-square",
   c3: "library",
   c4: "database",
-  c5: "activity",
-  c6: "package-check",
+  c5: "line-chart",
+  c6: "shield-check",
+  c7: "activity",
+  c8: "package-check",
 };
 
 // Русский комментарий: маршруты двух экранов - hub и workspace.
@@ -897,15 +901,6 @@ export function App(): JSX.Element {
     }));
   }
 
-  // Русский комментарий: переключает вкладку C4 между dataset-потоком и metrics-потоком.
-  function handleSelectC4StudioTab(tab: "datasets" | "metrics"): void {
-    setState((prev) => ({
-      ...prev,
-      c4StudioTab: tab,
-      c4ViewMode: tab === "datasets" ? prev.c4ViewMode : "list",
-    }));
-  }
-
   // Русский комментарий: обновляет поле строки в editor-таблице dataset.
   function handleUpdateC4EditorRowField(rowIndex: number, field: "case_id" | "input" | "expected" | "notes", value: string): void {
     setState((prev) => ({
@@ -1538,20 +1533,31 @@ export function App(): JSX.Element {
     }
     if (capabilityId === "c4") {
       if (!state.activeArenaId) {
-        setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "notice", message: "Select battle first, then use C4 dataset studio." }) }));
+        setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "notice", message: "Select battle first, then use C4 datasets." }) }));
         return;
       }
       try {
         await loadC4DatasetState(state.activeArenaId, true);
-        await loadC4EvaluationState(state.activeArenaId, false);
       } catch (error) {
         setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
       }
       return;
     }
-    if (capabilityId === "c5") {
+    if (capabilityId === "c5" || capabilityId === "c6") {
       if (!state.activeArenaId) {
-        setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "notice", message: "Select battle first, then use C5 optimizer setup." }) }));
+        setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "notice", message: "Select battle first, then configure evaluation profile." }) }));
+        return;
+      }
+      try {
+        await loadC4EvaluationState(state.activeArenaId, true);
+      } catch (error) {
+        setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
+      }
+      return;
+    }
+    if (capabilityId === "c7") {
+      if (!state.activeArenaId) {
+        setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "notice", message: "Select battle first, then use C7 optimizer setup." }) }));
         return;
       }
       try {
@@ -1979,6 +1985,10 @@ export function App(): JSX.Element {
 
   const isBattleRoute = route.name === "battle_workspace";
   const isC2Enabled = activeCapability.id === "c2";
+  const isDatasetCapability = activeCapability.id === "c4";
+  const isMetricsCapability = activeCapability.id === "c5";
+  const isEvaluatorsCapability = activeCapability.id === "c6";
+  const isOptimizerCapability = activeCapability.id === "c7";
 
   return (
     <div className={`app${isBattleRoute ? " app--workspace" : " app--hub"}`} id="app-root">
@@ -2315,42 +2325,18 @@ export function App(): JSX.Element {
                       </section>
                     </div>
                   </section>
-                ) : activeCapability.id === "c4" ? (
+                ) : (isDatasetCapability || isMetricsCapability || isEvaluatorsCapability) ? (
                   <section className="trace-view trace-view--workspace">
                     <header className="tv-head">
                       <div className="tv-title">
-                        <i data-lucide="database" />
-                        <span>Dataset & metrics studio</span>
-                        <span className="tv-arch">{state.c4Datasets.length} datasets</span>
+                        <i data-lucide={isDatasetCapability ? "database" : isMetricsCapability ? "line-chart" : "shield-check"} />
+                        <span>{isDatasetCapability ? "Datasets studio" : isMetricsCapability ? "Metrics studio" : "Evaluators studio"}</span>
+                        <span className="tv-arch">{isDatasetCapability ? `${state.c4Datasets.length} datasets` : isMetricsCapability ? `${state.c4ComparativeMetrics.length} metrics` : `${state.c4Evaluators.length} evaluators`}</span>
                       </div>
                     </header>
                     <div className="tv-body tv-body--workspace">
                       <section className="c4-panel">
-                        <div className="c4-tab-strip" role="tablist" aria-label="C4 tabs">
-                          <button
-                            type="button"
-                            role="tab"
-                            aria-selected={state.c4StudioTab === "datasets"}
-                            className={`c4-tab-btn${state.c4StudioTab === "datasets" ? " is-active" : ""}`}
-                            onClick={() => {
-                              handleSelectC4StudioTab("datasets");
-                            }}
-                          >
-                            Datasets
-                          </button>
-                          <button
-                            type="button"
-                            role="tab"
-                            aria-selected={state.c4StudioTab === "metrics"}
-                            className={`c4-tab-btn${state.c4StudioTab === "metrics" ? " is-active" : ""}`}
-                            onClick={() => {
-                              handleSelectC4StudioTab("metrics");
-                            }}
-                          >
-                            Metrics
-                          </button>
-                        </div>
-                        {state.c4StudioTab === "datasets" ? (
+                        {isDatasetCapability ? (
                           state.c4ViewMode === "list" ? (
                           <>
                             <div className="c4-create-row">
@@ -2592,141 +2578,152 @@ export function App(): JSX.Element {
                               </div>
                             ) : null}
                           </div>
-                        )) : (
-                        <div className="c4-eval-panel">
+                        )) : null}
+                        {!isDatasetCapability ? (
+                          <div className="c4-eval-panel">
                           <div className="candidate-list-head">
-                            <span>Metrics & evaluators studio</span>
+                            <span>{isMetricsCapability ? "Metrics profile" : "Evaluators profile"}</span>
                             <div className="candidate-list-head-right">
-                              <span className="muted">versions {state.c4EvaluationVersions.length}</span>
+                              <span className="muted">{isMetricsCapability ? `comparative ${state.c4ComparativeMetrics.length}` : `evaluators ${state.c4Evaluators.length}`}</span>
                               <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleValidateC4EvaluationProfile(); }} disabled={!state.activeArenaId}>
                                 Validate profile
                               </button>
-                              <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EvaluationVersion(); }} disabled={!state.activeArenaId}>
-                                Save version
-                              </button>
+                              {isEvaluatorsCapability ? (
+                                <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EvaluationVersion(); }} disabled={!state.activeArenaId}>
+                                  Save version
+                                </button>
+                              ) : null}
                             </div>
                           </div>
                           <div className="c4-eval-grid">
-                            <section className="c4-eval-card">
-                              <div className="c4-eval-card-title">Comparative metrics</div>
-                              <div className="c4-eval-list">
-                                {state.c4ComparativeMetrics.map((metric) => (
-                                  <label key={metric.metric_id} className="c4-eval-item">
-                                    <input
-                                      type="checkbox"
-                                      checked={metric.enabled}
-                                      onChange={() => {
-                                        handleToggleC4ComparativeMetric(metric.metric_id);
-                                      }}
-                                      aria-label={`toggle-metric-${metric.metric_id}`}
-                                    />
-                                    <div className="c4-eval-item-body">
-                                      <div className="c4-eval-item-title">{metric.title}</div>
-                                      <div className="c4-eval-item-sub">{metric.description}</div>
-                                    </div>
-                                    <input
-                                      className="c4-weight-input"
-                                      type="number"
-                                      step="0.05"
-                                      value={metric.weight}
-                                      onChange={(event) => {
-                                        handleChangeC4ComparativeMetricWeight(metric.metric_id, event.target.value);
-                                      }}
-                                    />
-                                  </label>
-                                ))}
-                              </div>
-                              <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EvaluationMetrics(); }} disabled={!state.activeArenaId}>
-                                Save metrics
-                              </button>
-                            </section>
-                            <section className="c4-eval-card">
-                              <div className="c4-eval-card-title">Diagnostic signals</div>
-                              <div className="c4-eval-list">
-                                {state.c4DiagnosticSignals.map((signal) => (
-                                  <label key={signal.signal_id} className="c4-eval-item">
-                                    <input
-                                      type="checkbox"
-                                      checked={signal.enabled}
-                                      onChange={() => {
-                                        handleToggleC4DiagnosticSignal(signal.signal_id);
-                                      }}
-                                      aria-label={`toggle-signal-${signal.signal_id}`}
-                                    />
-                                    <div className="c4-eval-item-body">
-                                      <div className="c4-eval-item-title">{signal.title}</div>
-                                      <div className="c4-eval-item-sub">{signal.description}</div>
-                                    </div>
-                                  </label>
-                                ))}
-                              </div>
-                              <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EvaluationMetrics(); }} disabled={!state.activeArenaId}>
-                                Save diagnostics
-                              </button>
-                            </section>
-                            <section className="c4-eval-card">
-                              <div className="c4-eval-card-title">Evaluators</div>
-                              <div className="c4-eval-list">
-                                {state.c4Evaluators.map((evaluator) => (
-                                  <label key={evaluator.evaluator_id} className="c4-eval-item">
-                                    <input
-                                      type="checkbox"
-                                      checked={evaluator.enabled}
-                                      onChange={() => {
-                                        handleToggleC4Evaluator(evaluator.evaluator_id);
-                                      }}
-                                      aria-label={`toggle-evaluator-${evaluator.evaluator_id}`}
-                                    />
-                                    <div className="c4-eval-item-body">
-                                      <div className="c4-eval-item-title">{evaluator.title}</div>
-                                      <div className="c4-eval-item-sub">{evaluator.description}</div>
-                                    </div>
-                                  </label>
-                                ))}
-                              </div>
-                              <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EvaluationEvaluators(); }} disabled={!state.activeArenaId}>
-                                Save evaluators
-                              </button>
-                            </section>
-                            <section className="c4-eval-card">
-                              <div className="c4-eval-card-title">Budget limits</div>
-                              <div className="c4-budget-fields">
-                                <label>
-                                  <span>max cases</span>
-                                  <input
-                                    type="number"
-                                    value={state.c4EvaluationBudget.max_cases}
-                                    onChange={(event) => {
-                                      handleChangeC4EvaluationBudgetField("max_cases", event.target.value);
-                                    }}
-                                  />
-                                </label>
-                                <label>
-                                  <span>max llm calls</span>
-                                  <input
-                                    type="number"
-                                    value={state.c4EvaluationBudget.max_llm_calls}
-                                    onChange={(event) => {
-                                      handleChangeC4EvaluationBudgetField("max_llm_calls", event.target.value);
-                                    }}
-                                  />
-                                </label>
-                                <label>
-                                  <span>max cost usd</span>
-                                  <input
-                                    type="number"
-                                    step="0.1"
-                                    value={state.c4EvaluationBudget.max_cost_usd}
-                                    onChange={(event) => {
-                                      handleChangeC4EvaluationBudgetField("max_cost_usd", event.target.value);
-                                    }}
-                                  />
-                                </label>
-                              </div>
-                              <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EvaluationBudget(); }} disabled={!state.activeArenaId}>
-                                Save budget
-                              </button>
-                            </section>
+                            {isMetricsCapability ? (
+                              <>
+                                <section className="c4-eval-card">
+                                  <div className="c4-eval-card-title">Comparative metrics</div>
+                                  <div className="c4-eval-list">
+                                    {state.c4ComparativeMetrics.map((metric) => (
+                                      <label key={metric.metric_id} className="c4-eval-item">
+                                        <input
+                                          type="checkbox"
+                                          checked={metric.enabled}
+                                          onChange={() => {
+                                            handleToggleC4ComparativeMetric(metric.metric_id);
+                                          }}
+                                          aria-label={`toggle-metric-${metric.metric_id}`}
+                                        />
+                                        <div className="c4-eval-item-body">
+                                          <div className="c4-eval-item-title">{metric.title}</div>
+                                          <div className="c4-eval-item-sub">{metric.description}</div>
+                                        </div>
+                                        <input
+                                          className="c4-weight-input"
+                                          type="number"
+                                          step="0.05"
+                                          value={metric.weight}
+                                          onChange={(event) => {
+                                            handleChangeC4ComparativeMetricWeight(metric.metric_id, event.target.value);
+                                          }}
+                                        />
+                                      </label>
+                                    ))}
+                                  </div>
+                                  <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EvaluationMetrics(); }} disabled={!state.activeArenaId}>
+                                    Save metrics
+                                  </button>
+                                </section>
+                                <section className="c4-eval-card">
+                                  <div className="c4-eval-card-title">Diagnostic signals</div>
+                                  <div className="c4-eval-list">
+                                    {state.c4DiagnosticSignals.map((signal) => (
+                                      <label key={signal.signal_id} className="c4-eval-item">
+                                        <input
+                                          type="checkbox"
+                                          checked={signal.enabled}
+                                          onChange={() => {
+                                            handleToggleC4DiagnosticSignal(signal.signal_id);
+                                          }}
+                                          aria-label={`toggle-signal-${signal.signal_id}`}
+                                        />
+                                        <div className="c4-eval-item-body">
+                                          <div className="c4-eval-item-title">{signal.title}</div>
+                                          <div className="c4-eval-item-sub">{signal.description}</div>
+                                        </div>
+                                      </label>
+                                    ))}
+                                  </div>
+                                  <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EvaluationMetrics(); }} disabled={!state.activeArenaId}>
+                                    Save diagnostics
+                                  </button>
+                                </section>
+                              </>
+                            ) : null}
+                            {isEvaluatorsCapability ? (
+                              <>
+                                <section className="c4-eval-card">
+                                  <div className="c4-eval-card-title">Evaluators</div>
+                                  <div className="c4-eval-list">
+                                    {state.c4Evaluators.map((evaluator) => (
+                                      <label key={evaluator.evaluator_id} className="c4-eval-item">
+                                        <input
+                                          type="checkbox"
+                                          checked={evaluator.enabled}
+                                          onChange={() => {
+                                            handleToggleC4Evaluator(evaluator.evaluator_id);
+                                          }}
+                                          aria-label={`toggle-evaluator-${evaluator.evaluator_id}`}
+                                        />
+                                        <div className="c4-eval-item-body">
+                                          <div className="c4-eval-item-title">{evaluator.title}</div>
+                                          <div className="c4-eval-item-sub">{evaluator.description}</div>
+                                        </div>
+                                      </label>
+                                    ))}
+                                  </div>
+                                  <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EvaluationEvaluators(); }} disabled={!state.activeArenaId}>
+                                    Save evaluators
+                                  </button>
+                                </section>
+                                <section className="c4-eval-card">
+                                  <div className="c4-eval-card-title">Budget limits</div>
+                                  <div className="c4-budget-fields">
+                                    <label>
+                                      <span>max cases</span>
+                                      <input
+                                        type="number"
+                                        value={state.c4EvaluationBudget.max_cases}
+                                        onChange={(event) => {
+                                          handleChangeC4EvaluationBudgetField("max_cases", event.target.value);
+                                        }}
+                                      />
+                                    </label>
+                                    <label>
+                                      <span>max llm calls</span>
+                                      <input
+                                        type="number"
+                                        value={state.c4EvaluationBudget.max_llm_calls}
+                                        onChange={(event) => {
+                                          handleChangeC4EvaluationBudgetField("max_llm_calls", event.target.value);
+                                        }}
+                                      />
+                                    </label>
+                                    <label>
+                                      <span>max cost usd</span>
+                                      <input
+                                        type="number"
+                                        step="0.1"
+                                        value={state.c4EvaluationBudget.max_cost_usd}
+                                        onChange={(event) => {
+                                          handleChangeC4EvaluationBudgetField("max_cost_usd", event.target.value);
+                                        }}
+                                      />
+                                    </label>
+                                  </div>
+                                  <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EvaluationBudget(); }} disabled={!state.activeArenaId}>
+                                    Save budget
+                                  </button>
+                                </section>
+                              </>
+                            ) : null}
                           </div>
                           {state.c4EvaluationValidationStatus !== "not_run" ? (
                             <div className="issues-box">
@@ -2749,8 +2746,8 @@ export function App(): JSX.Element {
                               </span>
                             ))}
                           </div>
-                        </div>
-                        )}
+                          </div>
+                        ) : null}
                       </section>
                       <section className={`workspace-json-panel${state.c2JsonCollapsed ? " is-collapsed" : ""}`}>
                         <button
@@ -2769,7 +2766,7 @@ export function App(): JSX.Element {
                       </section>
                     </div>
                   </section>
-                ) : activeCapability.id === "c5" ? (
+                ) : isOptimizerCapability ? (
                   <section className="trace-view trace-view--workspace">
                     <header className="tv-head">
                       <div className="tv-title">
@@ -3274,7 +3271,6 @@ function buildCapabilityWizardItems(capabilities: Capability[], state: UiState, 
   const candidateTotal = state.c2CandidateSetDraft?.total ?? 0;
   const hasCandidates = candidateTotal > 0;
   const hasSelectedCandidates = state.c2SelectedForTestsIds.length > 0;
-  const hasDatasets = state.c4Datasets.length > 0;
   const hasAssignedDatasets = state.c4AssignedDatasetIds.length > 0;
   const hasEnabledComparativeMetrics = state.c4ComparativeMetrics.some((item) => item.enabled);
   const hasEnabledEvaluators = state.c4Evaluators.some((item) => item.enabled);
@@ -3373,48 +3369,82 @@ function buildCapabilityWizardItems(capabilities: Capability[], state: UiState, 
         return {
           ...capability,
           wizardStatus: "locked",
-          wizardReason: "Generate candidates in C2 before dataset/evaluation setup.",
+          wizardReason: "Generate candidates in C2 before dataset setup.",
           isInteractive: false,
         };
       }
-      if (hasAssignedDatasets && hasEnabledComparativeMetrics && hasEnabledEvaluators) {
+      if (hasAssignedDatasets) {
         return {
           ...capability,
           wizardStatus: "completed",
-          wizardReason: "Datasets and evaluation profile are configured.",
+          wizardReason: "Datasets are assigned for arena tests.",
           isInteractive: true,
         };
       }
       return {
         ...capability,
         wizardStatus: state.activeCapabilityId === "c4" ? "in_progress" : "available",
-        wizardReason: "Configure dataset assignment and evaluation profile.",
+        wizardReason: "Configure dataset assignment.",
         isInteractive: true,
       };
     }
 
     if (capability.id === "c5") {
-      if (!hasCandidates) {
+      if (!hasSelectedCandidates) {
         return {
           ...capability,
           wizardStatus: "locked",
-          wizardReason: "Generate candidates in C2 first.",
+          wizardReason: "Select candidates for tests in C2 first.",
           isInteractive: false,
         };
       }
-      if (!hasDatasets) {
+      if (hasEnabledComparativeMetrics) {
+        return {
+          ...capability,
+          wizardStatus: "completed",
+          wizardReason: "Comparative metrics are configured.",
+          isInteractive: true,
+        };
+      }
+      return {
+        ...capability,
+        wizardStatus: state.activeCapabilityId === "c5" ? "in_progress" : "available",
+        wizardReason: "Configure comparative and diagnostic metrics.",
+        isInteractive: true,
+      };
+    }
+
+    if (capability.id === "c6") {
+      if (!hasEnabledComparativeMetrics) {
         return {
           ...capability,
           wizardStatus: "locked",
-          wizardReason: "Create at least one dataset in C4 first.",
+          wizardReason: "Configure metrics in C5 first.",
           isInteractive: false,
         };
       }
-      if (!hasEnabledComparativeMetrics || !hasEnabledEvaluators) {
+      if (hasEnabledEvaluators) {
+        return {
+          ...capability,
+          wizardStatus: "completed",
+          wizardReason: "Evaluators are configured.",
+          isInteractive: true,
+        };
+      }
+      return {
+        ...capability,
+        wizardStatus: state.activeCapabilityId === "c6" ? "in_progress" : "available",
+        wizardReason: "Configure evaluator adapters and evaluation budget.",
+        isInteractive: true,
+      };
+    }
+
+    if (capability.id === "c7") {
+      if (!hasAssignedDatasets || !hasEnabledComparativeMetrics || !hasEnabledEvaluators) {
         return {
           ...capability,
           wizardStatus: "locked",
-          wizardReason: "Enable metrics and evaluators in C4 first.",
+          wizardReason: "Complete C4/C5/C6 setup before optimizer launch.",
           isInteractive: false,
         };
       }
@@ -3436,24 +3466,24 @@ function buildCapabilityWizardItems(capabilities: Capability[], state: UiState, 
       }
       return {
         ...capability,
-        wizardStatus: state.activeCapabilityId === "c5" ? "in_progress" : "available",
+        wizardStatus: state.activeCapabilityId === "c7" ? "in_progress" : "available",
         wizardReason: "Validate optimizer setup and launch benchmark run.",
         isInteractive: true,
       };
     }
 
-    if (capability.id === "c6") {
+    if (capability.id === "c8") {
       if (!hasOptimizerRuns) {
         return {
           ...capability,
           wizardStatus: "locked",
-          wizardReason: "Run optimizer in C5 before opening reports/champion export.",
+          wizardReason: "Run optimizer in C7 before opening reports/champion export.",
           isInteractive: false,
         };
       }
       return {
         ...capability,
-        wizardStatus: state.activeCapabilityId === "c6" ? "in_progress" : "available",
+        wizardStatus: state.activeCapabilityId === "c8" ? "in_progress" : "available",
         wizardReason: "Review report and export champion artifacts.",
         isInteractive: true,
       };

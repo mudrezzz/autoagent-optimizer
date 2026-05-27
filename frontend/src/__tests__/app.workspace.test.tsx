@@ -91,8 +91,11 @@ const CAPABILITIES: Capability[] = [
   { id: "c1", name: "Battle Registry", description: "Manage battle arenas.", status: "enabled", badge_count: 1 },
   { id: "c2", name: "Task Chat + Candidates", description: "Generate candidates from chat.", status: "enabled", badge_count: 1 },
   { id: "c3", name: "Pattern Library + RAG", description: "Pattern retrieval", status: "enabled", badge_count: 1 },
-  { id: "c4", name: "Dataset & Metrics Studio", description: "Dataset controls", status: "enabled", badge_count: 1 },
-  { id: "c5", name: "Optimizer Run Monitor", description: "Optimizer setup", status: "enabled", badge_count: 1 },
+  { id: "c4", name: "Datasets", description: "Dataset controls", status: "enabled", badge_count: 1 },
+  { id: "c5", name: "Metrics", description: "Metrics controls", status: "enabled", badge_count: 1 },
+  { id: "c6", name: "Evaluators", description: "Evaluators controls", status: "enabled", badge_count: 1 },
+  { id: "c7", name: "Optimizer Run Monitor", description: "Optimizer setup", status: "enabled", badge_count: 1 },
+  { id: "c8", name: "Report + Champion Export/Import", description: "planned", status: "planned", badge_count: 0 },
 ];
 
 // Русский комментарий: фикстура набора кандидатов для проверки рендера, фокуса и accordion-деталей.
@@ -518,7 +521,7 @@ describe("Battle workspace candidates", () => {
     });
 
     renderWorkspace();
-    const c4Button = await screen.findByRole("button", { name: /Dataset & Metrics Studio/i });
+    const c4Button = await screen.findByRole("button", { name: /Datasets/i });
     expect(c4Button).toBeDisabled();
     expect(c4Button).toHaveAttribute("title", expect.stringContaining("Generate candidates in C2"));
   });
@@ -755,10 +758,9 @@ describe("Battle workspace candidates", () => {
     });
 
     renderWorkspace();
-    const c4Button = await screen.findByRole("button", { name: /Dataset & Metrics Studio/i });
+    const c4Button = await screen.findByRole("button", { name: /Datasets/i });
     await user.click(c4Button);
-
-    expect(await screen.findByRole("tab", { name: "Datasets" })).toBeInTheDocument();
+    expect(await screen.findByText("Datasets studio")).toBeInTheDocument();
     await user.click(await screen.findByLabelText("select-dset_demo_1-for-arena"));
     await user.click(await screen.findByRole("button", { name: "Save" }));
     expect(vi.mocked(assignArenaDatasets)).toHaveBeenCalledWith(ARENA.workspace_id, ["dset_demo_1"]);
@@ -778,6 +780,21 @@ describe("Battle workspace candidates", () => {
 
   it("updates C4 evaluation profile and validates it", async () => {
     const user = userEvent.setup();
+    vi.mocked(getArenaChatState).mockResolvedValue({
+      status: "success",
+      capability_id: "c2",
+      arena_id: ARENA.workspace_id,
+      arena_name: ARENA.name,
+      messages: [],
+      messages_total: 0,
+      candidate_set_draft: {
+        ...CANDIDATE_SET,
+        candidates: CANDIDATE_SET.candidates.map((candidate, index) => ({
+          ...candidate,
+          selected_for_tests: index < 2,
+        })),
+      },
+    });
     vi.mocked(saveArenaEvaluationMetrics).mockResolvedValue({
       status: "success",
       capability_id: "c4",
@@ -815,9 +832,8 @@ describe("Battle workspace candidates", () => {
     });
 
     renderWorkspace();
-    const c4Button = await screen.findByRole("button", { name: /Dataset & Metrics Studio/i });
-    await user.click(c4Button);
-    await user.click(await screen.findByRole("tab", { name: "Metrics" }));
+    const c5Button = await screen.findByRole("button", { name: /Metrics/i });
+    await user.click(c5Button);
 
     const metricToggle = await screen.findByLabelText("toggle-metric-cost_per_case");
     await user.click(metricToggle);
@@ -831,6 +847,62 @@ describe("Battle workspace candidates", () => {
 
   it("saves and validates C5 optimizer setup, then launches queued run", async () => {
     const user = userEvent.setup();
+    vi.mocked(getArenaChatState).mockResolvedValue({
+      status: "success",
+      capability_id: "c2",
+      arena_id: ARENA.workspace_id,
+      arena_name: ARENA.name,
+      messages: [],
+      messages_total: 0,
+      candidate_set_draft: {
+        ...CANDIDATE_SET,
+        candidates: CANDIDATE_SET.candidates.map((candidate, index) => ({
+          ...candidate,
+          selected_for_tests: index < 2,
+        })),
+      },
+    });
+    vi.mocked(fetchArenaDatasetState).mockResolvedValue({
+      status: "success",
+      capability_id: "c4",
+      arena_id: ARENA.workspace_id,
+      active_dataset_id: "dset_demo_1",
+      assigned_dataset_ids: ["dset_demo_1"],
+      datasets: [
+        {
+          dataset_id: "dset_demo_1",
+          name: "LinkedIn Golden",
+          description: "demo dataset",
+          rows_total: 2,
+          versions_total: 1,
+          updated_at: "2026-05-26T00:00:00+00:00",
+          last_version_id: "dsv_demo_1",
+          preview_rows: [
+            { case_id: "case_1", input: "input 1", expected: "expected 1", notes: "" },
+            { case_id: "case_2", input: "input 2", expected: "expected 2", notes: "" },
+          ],
+        },
+      ],
+      active_dataset: {
+        dataset_id: "dset_demo_1",
+        name: "LinkedIn Golden",
+        description: "demo dataset",
+        rows_total: 2,
+        versions_total: 1,
+        updated_at: "2026-05-26T00:00:00+00:00",
+        last_version_id: "dsv_demo_1",
+        preview_rows: [
+          { case_id: "case_1", input: "input 1", expected: "expected 1", notes: "" },
+          { case_id: "case_2", input: "input 2", expected: "expected 2", notes: "" },
+        ],
+        created_at: "2026-05-26T00:00:00+00:00",
+        rows: [
+          { case_id: "case_1", input: "input 1", expected: "expected 1", notes: "" },
+          { case_id: "case_2", input: "input 2", expected: "expected 2", notes: "" },
+        ],
+        versions: [{ version_id: "dsv_demo_1", label: "v1", created_at: "2026-05-26T00:00:00+00:00", rows_total: 2, source: "manual" }],
+      },
+    });
     vi.mocked(saveArenaOptimizerSetup).mockResolvedValue({
       status: "success",
       capability_id: "c5",
@@ -904,8 +976,8 @@ describe("Battle workspace candidates", () => {
     });
 
     renderWorkspace();
-    const c5Button = await screen.findByRole("button", { name: /Optimizer Run Monitor/i });
-    await user.click(c5Button);
+    const c7Button = await screen.findByRole("button", { name: /Optimizer Run Monitor/i });
+    await user.click(c7Button);
 
     expect(await screen.findByText("Optimizer setup + launch guardrails")).toBeInTheDocument();
     await user.click(await screen.findByLabelText("toggle-method-grid_search"));
