@@ -142,6 +142,7 @@ type UiState = {
   c4EvaluationVersions: C4EvaluationVersion[];
   c4EvaluationValidationStatus: "not_run" | "ready" | "warnings" | "invalid";
   c4EvaluationValidationIssues: Array<{ severity: string; code: string; message: string }>;
+  c4CandidateFeatures: Record<string, boolean>;
   c5Methods: C5OptimizerMethod[];
   c5Controls: C5OptimizerControl[];
   c5RunPlan: C5OptimizerRunPlan;
@@ -214,6 +215,7 @@ export function App(): JSX.Element {
     c4EvaluationVersions: [],
     c4EvaluationValidationStatus: "not_run",
     c4EvaluationValidationIssues: [],
+    c4CandidateFeatures: {},
     c5Methods: [],
     c5Controls: [],
     c5RunPlan: { epochs_total: 0, candidates_per_epoch: 0, max_parallel_trials: 0, early_stop_patience: 0 },
@@ -373,6 +375,7 @@ export function App(): JSX.Element {
       c4EvaluationVersions: [],
       c4EvaluationValidationStatus: "not_run",
       c4EvaluationValidationIssues: [],
+      c4CandidateFeatures: {},
       c5Methods: [],
       c5Controls: [],
       c5RunPlan: { epochs_total: 0, candidates_per_epoch: 0, max_parallel_trials: 0, early_stop_patience: 0 },
@@ -493,6 +496,7 @@ export function App(): JSX.Element {
         c4EvaluationVersions: [],
         c4EvaluationValidationStatus: "not_run",
         c4EvaluationValidationIssues: [],
+        c4CandidateFeatures: {},
         c5Methods: [],
         c5Controls: [],
         c5RunPlan: { epochs_total: 0, candidates_per_epoch: 0, max_parallel_trials: 0, early_stop_patience: 0 },
@@ -667,6 +671,7 @@ export function App(): JSX.Element {
       c4ComparativeMetrics: response.comparative_metrics,
       c4DiagnosticSignals: response.diagnostic_signals,
       c4Evaluators: response.evaluators,
+      c4CandidateFeatures: response.candidate_features ?? {},
       c4EvaluationBudget: response.budget,
       c4EvaluationVersions: response.versions,
       c4EvaluationValidationStatus: "not_run",
@@ -1156,6 +1161,7 @@ export function App(): JSX.Element {
         c4ComparativeMetrics: response.comparative_metrics,
         c4DiagnosticSignals: response.diagnostic_signals,
         c4Evaluators: response.evaluators,
+        c4CandidateFeatures: response.candidate_features ?? prev.c4CandidateFeatures,
         c4EvaluationBudget: response.budget,
         c4EvaluationVersions: response.versions,
         budgetPercent: 100,
@@ -1187,6 +1193,7 @@ export function App(): JSX.Element {
         c4ComparativeMetrics: response.comparative_metrics,
         c4DiagnosticSignals: response.diagnostic_signals,
         c4Evaluators: response.evaluators,
+        c4CandidateFeatures: response.candidate_features ?? prev.c4CandidateFeatures,
         c4EvaluationBudget: response.budget,
         c4EvaluationVersions: response.versions,
         budgetPercent: 100,
@@ -1218,6 +1225,7 @@ export function App(): JSX.Element {
         c4ComparativeMetrics: response.comparative_metrics,
         c4DiagnosticSignals: response.diagnostic_signals,
         c4Evaluators: response.evaluators,
+        c4CandidateFeatures: response.candidate_features ?? prev.c4CandidateFeatures,
         c4EvaluationBudget: response.budget,
         c4EvaluationVersions: response.versions,
         budgetPercent: 100,
@@ -1252,6 +1260,7 @@ export function App(): JSX.Element {
         c4ComparativeMetrics: response.comparative_metrics,
         c4DiagnosticSignals: response.diagnostic_signals,
         c4Evaluators: response.evaluators,
+        c4CandidateFeatures: response.candidate_features ?? prev.c4CandidateFeatures,
         c4EvaluationBudget: response.budget,
         c4EvaluationVersions: response.versions,
         c4EvaluationValidationStatus: validationReport?.status ?? "invalid",
@@ -1287,6 +1296,7 @@ export function App(): JSX.Element {
         c4ComparativeMetrics: response.comparative_metrics,
         c4DiagnosticSignals: response.diagnostic_signals,
         c4Evaluators: response.evaluators,
+        c4CandidateFeatures: response.candidate_features ?? prev.c4CandidateFeatures,
         c4EvaluationBudget: response.budget,
         c4EvaluationVersions: response.versions,
         budgetPercent: 100,
@@ -2598,14 +2608,21 @@ export function App(): JSX.Element {
                               ) : null}
                             </div>
                           </div>
+                          {isMetricsCapability ? (
+                            <div className="issue-row info c4-feature-summary">
+                              Candidate features: {formatCandidateFeatureSummary(state.c4CandidateFeatures)}
+                            </div>
+                          ) : null}
                           <div className="c4-eval-grid">
                             {isMetricsCapability ? (
                               <>
                                 <section className="c4-eval-card">
                                   <div className="c4-eval-card-title">Comparative metrics</div>
                                   <div className="c4-eval-list">
-                                    {state.c4ComparativeMetrics.map((metric) => (
-                                      <label key={metric.metric_id} className="c4-eval-item">
+                                    {state.c4ComparativeMetrics.map((metric) => {
+                                      const metricAvailable = isAvailabilityEnabled(metric.availability_status);
+                                      return (
+                                      <label key={metric.metric_id} className={`c4-eval-item${metricAvailable ? "" : " c4-eval-item--disabled"}`}>
                                         <input
                                           type="checkbox"
                                           checked={metric.enabled}
@@ -2613,10 +2630,12 @@ export function App(): JSX.Element {
                                             handleToggleC4ComparativeMetric(metric.metric_id);
                                           }}
                                           aria-label={`toggle-metric-${metric.metric_id}`}
+                                          disabled={!metricAvailable}
                                         />
                                         <div className="c4-eval-item-body">
                                           <div className="c4-eval-item-title">{metric.title}</div>
                                           <div className="c4-eval-item-sub">{metric.description}</div>
+                                          {!metricAvailable ? <div className="c4-eval-item-hint">{metric.availability_reason || "Unavailable for selected candidate structures."}</div> : null}
                                         </div>
                                         <input
                                           className="c4-weight-input"
@@ -2626,9 +2645,10 @@ export function App(): JSX.Element {
                                           onChange={(event) => {
                                             handleChangeC4ComparativeMetricWeight(metric.metric_id, event.target.value);
                                           }}
+                                          disabled={!metricAvailable}
                                         />
                                       </label>
-                                    ))}
+                                    );})}
                                   </div>
                                   <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EvaluationMetrics(); }} disabled={!state.activeArenaId}>
                                     Save metrics
@@ -2637,8 +2657,10 @@ export function App(): JSX.Element {
                                 <section className="c4-eval-card">
                                   <div className="c4-eval-card-title">Diagnostic signals</div>
                                   <div className="c4-eval-list">
-                                    {state.c4DiagnosticSignals.map((signal) => (
-                                      <label key={signal.signal_id} className="c4-eval-item">
+                                    {state.c4DiagnosticSignals.map((signal) => {
+                                      const signalAvailable = isAvailabilityEnabled(signal.availability_status);
+                                      return (
+                                      <label key={signal.signal_id} className={`c4-eval-item${signalAvailable ? "" : " c4-eval-item--disabled"}`}>
                                         <input
                                           type="checkbox"
                                           checked={signal.enabled}
@@ -2646,13 +2668,15 @@ export function App(): JSX.Element {
                                             handleToggleC4DiagnosticSignal(signal.signal_id);
                                           }}
                                           aria-label={`toggle-signal-${signal.signal_id}`}
+                                          disabled={!signalAvailable}
                                         />
                                         <div className="c4-eval-item-body">
                                           <div className="c4-eval-item-title">{signal.title}</div>
                                           <div className="c4-eval-item-sub">{signal.description}</div>
+                                          {!signalAvailable ? <div className="c4-eval-item-hint">{signal.availability_reason || "Unavailable for selected candidate structures."}</div> : null}
                                         </div>
                                       </label>
-                                    ))}
+                                    );})}
                                   </div>
                                   <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EvaluationMetrics(); }} disabled={!state.activeArenaId}>
                                     Save diagnostics
@@ -3284,7 +3308,9 @@ function buildCapabilityWizardItems(capabilities: Capability[], state: UiState, 
   const hasCandidates = candidateTotal > 0;
   const hasSelectedCandidates = state.c2SelectedForTestsIds.length > 0;
   const hasAssignedDatasets = state.c4AssignedDatasetIds.length > 0;
-  const hasEnabledComparativeMetrics = state.c4ComparativeMetrics.some((item) => item.enabled);
+  const hasEnabledComparativeMetrics = state.c4ComparativeMetrics.some(
+    (item) => item.enabled && isAvailabilityEnabled(item.availability_status)
+  );
   const hasEnabledEvaluators = state.c4Evaluators.some((item) => item.enabled);
   const hasOptimizerRuns = state.c5LaunchHistory.length > 0;
   const optimizerPreflightBlocked = state.c5ValidationStatus === "invalid";
@@ -3500,6 +3526,24 @@ function buildCapabilityWizardItems(capabilities: Capability[], state: UiState, 
       isInteractive: true,
     };
   });
+}
+
+// Русский комментарий: проверяет, доступен ли metric/signal для текущей структуры кандидатов.
+function isAvailabilityEnabled(availabilityStatus: string | undefined): boolean {
+  return availabilityStatus !== "unavailable";
+}
+
+// Русский комментарий: строит компактную строку фичей для панели Metrics.
+function formatCandidateFeatureSummary(featureFlags: Record<string, boolean>): string {
+  const labels: Array<[string, string]> = [
+    ["llm", "LLM"],
+    ["retrieval", "Retrieval"],
+    ["rerank", "Rerank"],
+    ["tool", "Tool"],
+    ["hitl", "HITL"],
+  ];
+  const present = labels.filter(([key]) => Boolean(featureFlags[key])).map(([, label]) => label);
+  return present.length > 0 ? present.join(", ") : "No candidate features detected yet";
 }
 
 // Русский комментарий: определяет экран по текущему URL.

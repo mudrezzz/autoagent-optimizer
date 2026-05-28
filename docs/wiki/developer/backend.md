@@ -118,6 +118,15 @@ Validation contract v0:
 
 `POST /api/arenas/{arena_id}/evaluation/save-version`
 
+Feature-aware behavior:
+
+1. Response includes `candidate_features` inferred from selected candidates (`mini_graph`).
+2. Each comparative metric / diagnostic signal may include:
+- `required_features`,
+- `availability_status` (`available` / `unavailable`),
+- `availability_reason`.
+3. Unavailable metrics/signals are auto-disabled on backend before validation.
+
 Validate report statuses:
 
 1. `ready` - no issues.

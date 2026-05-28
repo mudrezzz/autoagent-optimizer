@@ -330,6 +330,9 @@ export type C4ComparativeMetric = {
   description: string;
   enabled: boolean;
   weight: number;
+  required_features?: string[];
+  availability_status?: "available" | "unavailable" | string;
+  availability_reason?: string;
 };
 
 // Русский комментарий: diagnostic сигнал evaluation profile.
@@ -338,6 +341,9 @@ export type C4DiagnosticSignal = {
   title: string;
   description: string;
   enabled: boolean;
+  required_features?: string[];
+  availability_status?: "available" | "unavailable" | string;
+  availability_reason?: string;
 };
 
 // Русский комментарий: evaluator adapter для evaluation profile.
@@ -374,6 +380,7 @@ export type C4EvaluationStateResponse = {
   comparative_metrics: C4ComparativeMetric[];
   diagnostic_signals: C4DiagnosticSignal[];
   evaluators: C4Evaluator[];
+  candidate_features?: Record<string, boolean>;
   budget: C4EvaluationBudget;
   versions: C4EvaluationVersion[];
   updated_at: string;

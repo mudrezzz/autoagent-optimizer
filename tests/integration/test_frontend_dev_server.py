@@ -118,7 +118,7 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
             payload = json.loads(response.read().decode("utf-8"))
             assert payload["version"] == "capability_catalog_v1"
             assert payload["ux_reference"] == "design_system/screenshots/app-v3.png"
-            assert len(payload["capabilities"]) == 6
+            assert len(payload["capabilities"]) == 8
             assert payload["capabilities"][0]["id"] == "c1"
             assert payload["capabilities"][0]["name"] == "Battle Registry"
             assert payload["capabilities"][0]["status"] == "enabled"
@@ -241,6 +241,9 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert len(eval_state_payload["comparative_metrics"]) >= 1
         assert len(eval_state_payload["diagnostic_signals"]) >= 1
         assert len(eval_state_payload["evaluators"]) >= 1
+        assert isinstance(eval_state_payload["candidate_features"], dict)
+        assert eval_state_payload["candidate_features"]["llm"] is False
+        assert eval_state_payload["candidate_features"]["retrieval"] is False
 
         status_eval_metrics_save, eval_metrics_save_payload = _json_post(
             f"{base_url}/api/arenas/{arena_id}/evaluation/metrics/save",
@@ -257,6 +260,8 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert status_eval_metrics_save == 200
         assert eval_metrics_save_payload["status"] == "success"
         assert eval_metrics_save_payload["comparative_metrics"][0]["weight"] == 0.7
+        assert eval_metrics_save_payload["diagnostic_signals"][0]["availability_status"] == "unavailable"
+        assert eval_metrics_save_payload["diagnostic_signals"][0]["enabled"] is False
 
         status_eval_evaluators_save, eval_evaluators_save_payload = _json_post(
             f"{base_url}/api/arenas/{arena_id}/evaluation/evaluators/save",

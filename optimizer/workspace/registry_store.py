@@ -515,6 +515,14 @@ class WorkspaceRegistryStore:
                 workspace_id=arena_id,
             )
             workspace["candidate_set_draft"] = candidate_set_draft
+            # Русский комментарий: при изменении candidate draft сразу пересчитываем availability метрик C5/C6.
+            studio_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
+            _sync_evaluation_profile_availability(
+                studio_state=studio_state,
+                candidate_set_draft=candidate_set_draft,
+            )
+            studio_state["updated_at"] = _utc_now_iso()
+            workspace["evaluation_studio"] = studio_state
             self._write_store(data)
             return dict(candidate_set_draft)
 
@@ -886,6 +894,10 @@ class WorkspaceRegistryStore:
                 workspace_id=arena_id,
             )
             normalized_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
+            _sync_evaluation_profile_availability(
+                studio_state=normalized_state,
+                candidate_set_draft=workspace.get("candidate_set_draft") if isinstance(workspace.get("candidate_set_draft"), dict) else None,
+            )
             workspace["evaluation_studio"] = normalized_state
             self._write_store(data)
             return dict(normalized_state)
@@ -920,7 +932,11 @@ class WorkspaceRegistryStore:
             target_profile["comparative_metrics"] = normalized_comparative_metrics
             target_profile["diagnostic_signals"] = normalized_diagnostic_signals
             target_profile["updated_at"] = _utc_now_iso()
-            _sync_evaluation_studio_legacy_mirror_fields(studio_state)
+            _sync_evaluation_profile_availability(
+                studio_state=studio_state,
+                candidate_set_draft=workspace.get("candidate_set_draft") if isinstance(workspace.get("candidate_set_draft"), dict) else None,
+                profile_id=profile_id,
+            )
             studio_state["updated_at"] = _utc_now_iso()
             workspace["evaluation_studio"] = studio_state
             self._write_store(data)
@@ -953,7 +969,11 @@ class WorkspaceRegistryStore:
             )
             target_profile["evaluators"] = normalized_evaluators
             target_profile["updated_at"] = _utc_now_iso()
-            _sync_evaluation_studio_legacy_mirror_fields(studio_state)
+            _sync_evaluation_profile_availability(
+                studio_state=studio_state,
+                candidate_set_draft=workspace.get("candidate_set_draft") if isinstance(workspace.get("candidate_set_draft"), dict) else None,
+                profile_id=profile_id,
+            )
             studio_state["updated_at"] = _utc_now_iso()
             workspace["evaluation_studio"] = studio_state
             self._write_store(data)
@@ -986,7 +1006,11 @@ class WorkspaceRegistryStore:
             )
             target_profile["budget"] = normalized_budget
             target_profile["updated_at"] = _utc_now_iso()
-            _sync_evaluation_studio_legacy_mirror_fields(studio_state)
+            _sync_evaluation_profile_availability(
+                studio_state=studio_state,
+                candidate_set_draft=workspace.get("candidate_set_draft") if isinstance(workspace.get("candidate_set_draft"), dict) else None,
+                profile_id=profile_id,
+            )
             studio_state["updated_at"] = _utc_now_iso()
             workspace["evaluation_studio"] = studio_state
             self._write_store(data)
@@ -1011,6 +1035,11 @@ class WorkspaceRegistryStore:
                 workspace_id=arena_id,
             )
             studio_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
+            _sync_evaluation_profile_availability(
+                studio_state=studio_state,
+                candidate_set_draft=workspace.get("candidate_set_draft") if isinstance(workspace.get("candidate_set_draft"), dict) else None,
+                profile_id=profile_id,
+            )
             target_profile = _find_target_evaluation_profile(
                 studio_state=studio_state,
                 profile_id=profile_id,
@@ -1058,7 +1087,11 @@ class WorkspaceRegistryStore:
             versions.append(version)
             target_profile["versions"] = versions
             target_profile["updated_at"] = _utc_now_iso()
-            _sync_evaluation_studio_legacy_mirror_fields(studio_state)
+            _sync_evaluation_profile_availability(
+                studio_state=studio_state,
+                candidate_set_draft=workspace.get("candidate_set_draft") if isinstance(workspace.get("candidate_set_draft"), dict) else None,
+                profile_id=profile_id,
+            )
             studio_state["updated_at"] = _utc_now_iso()
             workspace["evaluation_studio"] = studio_state
             self._write_store(data)
@@ -1717,6 +1750,21 @@ def _normalize_dataset_id_list(raw_value: Any) -> list[str]:
     return normalized
 
 
+# Русский комментарий: требования к feature-флагам для comparative-метрик.
+_COMPARATIVE_METRIC_REQUIRED_FEATURES: dict[str, tuple[str, ...]] = {
+    "quality_f1": (),
+    "cost_per_case": (),
+    "latency_p95": (),
+}
+
+# Русский комментарий: требования к feature-флагам для diagnostic-сигналов.
+_DIAGNOSTIC_SIGNAL_REQUIRED_FEATURES: dict[str, tuple[str, ...]] = {
+    "retrieval_coverage": ("retrieval",),
+    "rerank_gain": ("rerank",),
+    "synthesis_drift": ("llm",),
+}
+
+
 def _build_default_evaluation_studio_state() -> dict[str, Any]:
     """Строит default-состояние C4 Metrics & Evaluators Studio для новой арены."""
 
@@ -1987,6 +2035,24 @@ def _sync_evaluation_studio_legacy_mirror_fields(studio_state: dict[str, Any]) -
     studio_state["versions"] = [dict(item) for item in active_profile.get("versions", [])]
 
 
+def _normalize_required_features(*, raw_required_features: Any) -> list[str]:
+    """Нормализует required-features метрики/сигнала в уникальный список строк."""
+
+    if not isinstance(raw_required_features, list):
+        return []
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for item in raw_required_features:
+        if not isinstance(item, str):
+            continue
+        value = item.strip().lower()
+        if not value or value in seen:
+            continue
+        seen.add(value)
+        normalized.append(value)
+    return normalized
+
+
 def _normalize_comparative_metrics(raw_metrics: Any) -> list[dict[str, Any]]:
     """Нормализует список comparative метрик в стабильный формат."""
 
@@ -2005,6 +2071,9 @@ def _normalize_comparative_metrics(raw_metrics: Any) -> list[dict[str, Any]]:
             weight = float(item.get("weight", 0.0) or 0.0)
         except (TypeError, ValueError):
             weight = 0.0
+        required_features = _normalize_required_features(raw_required_features=item.get("required_features", []))
+        availability_status = "available" if str(item.get("availability_status", "available")).strip() != "unavailable" else "unavailable"
+        availability_reason = str(item.get("availability_reason", "")).strip()
         normalized.append(
             {
                 "metric_id": metric_id,
@@ -2012,6 +2081,9 @@ def _normalize_comparative_metrics(raw_metrics: Any) -> list[dict[str, Any]]:
                 "description": str(item.get("description", "")).strip(),
                 "enabled": bool(item.get("enabled", False)),
                 "weight": round(weight, 6),
+                "required_features": required_features,
+                "availability_status": availability_status,
+                "availability_reason": availability_reason,
             }
         )
     if not normalized:
@@ -2033,12 +2105,18 @@ def _normalize_diagnostic_signals(raw_signals: Any) -> list[dict[str, Any]]:
         if not signal_id or signal_id in seen:
             continue
         seen.add(signal_id)
+        required_features = _normalize_required_features(raw_required_features=item.get("required_features", []))
+        availability_status = "available" if str(item.get("availability_status", "available")).strip() != "unavailable" else "unavailable"
+        availability_reason = str(item.get("availability_reason", "")).strip()
         normalized.append(
             {
                 "signal_id": signal_id,
                 "title": str(item.get("title", signal_id)).strip() or signal_id,
                 "description": str(item.get("description", "")).strip(),
                 "enabled": bool(item.get("enabled", False)),
+                "required_features": required_features,
+                "availability_status": availability_status,
+                "availability_reason": availability_reason,
             }
         )
     if not normalized:
@@ -2129,7 +2207,11 @@ def _build_evaluation_profile_validation_report(*, profile: dict[str, Any]) -> d
     budget = profile.get("budget", {})
     issues: list[dict[str, Any]] = []
 
-    enabled_comparative_metrics = [item for item in comparative_metrics if bool(item.get("enabled", False))]
+    enabled_comparative_metrics = [
+        item
+        for item in comparative_metrics
+        if bool(item.get("enabled", False)) and str(item.get("availability_status", "available")) != "unavailable"
+    ]
     if not enabled_comparative_metrics:
         issues.append(
             {
@@ -2147,7 +2229,10 @@ def _build_evaluation_profile_validation_report(*, profile: dict[str, Any]) -> d
                 "message": "Comparative metric weights must have a positive total.",
             }
         )
-    if not any(bool(item.get("enabled", False)) for item in diagnostic_signals):
+    if not any(
+        bool(item.get("enabled", False)) and str(item.get("availability_status", "available")) != "unavailable"
+        for item in diagnostic_signals
+    ):
         issues.append(
             {
                 "severity": "warning",
@@ -2437,6 +2522,159 @@ def _normalize_optimizer_version(raw_version: dict[str, Any]) -> dict[str, Any]:
         "run_plan": _normalize_optimizer_run_plan(run_plan_raw),
         "budget": _normalize_optimizer_budget(budget_raw),
     }
+
+
+def _sync_evaluation_profile_availability(
+    *,
+    studio_state: dict[str, Any],
+    candidate_set_draft: dict[str, Any] | None,
+    profile_id: str | None = None,
+) -> None:
+    """Проставляет availability-статусы метрик/сигналов по feature-профилю выбранных кандидатов."""
+
+    feature_flags = _extract_candidate_feature_flags(candidate_set_draft)
+    target_profile = _find_target_evaluation_profile(studio_state=studio_state, profile_id=profile_id)
+    target_profile["comparative_metrics"] = _apply_comparative_metric_availability(
+        comparative_metrics=target_profile.get("comparative_metrics", []),
+        feature_flags=feature_flags,
+    )
+    target_profile["diagnostic_signals"] = _apply_diagnostic_signal_availability(
+        diagnostic_signals=target_profile.get("diagnostic_signals", []),
+        feature_flags=feature_flags,
+    )
+    _sync_evaluation_studio_legacy_mirror_fields(studio_state)
+    studio_state["candidate_features"] = dict(feature_flags)
+
+
+def _apply_comparative_metric_availability(
+    *,
+    comparative_metrics: Any,
+    feature_flags: dict[str, bool],
+) -> list[dict[str, Any]]:
+    """Возвращает comparative-метрики с вычисленным availability и безопасным enabled-флагом."""
+
+    if not isinstance(comparative_metrics, list):
+        return []
+    normalized_metrics: list[dict[str, Any]] = []
+    for item in comparative_metrics:
+        if not isinstance(item, dict):
+            continue
+        normalized_item = dict(item)
+        metric_id = str(normalized_item.get("metric_id", "")).strip()
+        required_features = _normalize_required_features(raw_required_features=normalized_item.get("required_features", []))
+        if not required_features:
+            required_features = list(_COMPARATIVE_METRIC_REQUIRED_FEATURES.get(metric_id, ()))
+        availability = _resolve_feature_availability(
+            required_features=required_features,
+            feature_flags=feature_flags,
+        )
+        normalized_item["required_features"] = required_features
+        normalized_item["availability_status"] = "available" if availability["available"] else "unavailable"
+        normalized_item["availability_reason"] = availability["reason"]
+        if not availability["available"]:
+            normalized_item["enabled"] = False
+        normalized_metrics.append(normalized_item)
+    return normalized_metrics
+
+
+def _apply_diagnostic_signal_availability(
+    *,
+    diagnostic_signals: Any,
+    feature_flags: dict[str, bool],
+) -> list[dict[str, Any]]:
+    """Возвращает diagnostic-сигналы с вычисленным availability и безопасным enabled-флагом."""
+
+    if not isinstance(diagnostic_signals, list):
+        return []
+    normalized_signals: list[dict[str, Any]] = []
+    for item in diagnostic_signals:
+        if not isinstance(item, dict):
+            continue
+        normalized_item = dict(item)
+        signal_id = str(normalized_item.get("signal_id", "")).strip()
+        required_features = _normalize_required_features(raw_required_features=normalized_item.get("required_features", []))
+        if not required_features:
+            required_features = list(_DIAGNOSTIC_SIGNAL_REQUIRED_FEATURES.get(signal_id, ()))
+        availability = _resolve_feature_availability(
+            required_features=required_features,
+            feature_flags=feature_flags,
+        )
+        normalized_item["required_features"] = required_features
+        normalized_item["availability_status"] = "available" if availability["available"] else "unavailable"
+        normalized_item["availability_reason"] = availability["reason"]
+        if not availability["available"]:
+            normalized_item["enabled"] = False
+        normalized_signals.append(normalized_item)
+    return normalized_signals
+
+
+def _resolve_feature_availability(
+    *,
+    required_features: list[str],
+    feature_flags: dict[str, bool],
+) -> dict[str, Any]:
+    """Сводит required-features в availability verdict с человекочитаемой причиной."""
+
+    if not required_features:
+        return {"available": True, "reason": "Available for all candidate structures."}
+    missing_features = [feature for feature in required_features if not bool(feature_flags.get(feature, False))]
+    if not missing_features:
+        return {"available": True, "reason": f"Required features present: {', '.join(required_features)}."}
+    return {"available": False, "reason": f"Requires features not found in selected candidates: {', '.join(missing_features)}."}
+
+
+def _extract_candidate_feature_flags(candidate_set_draft: dict[str, Any] | None) -> dict[str, bool]:
+    """Строит feature-флаги арены по mini-graph выбранных кандидатов."""
+
+    flags: dict[str, bool] = {
+        "core": False,
+        "llm": False,
+        "retrieval": False,
+        "rerank": False,
+        "tool": False,
+        "hitl": False,
+    }
+    candidates = _resolve_candidates_for_feature_scan(candidate_set_draft)
+    if not candidates:
+        return flags
+    flags["core"] = True
+    for candidate in candidates:
+        mini_graph = candidate.get("mini_graph", {})
+        nodes = mini_graph.get("nodes", []) if isinstance(mini_graph, dict) else []
+        if not isinstance(nodes, list):
+            continue
+        for node in nodes:
+            if not isinstance(node, dict):
+                continue
+            node_kind = str(node.get("kind", "")).strip().lower()
+            node_label = str(node.get("label", "")).strip().lower()
+            tokens = f"{node_kind} {node_label}"
+            if "llm" in tokens:
+                flags["llm"] = True
+            if "retriev" in tokens or "rag" in tokens:
+                flags["retrieval"] = True
+            if "rerank" in tokens:
+                flags["rerank"] = True
+            if "tool" in tokens:
+                flags["tool"] = True
+            if "hitl" in tokens:
+                flags["hitl"] = True
+    return flags
+
+
+def _resolve_candidates_for_feature_scan(candidate_set_draft: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """Возвращает candidates для feature-анализа: selected_for_tests, иначе все candidates."""
+
+    if not isinstance(candidate_set_draft, dict):
+        return []
+    candidates = candidate_set_draft.get("candidates", [])
+    if not isinstance(candidates, list):
+        return []
+    candidate_objects = [item for item in candidates if isinstance(item, dict)]
+    selected_candidates = [item for item in candidate_objects if bool(item.get("selected_for_tests", False))]
+    if selected_candidates:
+        return selected_candidates
+    return candidate_objects
 
 
 def _build_optimizer_setup_issues(

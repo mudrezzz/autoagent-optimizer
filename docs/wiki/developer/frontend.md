@@ -47,6 +47,8 @@ In C4 Metrics & Evaluators Studio:
 4. Budget is edited via numeric fields and saved with `Save budget`.
 5. `Validate profile` returns status + issues.
 6. `Save version` snapshots the evaluation profile.
+7. Unavailable metrics/signals (based on candidate features) are rendered as disabled controls with reason text.
+8. Candidate feature summary is displayed at the top of C5 Metrics screen.
 
 State is loaded through `fetchArenaDatasetState` + `fetchArenaEvaluationState` and refreshed after each C4 action.
 

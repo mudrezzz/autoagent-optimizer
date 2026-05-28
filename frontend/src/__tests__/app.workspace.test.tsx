@@ -863,6 +863,59 @@ describe("Battle workspace candidates", () => {
     expect(await screen.findByText("Evaluation profile status: ready")).toBeInTheDocument();
   });
 
+  it("locks unavailable diagnostics based on candidate features", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getArenaChatState).mockResolvedValue({
+      status: "success",
+      capability_id: "c2",
+      arena_id: ARENA.workspace_id,
+      arena_name: ARENA.name,
+      messages: [],
+      messages_total: 0,
+      candidate_set_draft: {
+        ...CANDIDATE_SET,
+        candidates: CANDIDATE_SET.candidates.map((candidate, index) => ({
+          ...candidate,
+          selected_for_tests: index < 1,
+        })),
+      },
+    });
+    vi.mocked(fetchArenaEvaluationState).mockResolvedValue({
+      status: "success",
+      capability_id: "c4",
+      arena_id: ARENA.workspace_id,
+      comparative_metrics: [
+        { metric_id: "quality_f1", title: "Quality F1@K", description: "quality", enabled: true, weight: 0.6, availability_status: "available" },
+      ],
+      diagnostic_signals: [
+        {
+          signal_id: "retrieval_coverage",
+          title: "Retrieval coverage",
+          description: "retrieval",
+          enabled: false,
+          availability_status: "unavailable",
+          availability_reason: "Requires features not found in selected candidates: retrieval.",
+        },
+      ],
+      evaluators: [
+        { evaluator_id: "golden_oracle", title: "Golden dataset oracle", description: "deterministic", enabled: true },
+      ],
+      candidate_features: { core: true, llm: true, retrieval: false, rerank: false, tool: true, hitl: false },
+      budget: { max_cases: 20, max_llm_calls: 100, max_cost_usd: 5.0 },
+      versions: [],
+      updated_at: "2026-05-26T00:00:00+00:00",
+    });
+
+    renderWorkspace();
+    const c5Button = await screen.findByRole("button", { name: /Metrics/i });
+    await user.click(c5Button);
+
+    const signalToggle = await screen.findByLabelText("toggle-signal-retrieval_coverage");
+    expect(signalToggle).toBeDisabled();
+    expect(await screen.findByText(/Candidate features:/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Requires features not found in selected candidates/i)).toBeInTheDocument();
+  });
+
   it("saves and validates C5 optimizer setup, then launches queued run", async () => {
     const user = userEvent.setup();
     vi.mocked(getArenaChatState).mockResolvedValue({

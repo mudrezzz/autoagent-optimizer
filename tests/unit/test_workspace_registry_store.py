@@ -213,3 +213,95 @@ def test_store_rejects_c3_selection_with_overlap(tmp_path: Path) -> None:
             include_pattern_ids=["style.pattern_cleaner"],
             exclude_pattern_ids=["style.pattern_cleaner"],
         )
+
+
+def test_evaluation_metrics_availability_is_feature_aware_for_non_rag_candidates(tmp_path: Path) -> None:
+    """Проверяет auto-availability метрик/сигналов для кандидатов без retrieval/rerank."""
+
+    store = WorkspaceRegistryStore(store_file=tmp_path / "registry.json")
+    arena = store.create_arena(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        name="metrics-availability",
+        description="",
+    )
+    store.save_arena_candidate_set_draft(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+        candidate_set_draft={
+            "candidate_set_id": "cset_demo",
+            "arena_id": arena.workspace_id,
+            "candidates": [
+                {
+                    "candidate_id": "cand_llm",
+                    "selected_for_tests": True,
+                    "mini_graph": {
+                        "nodes": [
+                            {"id": "in", "label": "input", "kind": "input"},
+                            {"id": "rewrite", "label": "llm.rewrite", "kind": "llm"},
+                            {"id": "out", "label": "output", "kind": "output"},
+                        ]
+                    },
+                }
+            ],
+        },
+    )
+
+    evaluation_state = store.get_arena_evaluation_studio_state(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+    )
+    assert evaluation_state["candidate_features"]["llm"] is True
+    assert evaluation_state["candidate_features"]["retrieval"] is False
+    assert evaluation_state["candidate_features"]["rerank"] is False
+    diagnostics = {item["signal_id"]: item for item in evaluation_state["diagnostic_signals"]}
+    assert diagnostics["retrieval_coverage"]["availability_status"] == "unavailable"
+    assert diagnostics["retrieval_coverage"]["enabled"] is False
+    assert diagnostics["rerank_gain"]["availability_status"] == "unavailable"
+    assert diagnostics["rerank_gain"]["enabled"] is False
+    assert diagnostics["synthesis_drift"]["availability_status"] == "available"
+
+
+def test_evaluation_metrics_availability_enables_retrieval_signals_for_rag_candidates(tmp_path: Path) -> None:
+    """Проверяет, что retrieval/rerank сигналы доступны при наличии соответствующих узлов."""
+
+    store = WorkspaceRegistryStore(store_file=tmp_path / "registry.json")
+    arena = store.create_arena(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        name="metrics-availability-rag",
+        description="",
+    )
+    store.save_arena_candidate_set_draft(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+        candidate_set_draft={
+            "candidate_set_id": "cset_rag",
+            "arena_id": arena.workspace_id,
+            "candidates": [
+                {
+                    "candidate_id": "cand_rag",
+                    "selected_for_tests": True,
+                    "mini_graph": {
+                        "nodes": [
+                            {"id": "retrieve", "label": "retriever.bm25", "kind": "retriever"},
+                            {"id": "rerank", "label": "rerank.cross", "kind": "rerank"},
+                            {"id": "answer", "label": "llm.answer", "kind": "llm"},
+                        ]
+                    },
+                }
+            ],
+        },
+    )
+
+    evaluation_state = store.get_arena_evaluation_studio_state(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+    )
+    diagnostics = {item["signal_id"]: item for item in evaluation_state["diagnostic_signals"]}
+    assert diagnostics["retrieval_coverage"]["availability_status"] == "available"
+    assert diagnostics["rerank_gain"]["availability_status"] == "available"
