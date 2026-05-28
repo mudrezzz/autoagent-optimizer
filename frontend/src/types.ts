@@ -354,6 +354,14 @@ export type C4Evaluator = {
   enabled: boolean;
 };
 
+// Русский комментарий: связь покрытия между evaluator и метрикой/сигналом.
+export type C4EvaluatorMetricLink = {
+  evaluator_id: string;
+  metric_kind: "comparative" | "diagnostic" | string;
+  metric_id: string;
+  enabled: boolean;
+};
+
 // Русский комментарий: бюджет evaluation profile.
 export type C4EvaluationBudget = {
   max_cases: number;
@@ -380,6 +388,7 @@ export type C4EvaluationStateResponse = {
   comparative_metrics: C4ComparativeMetric[];
   diagnostic_signals: C4DiagnosticSignal[];
   evaluators: C4Evaluator[];
+  evaluator_metric_links: C4EvaluatorMetricLink[];
   candidate_features?: Record<string, boolean>;
   budget: C4EvaluationBudget;
   versions: C4EvaluationVersion[];

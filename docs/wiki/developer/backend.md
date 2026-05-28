@@ -112,6 +112,8 @@ Validation contract v0:
 
 `POST /api/arenas/{arena_id}/evaluation/evaluators/save`
 
+`POST /api/arenas/{arena_id}/evaluation/matrix/save`
+
 `POST /api/arenas/{arena_id}/evaluation/budget/save`
 
 `POST /api/arenas/{arena_id}/evaluation/validate`
@@ -126,6 +128,12 @@ Feature-aware behavior:
 - `availability_status` (`available` / `unavailable`),
 - `availability_reason`.
 3. Unavailable metrics/signals are auto-disabled on backend before validation.
+4. Response includes `evaluator_metric_links` matrix (`evaluator_id`, `metric_kind`, `metric_id`, `enabled`).
+
+Evaluator coverage behavior:
+
+1. `evaluator_metric_links` stores explicit mapping for comparative and diagnostic targets.
+2. Validation returns `evaluator_metric_coverage_gap` when enabled metric/signal has no enabled evaluator link.
 
 Validate report statuses:
 

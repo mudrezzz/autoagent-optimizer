@@ -1425,6 +1425,46 @@ code { font-family: var(--font-mono); }
   width: 84px;
 }
 
+.c4-matrix-wrap {
+  border: 1px solid var(--border-muted);
+  border-radius: 10px;
+  overflow: auto;
+}
+
+.c4-matrix-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.c4-matrix-table th,
+.c4-matrix-table td {
+  border-bottom: 1px solid var(--border-muted);
+  padding: 8px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.c4-matrix-table th:first-child,
+.c4-matrix-table td:first-child {
+  text-align: left;
+  min-width: 190px;
+}
+
+.c4-matrix-table tbody tr.is-muted {
+  opacity: 0.6;
+}
+
+.c4-matrix-row-meta {
+  display: inline-flex;
+  margin-left: 8px;
+  color: var(--gray-500);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .c4-budget-fields,
 .c5-budget-fields {
   display: grid;

@@ -26,6 +26,7 @@ vi.mock("../api", () => ({
   renameArena: vi.fn(),
   saveArenaEvaluationBudget: vi.fn(),
   saveArenaEvaluationEvaluators: vi.fn(),
+  saveArenaEvaluationMatrix: vi.fn(),
   saveArenaEvaluationMetrics: vi.fn(),
   saveArenaEvaluationVersion: vi.fn(),
   saveArenaOptimizerSetup: vi.fn(),
@@ -61,6 +62,7 @@ import {
   renameArena,
   saveArenaEvaluationBudget,
   saveArenaEvaluationEvaluators,
+  saveArenaEvaluationMatrix,
   saveArenaEvaluationMetrics,
   saveArenaEvaluationVersion,
   saveArenaOptimizerSetup,
@@ -344,6 +346,11 @@ describe("Battle workspace candidates", () => {
       evaluators: [
         { evaluator_id: "golden_oracle", title: "Golden dataset oracle", description: "deterministic", enabled: true },
       ],
+      evaluator_metric_links: [
+        { evaluator_id: "golden_oracle", metric_kind: "comparative", metric_id: "quality_f1", enabled: true },
+        { evaluator_id: "golden_oracle", metric_kind: "comparative", metric_id: "cost_per_case", enabled: true },
+        { evaluator_id: "golden_oracle", metric_kind: "diagnostic", metric_id: "retrieval_coverage", enabled: true },
+      ],
       budget: { max_cases: 20, max_llm_calls: 100, max_cost_usd: 5.0 },
       versions: [],
       updated_at: "2026-05-26T00:00:00+00:00",
@@ -377,6 +384,7 @@ describe("Battle workspace candidates", () => {
     vi.mocked(saveArenaDatasetVersion).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(saveArenaEvaluationMetrics).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(saveArenaEvaluationEvaluators).mockRejectedValue(new Error("not used in this test"));
+    vi.mocked(saveArenaEvaluationMatrix).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(saveArenaEvaluationBudget).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(validateArenaEvaluationProfile).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(saveArenaEvaluationVersion).mockRejectedValue(new Error("not used in this test"));
@@ -824,6 +832,7 @@ describe("Battle workspace candidates", () => {
       ],
       diagnostic_signals: [{ signal_id: "retrieval_coverage", title: "Retrieval coverage", description: "retrieval", enabled: true }],
       evaluators: [{ evaluator_id: "golden_oracle", title: "Golden dataset oracle", description: "deterministic", enabled: true }],
+      evaluator_metric_links: [],
       budget: { max_cases: 20, max_llm_calls: 100, max_cost_usd: 5.0 },
       versions: [],
       updated_at: "2026-05-26T00:00:00+00:00",
@@ -839,6 +848,7 @@ describe("Battle workspace candidates", () => {
       ],
       diagnostic_signals: [{ signal_id: "retrieval_coverage", title: "Retrieval coverage", description: "retrieval", enabled: true }],
       evaluators: [{ evaluator_id: "golden_oracle", title: "Golden dataset oracle", description: "deterministic", enabled: true }],
+      evaluator_metric_links: [],
       budget: { max_cases: 20, max_llm_calls: 100, max_cost_usd: 5.0 },
       versions: [],
       updated_at: "2026-05-26T00:00:00+00:00",
@@ -861,6 +871,41 @@ describe("Battle workspace candidates", () => {
     await user.click(await screen.findByRole("button", { name: "Validate profile" }));
     expect(vi.mocked(validateArenaEvaluationProfile)).toHaveBeenCalledWith(ARENA.workspace_id);
     expect(await screen.findByText("Evaluation profile status: ready")).toBeInTheDocument();
+  });
+
+  it("saves evaluator-metric matrix from C6 screen", async () => {
+    const user = userEvent.setup();
+    vi.mocked(saveArenaEvaluationMatrix).mockResolvedValue({
+      status: "success",
+      capability_id: "c4",
+      arena_id: ARENA.workspace_id,
+      action: "save_evaluation_matrix",
+      comparative_metrics: [
+        { metric_id: "quality_f1", title: "Quality F1@K", description: "quality", enabled: true, weight: 0.6 },
+      ],
+      diagnostic_signals: [
+        { signal_id: "retrieval_coverage", title: "Retrieval coverage", description: "retrieval", enabled: true },
+      ],
+      evaluators: [
+        { evaluator_id: "golden_oracle", title: "Golden dataset oracle", description: "deterministic", enabled: true },
+      ],
+      evaluator_metric_links: [
+        { evaluator_id: "golden_oracle", metric_kind: "comparative", metric_id: "quality_f1", enabled: false },
+        { evaluator_id: "golden_oracle", metric_kind: "diagnostic", metric_id: "retrieval_coverage", enabled: true },
+      ],
+      budget: { max_cases: 20, max_llm_calls: 100, max_cost_usd: 5.0 },
+      versions: [],
+      updated_at: "2026-05-26T00:00:00+00:00",
+    });
+
+    renderWorkspace();
+    const c6Button = await screen.findByRole("button", { name: /Evaluators/i });
+    await user.click(c6Button);
+
+    const matrixToggle = await screen.findByLabelText("toggle-matrix-golden_oracle-comparative-quality_f1");
+    await user.click(matrixToggle);
+    await user.click(await screen.findByRole("button", { name: "Save matrix" }));
+    expect(vi.mocked(saveArenaEvaluationMatrix)).toHaveBeenCalled();
   });
 
   it("locks unavailable diagnostics based on candidate features", async () => {
@@ -900,6 +945,7 @@ describe("Battle workspace candidates", () => {
       evaluators: [
         { evaluator_id: "golden_oracle", title: "Golden dataset oracle", description: "deterministic", enabled: true },
       ],
+      evaluator_metric_links: [],
       candidate_features: { core: true, llm: true, retrieval: false, rerank: false, tool: true, hitl: false },
       budget: { max_cases: 20, max_llm_calls: 100, max_cost_usd: 5.0 },
       versions: [],

@@ -384,6 +384,23 @@ export async function saveArenaEvaluationEvaluators(
   return parseJsonOrThrow<C4EvaluationStateResponse>(response);
 }
 
+// Русский комментарий: сохраняет матрицу связей evaluator x metric в evaluation profile.
+export async function saveArenaEvaluationMatrix(
+  arenaId: string,
+  evaluatorMetricLinks: Array<{ evaluator_id: string; metric_kind: string; metric_id: string; enabled: boolean }>,
+): Promise<C4EvaluationStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/evaluation/matrix/save`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ evaluator_metric_links: evaluatorMetricLinks }),
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to save C4 evaluator-metric matrix: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C4EvaluationStateResponse>(response);
+}
+
 // Русский комментарий: сохраняет бюджет evaluation profile.
 export async function saveArenaEvaluationBudget(
   arenaId: string,

@@ -67,6 +67,7 @@
 38. [ADR-0038-c5-optimizer-setup-and-guardrail-launch-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0038-c5-optimizer-setup-and-guardrail-launch-v0.md) - Accepted
 39. [ADR-0039-c4-ux-split-datasets-metrics-tabs.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0039-c4-ux-split-datasets-metrics-tabs.md) - Accepted
 40. [ADR-0040-wizard-driven-capability-flow-and-evaluation-ia-decoupling.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0040-wizard-driven-capability-flow-and-evaluation-ia-decoupling.md) - Accepted
+41. [ADR-0041-evaluator-metric-matrix-coverage-gate.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0041-evaluator-metric-matrix-coverage-gate.md) - Accepted
 
 ## Template
 

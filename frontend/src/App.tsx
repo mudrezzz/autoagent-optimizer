@@ -24,6 +24,7 @@ import {
   saveArenaOptimizerVersion,
   saveArenaEvaluationBudget,
   saveArenaEvaluationEvaluators,
+  saveArenaEvaluationMatrix,
   saveArenaEvaluationMetrics,
   saveArenaEvaluationVersion,
   searchArenaPatterns,
@@ -45,6 +46,7 @@ import type {
   C4DatasetDetail,
   C4DatasetSummary,
   C4EvaluationBudget,
+  C4EvaluatorMetricLink,
   C4EvaluationVersion,
   C4Evaluator,
   C5OptimizerBudget,
@@ -138,6 +140,7 @@ type UiState = {
   c4ComparativeMetrics: C4ComparativeMetric[];
   c4DiagnosticSignals: C4DiagnosticSignal[];
   c4Evaluators: C4Evaluator[];
+  c4EvaluatorMetricLinks: C4EvaluatorMetricLink[];
   c4EvaluationBudget: C4EvaluationBudget;
   c4EvaluationVersions: C4EvaluationVersion[];
   c4EvaluationValidationStatus: "not_run" | "ready" | "warnings" | "invalid";
@@ -211,6 +214,7 @@ export function App(): JSX.Element {
     c4ComparativeMetrics: [],
     c4DiagnosticSignals: [],
     c4Evaluators: [],
+    c4EvaluatorMetricLinks: [],
     c4EvaluationBudget: { max_cases: 0, max_llm_calls: 0, max_cost_usd: 0 },
     c4EvaluationVersions: [],
     c4EvaluationValidationStatus: "not_run",
@@ -371,6 +375,7 @@ export function App(): JSX.Element {
       c4ComparativeMetrics: [],
       c4DiagnosticSignals: [],
       c4Evaluators: [],
+      c4EvaluatorMetricLinks: [],
       c4EvaluationBudget: { max_cases: 0, max_llm_calls: 0, max_cost_usd: 0 },
       c4EvaluationVersions: [],
       c4EvaluationValidationStatus: "not_run",
@@ -492,6 +497,7 @@ export function App(): JSX.Element {
         c4ComparativeMetrics: [],
         c4DiagnosticSignals: [],
         c4Evaluators: [],
+        c4EvaluatorMetricLinks: [],
         c4EvaluationBudget: { max_cases: 0, max_llm_calls: 0, max_cost_usd: 0 },
         c4EvaluationVersions: [],
         c4EvaluationValidationStatus: "not_run",
@@ -671,6 +677,7 @@ export function App(): JSX.Element {
       c4ComparativeMetrics: response.comparative_metrics,
       c4DiagnosticSignals: response.diagnostic_signals,
       c4Evaluators: response.evaluators,
+      c4EvaluatorMetricLinks: response.evaluator_metric_links,
       c4CandidateFeatures: response.candidate_features ?? {},
       c4EvaluationBudget: response.budget,
       c4EvaluationVersions: response.versions,
@@ -1125,6 +1132,18 @@ export function App(): JSX.Element {
     }));
   }
 
+  // Русский комментарий: локально переключает связь evaluator x metric в матрице покрытия.
+  function handleToggleC4EvaluatorMetricLink(evaluatorId: string, metricKind: "comparative" | "diagnostic", metricId: string): void {
+    setState((prev) => ({
+      ...prev,
+      c4EvaluatorMetricLinks: prev.c4EvaluatorMetricLinks.map((link) =>
+        link.evaluator_id === evaluatorId && link.metric_kind === metricKind && link.metric_id === metricId
+          ? { ...link, enabled: !link.enabled }
+          : link
+      ),
+    }));
+  }
+
   // Русский комментарий: обновляет одно поле бюджетных ограничений evaluation profile.
   function handleChangeC4EvaluationBudgetField(field: "max_cases" | "max_llm_calls" | "max_cost_usd", value: string): void {
     const parsedValue = field === "max_cost_usd" ? Number.parseFloat(value) : Number.parseInt(value, 10);
@@ -1161,6 +1180,7 @@ export function App(): JSX.Element {
         c4ComparativeMetrics: response.comparative_metrics,
         c4DiagnosticSignals: response.diagnostic_signals,
         c4Evaluators: response.evaluators,
+        c4EvaluatorMetricLinks: response.evaluator_metric_links,
         c4CandidateFeatures: response.candidate_features ?? prev.c4CandidateFeatures,
         c4EvaluationBudget: response.budget,
         c4EvaluationVersions: response.versions,
@@ -1193,11 +1213,45 @@ export function App(): JSX.Element {
         c4ComparativeMetrics: response.comparative_metrics,
         c4DiagnosticSignals: response.diagnostic_signals,
         c4Evaluators: response.evaluators,
+        c4EvaluatorMetricLinks: response.evaluator_metric_links,
         c4CandidateFeatures: response.candidate_features ?? prev.c4CandidateFeatures,
         c4EvaluationBudget: response.budget,
         c4EvaluationVersions: response.versions,
         budgetPercent: 100,
         budgetStage: "evaluation evaluators saved",
+        jsonText: prettyJson(snapshot),
+        lastPayload: snapshot,
+      }));
+    } catch (error) {
+      setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
+    }
+  }
+
+  // Русский комментарий: сохраняет матрицу Evaluator x Metric в backend.
+  async function handleSaveC4EvaluationMatrix(): Promise<void> {
+    if (!state.activeArenaId) {
+      return;
+    }
+    setState((prev) => ({ ...prev, budgetStage: "saving evaluator-metric matrix", budgetPercent: 60 }));
+    try {
+      const response = await saveArenaEvaluationMatrix(state.activeArenaId, state.c4EvaluatorMetricLinks);
+      const snapshot = {
+        status: "success",
+        capability_id: "c4",
+        action: response.action ?? "save_evaluation_matrix",
+        arena_id: state.activeArenaId,
+      };
+      setState((prev) => ({
+        ...prev,
+        c4ComparativeMetrics: response.comparative_metrics,
+        c4DiagnosticSignals: response.diagnostic_signals,
+        c4Evaluators: response.evaluators,
+        c4EvaluatorMetricLinks: response.evaluator_metric_links,
+        c4CandidateFeatures: response.candidate_features ?? prev.c4CandidateFeatures,
+        c4EvaluationBudget: response.budget,
+        c4EvaluationVersions: response.versions,
+        budgetPercent: 100,
+        budgetStage: "evaluation matrix saved",
         jsonText: prettyJson(snapshot),
         lastPayload: snapshot,
       }));
@@ -1225,6 +1279,7 @@ export function App(): JSX.Element {
         c4ComparativeMetrics: response.comparative_metrics,
         c4DiagnosticSignals: response.diagnostic_signals,
         c4Evaluators: response.evaluators,
+        c4EvaluatorMetricLinks: response.evaluator_metric_links,
         c4CandidateFeatures: response.candidate_features ?? prev.c4CandidateFeatures,
         c4EvaluationBudget: response.budget,
         c4EvaluationVersions: response.versions,
@@ -1260,6 +1315,7 @@ export function App(): JSX.Element {
         c4ComparativeMetrics: response.comparative_metrics,
         c4DiagnosticSignals: response.diagnostic_signals,
         c4Evaluators: response.evaluators,
+        c4EvaluatorMetricLinks: response.evaluator_metric_links,
         c4CandidateFeatures: response.candidate_features ?? prev.c4CandidateFeatures,
         c4EvaluationBudget: response.budget,
         c4EvaluationVersions: response.versions,
@@ -1296,6 +1352,7 @@ export function App(): JSX.Element {
         c4ComparativeMetrics: response.comparative_metrics,
         c4DiagnosticSignals: response.diagnostic_signals,
         c4Evaluators: response.evaluators,
+        c4EvaluatorMetricLinks: response.evaluator_metric_links,
         c4CandidateFeatures: response.candidate_features ?? prev.c4CandidateFeatures,
         c4EvaluationBudget: response.budget,
         c4EvaluationVersions: response.versions,
@@ -2708,6 +2765,78 @@ export function App(): JSX.Element {
                                   </div>
                                   <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EvaluationEvaluators(); }} disabled={!state.activeArenaId}>
                                     Save evaluators
+                                  </button>
+                                </section>
+                                <section className="c4-eval-card">
+                                  <div className="c4-eval-card-title">Evaluator x Metric matrix</div>
+                                  <div className="c4-matrix-wrap">
+                                    <table className="c4-matrix-table">
+                                      <thead>
+                                        <tr>
+                                          <th>Metric</th>
+                                          {state.c4Evaluators.map((evaluator) => (
+                                            <th key={`matrix-head:${evaluator.evaluator_id}`}>{evaluator.title}</th>
+                                          ))}
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {[
+                                          ...state.c4ComparativeMetrics.map((metric) => ({
+                                            metric_kind: "comparative" as const,
+                                            metric_id: metric.metric_id,
+                                            title: metric.title,
+                                            enabled: metric.enabled,
+                                            availability_status: metric.availability_status,
+                                          })),
+                                          ...state.c4DiagnosticSignals.map((signal) => ({
+                                            metric_kind: "diagnostic" as const,
+                                            metric_id: signal.signal_id,
+                                            title: signal.title,
+                                            enabled: signal.enabled,
+                                            availability_status: signal.availability_status,
+                                          })),
+                                        ].map((metricTarget) => {
+                                          const metricAvailable = isAvailabilityEnabled(metricTarget.availability_status);
+                                          const metricIsActive = metricTarget.enabled && metricAvailable;
+                                          return (
+                                            <tr key={`matrix-row:${metricTarget.metric_kind}:${metricTarget.metric_id}`} className={metricIsActive ? "" : "is-muted"}>
+                                              <td>
+                                                {metricTarget.title}
+                                                <span className="c4-matrix-row-meta">{metricTarget.metric_kind}</span>
+                                              </td>
+                                              {state.c4Evaluators.map((evaluator) => {
+                                                const link = state.c4EvaluatorMetricLinks.find(
+                                                  (item) =>
+                                                    item.evaluator_id === evaluator.evaluator_id &&
+                                                    item.metric_kind === metricTarget.metric_kind &&
+                                                    item.metric_id === metricTarget.metric_id
+                                                );
+                                                return (
+                                                  <td key={`matrix-cell:${evaluator.evaluator_id}:${metricTarget.metric_kind}:${metricTarget.metric_id}`}>
+                                                    <input
+                                                      type="checkbox"
+                                                      checked={Boolean(link?.enabled)}
+                                                      onChange={() => {
+                                                        handleToggleC4EvaluatorMetricLink(
+                                                          evaluator.evaluator_id,
+                                                          metricTarget.metric_kind,
+                                                          metricTarget.metric_id
+                                                        );
+                                                      }}
+                                                      aria-label={`toggle-matrix-${evaluator.evaluator_id}-${metricTarget.metric_kind}-${metricTarget.metric_id}`}
+                                                      disabled={!metricAvailable}
+                                                    />
+                                                  </td>
+                                                );
+                                              })}
+                                            </tr>
+                                          );
+                                        })}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                  <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EvaluationMatrix(); }} disabled={!state.activeArenaId}>
+                                    Save matrix
                                   </button>
                                 </section>
                                 <section className="c4-eval-card">

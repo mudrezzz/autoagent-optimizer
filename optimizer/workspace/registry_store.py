@@ -979,6 +979,47 @@ class WorkspaceRegistryStore:
             self._write_store(data)
             return dict(studio_state)
 
+    def save_arena_evaluation_evaluator_metric_links(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        evaluator_metric_links: list[dict[str, Any]],
+        profile_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Сохраняет матрицу связей Evaluator x Metric для evaluation profile."""
+
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            studio_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
+            target_profile = _find_target_evaluation_profile(
+                studio_state=studio_state,
+                profile_id=profile_id,
+            )
+            target_profile["evaluator_metric_links"] = _normalize_evaluator_metric_links(
+                raw_links=evaluator_metric_links,
+                comparative_metrics=target_profile.get("comparative_metrics", []),
+                diagnostic_signals=target_profile.get("diagnostic_signals", []),
+                evaluators=target_profile.get("evaluators", []),
+            )
+            target_profile["updated_at"] = _utc_now_iso()
+            _sync_evaluation_profile_availability(
+                studio_state=studio_state,
+                candidate_set_draft=workspace.get("candidate_set_draft") if isinstance(workspace.get("candidate_set_draft"), dict) else None,
+                profile_id=profile_id,
+            )
+            studio_state["updated_at"] = _utc_now_iso()
+            workspace["evaluation_studio"] = studio_state
+            self._write_store(data)
+            return dict(studio_state)
+
     def save_arena_evaluation_budget(
         self,
         *,
@@ -1081,6 +1122,7 @@ class WorkspaceRegistryStore:
                 "comparative_metrics": [dict(item) for item in target_profile.get("comparative_metrics", [])],
                 "diagnostic_signals": [dict(item) for item in target_profile.get("diagnostic_signals", [])],
                 "evaluators": [dict(item) for item in target_profile.get("evaluators", [])],
+                "evaluator_metric_links": [dict(item) for item in target_profile.get("evaluator_metric_links", [])],
                 "budget": dict(target_profile.get("budget", {})),
             }
             versions = target_profile.get("versions", [])
@@ -1782,6 +1824,7 @@ def _build_default_evaluation_studio_state() -> dict[str, Any]:
         "comparative_metrics": [dict(item) for item in default_profile.get("comparative_metrics", [])],
         "diagnostic_signals": [dict(item) for item in default_profile.get("diagnostic_signals", [])],
         "evaluators": [dict(item) for item in default_profile.get("evaluators", [])],
+        "evaluator_metric_links": [dict(item) for item in default_profile.get("evaluator_metric_links", [])],
         "budget": dict(default_profile.get("budget", {})),
         "versions": [dict(item) for item in default_profile.get("versions", [])],
         "updated_at": now,
@@ -1865,15 +1908,24 @@ def _build_default_evaluation_profile(
             "enabled": False,
         },
     ]
+    normalized_comparative_metrics = _normalize_comparative_metrics(base_comparative_metrics)
+    normalized_diagnostic_signals = _normalize_diagnostic_signals(base_diagnostic_signals)
+    normalized_evaluators = _normalize_evaluators(base_evaluators)
     base_budget = budget if budget is not None else {"max_cases": 20, "max_llm_calls": 100, "max_cost_usd": 5.0}
     base_versions = versions if versions is not None else []
     return {
         "profile_id": str(profile_id).strip() or f"ep_{uuid4().hex[:10]}",
         "name": str(name).strip() or "Evaluation profile",
         "description": str(description).strip(),
-        "comparative_metrics": _normalize_comparative_metrics(base_comparative_metrics),
-        "diagnostic_signals": _normalize_diagnostic_signals(base_diagnostic_signals),
-        "evaluators": _normalize_evaluators(base_evaluators),
+        "comparative_metrics": normalized_comparative_metrics,
+        "diagnostic_signals": normalized_diagnostic_signals,
+        "evaluators": normalized_evaluators,
+        "evaluator_metric_links": _normalize_evaluator_metric_links(
+            raw_links=[],
+            comparative_metrics=normalized_comparative_metrics,
+            diagnostic_signals=normalized_diagnostic_signals,
+            evaluators=normalized_evaluators,
+        ),
         "budget": _normalize_evaluation_budget(base_budget),
         "versions": [_normalize_evaluation_version(item) for item in base_versions if isinstance(item, dict)],
         "created_at": now,
@@ -1892,6 +1944,7 @@ def _normalize_evaluation_profile_payload(raw_profile: Any) -> dict[str, Any]:
     comparative_raw = raw_profile.get("comparative_metrics", [])
     diagnostic_raw = raw_profile.get("diagnostic_signals", [])
     evaluators_raw = raw_profile.get("evaluators", [])
+    evaluator_metric_links_raw = raw_profile.get("evaluator_metric_links", [])
     budget_raw = raw_profile.get("budget", {})
     versions_raw = raw_profile.get("versions", [])
     created_at = str(raw_profile.get("created_at", "")).strip() or _utc_now_iso()
@@ -1901,13 +1954,22 @@ def _normalize_evaluation_profile_payload(raw_profile: Any) -> dict[str, Any]:
         for item in versions_raw:
             if isinstance(item, dict):
                 versions.append(_normalize_evaluation_version(item))
+    normalized_comparative_metrics = _normalize_comparative_metrics(comparative_raw)
+    normalized_diagnostic_signals = _normalize_diagnostic_signals(diagnostic_raw)
+    normalized_evaluators = _normalize_evaluators(evaluators_raw)
     return {
         "profile_id": profile_id,
         "name": name,
         "description": description,
-        "comparative_metrics": _normalize_comparative_metrics(comparative_raw),
-        "diagnostic_signals": _normalize_diagnostic_signals(diagnostic_raw),
-        "evaluators": _normalize_evaluators(evaluators_raw),
+        "comparative_metrics": normalized_comparative_metrics,
+        "diagnostic_signals": normalized_diagnostic_signals,
+        "evaluators": normalized_evaluators,
+        "evaluator_metric_links": _normalize_evaluator_metric_links(
+            raw_links=evaluator_metric_links_raw,
+            comparative_metrics=normalized_comparative_metrics,
+            diagnostic_signals=normalized_diagnostic_signals,
+            evaluators=normalized_evaluators,
+        ),
         "budget": _normalize_evaluation_budget(budget_raw),
         "versions": versions,
         "created_at": created_at,
@@ -1975,6 +2037,7 @@ def _normalize_evaluation_studio_state(raw_state: Any) -> dict[str, Any]:
         "comparative_metrics": [dict(item) for item in active_profile.get("comparative_metrics", [])],
         "diagnostic_signals": [dict(item) for item in active_profile.get("diagnostic_signals", [])],
         "evaluators": [dict(item) for item in active_profile.get("evaluators", [])],
+        "evaluator_metric_links": [dict(item) for item in active_profile.get("evaluator_metric_links", [])],
         "budget": dict(active_profile.get("budget", {})),
         "versions": [dict(item) for item in active_profile.get("versions", [])],
         "updated_at": updated_at,
@@ -2031,6 +2094,7 @@ def _sync_evaluation_studio_legacy_mirror_fields(studio_state: dict[str, Any]) -
     studio_state["comparative_metrics"] = [dict(item) for item in active_profile.get("comparative_metrics", [])]
     studio_state["diagnostic_signals"] = [dict(item) for item in active_profile.get("diagnostic_signals", [])]
     studio_state["evaluators"] = [dict(item) for item in active_profile.get("evaluators", [])]
+    studio_state["evaluator_metric_links"] = [dict(item) for item in active_profile.get("evaluator_metric_links", [])]
     studio_state["budget"] = dict(active_profile.get("budget", {}))
     studio_state["versions"] = [dict(item) for item in active_profile.get("versions", [])]
 
@@ -2151,6 +2215,94 @@ def _normalize_evaluators(raw_evaluators: Any) -> list[dict[str, Any]]:
     return normalized
 
 
+def _normalize_evaluator_metric_links(
+    *,
+    raw_links: Any,
+    comparative_metrics: list[dict[str, Any]],
+    diagnostic_signals: list[dict[str, Any]],
+    evaluators: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Нормализует матрицу связей evaluator x metric и достраивает отсутствующие ячейки."""
+
+    metric_refs = _build_metric_refs(
+        comparative_metrics=comparative_metrics,
+        diagnostic_signals=diagnostic_signals,
+    )
+    evaluator_ids = {str(item.get("evaluator_id", "")).strip() for item in evaluators}
+    evaluator_ids = {item for item in evaluator_ids if item}
+    normalized: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str]] = set()
+    links_list = raw_links if isinstance(raw_links, list) else []
+    for item in links_list:
+        if not isinstance(item, dict):
+            continue
+        evaluator_id = str(item.get("evaluator_id", "")).strip()
+        metric_kind = str(item.get("metric_kind", "")).strip().lower()
+        metric_id = str(item.get("metric_id", "")).strip()
+        link_key = (metric_kind, metric_id)
+        if evaluator_id not in evaluator_ids or link_key not in metric_refs:
+            continue
+        dedupe_key = (evaluator_id, metric_kind, metric_id)
+        if dedupe_key in seen:
+            continue
+        seen.add(dedupe_key)
+        normalized.append(
+            {
+                "evaluator_id": evaluator_id,
+                "metric_kind": metric_kind,
+                "metric_id": metric_id,
+                "enabled": bool(item.get("enabled", False)),
+            }
+        )
+
+    # Русский комментарий: автоматически достраиваем отсутствующие связи, чтобы матрица всегда была полной.
+    evaluator_enabled_map = {
+        str(item.get("evaluator_id", "")).strip(): bool(item.get("enabled", False))
+        for item in evaluators
+        if isinstance(item, dict)
+    }
+    for evaluator_id in sorted(evaluator_ids):
+        for metric_kind, metric_id in sorted(metric_refs.keys()):
+            dedupe_key = (evaluator_id, metric_kind, metric_id)
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            normalized.append(
+                {
+                    "evaluator_id": evaluator_id,
+                    "metric_kind": metric_kind,
+                    "metric_id": metric_id,
+                    "enabled": bool(evaluator_enabled_map.get(evaluator_id, False)),
+                }
+            )
+    return normalized
+
+
+def _build_metric_refs(
+    *,
+    comparative_metrics: list[dict[str, Any]],
+    diagnostic_signals: list[dict[str, Any]],
+) -> dict[tuple[str, str], str]:
+    """Строит индекс метрик/сигналов для матрицы покрытий evaluator x metric."""
+
+    metric_refs: dict[tuple[str, str], str] = {}
+    for item in comparative_metrics:
+        if not isinstance(item, dict):
+            continue
+        metric_id = str(item.get("metric_id", "")).strip()
+        if not metric_id:
+            continue
+        metric_refs[("comparative", metric_id)] = str(item.get("title", metric_id)).strip() or metric_id
+    for item in diagnostic_signals:
+        if not isinstance(item, dict):
+            continue
+        signal_id = str(item.get("signal_id", "")).strip()
+        if not signal_id:
+            continue
+        metric_refs[("diagnostic", signal_id)] = str(item.get("title", signal_id)).strip() or signal_id
+    return metric_refs
+
+
 def _normalize_evaluation_budget(raw_budget: Any) -> dict[str, Any]:
     """Нормализует бюджет evaluation profile."""
 
@@ -2185,15 +2337,25 @@ def _normalize_evaluation_version(raw_version: dict[str, Any]) -> dict[str, Any]
     comparative_metrics_raw = raw_version.get("comparative_metrics", [])
     diagnostic_signals_raw = raw_version.get("diagnostic_signals", [])
     evaluators_raw = raw_version.get("evaluators", [])
+    evaluator_metric_links_raw = raw_version.get("evaluator_metric_links", [])
     budget_raw = raw_version.get("budget", {})
+    normalized_comparative_metrics = _normalize_comparative_metrics(comparative_metrics_raw)
+    normalized_diagnostic_signals = _normalize_diagnostic_signals(diagnostic_signals_raw)
+    normalized_evaluators = _normalize_evaluators(evaluators_raw)
     return {
         "version_id": version_id,
         "label": label,
         "created_at": created_at,
         "source": source,
-        "comparative_metrics": _normalize_comparative_metrics(comparative_metrics_raw),
-        "diagnostic_signals": _normalize_diagnostic_signals(diagnostic_signals_raw),
-        "evaluators": _normalize_evaluators(evaluators_raw),
+        "comparative_metrics": normalized_comparative_metrics,
+        "diagnostic_signals": normalized_diagnostic_signals,
+        "evaluators": normalized_evaluators,
+        "evaluator_metric_links": _normalize_evaluator_metric_links(
+            raw_links=evaluator_metric_links_raw,
+            comparative_metrics=normalized_comparative_metrics,
+            diagnostic_signals=normalized_diagnostic_signals,
+            evaluators=normalized_evaluators,
+        ),
         "budget": _normalize_evaluation_budget(budget_raw),
     }
 
@@ -2204,6 +2366,7 @@ def _build_evaluation_profile_validation_report(*, profile: dict[str, Any]) -> d
     comparative_metrics = profile.get("comparative_metrics", [])
     diagnostic_signals = profile.get("diagnostic_signals", [])
     evaluators = profile.get("evaluators", [])
+    evaluator_metric_links = profile.get("evaluator_metric_links", [])
     budget = profile.get("budget", {})
     issues: list[dict[str, Any]] = []
 
@@ -2248,6 +2411,51 @@ def _build_evaluation_profile_validation_report(*, profile: dict[str, Any]) -> d
                 "message": "At least one evaluator must be enabled.",
             }
         )
+    else:
+        enabled_evaluator_ids = {
+            str(item.get("evaluator_id", "")).strip()
+            for item in evaluators
+            if isinstance(item, dict) and bool(item.get("enabled", False))
+        }
+        link_coverage = {
+            (
+                str(item.get("metric_kind", "")).strip().lower(),
+                str(item.get("metric_id", "")).strip(),
+            )
+            for item in evaluator_metric_links
+            if isinstance(item, dict)
+            and bool(item.get("enabled", False))
+            and str(item.get("evaluator_id", "")).strip() in enabled_evaluator_ids
+        }
+        enabled_metric_refs: list[tuple[str, str, str]] = []
+        for item in comparative_metrics:
+            if not isinstance(item, dict):
+                continue
+            if not bool(item.get("enabled", False)) or str(item.get("availability_status", "available")) == "unavailable":
+                continue
+            metric_id = str(item.get("metric_id", "")).strip()
+            if metric_id:
+                enabled_metric_refs.append(("comparative", metric_id, str(item.get("title", metric_id)).strip() or metric_id))
+        for item in diagnostic_signals:
+            if not isinstance(item, dict):
+                continue
+            if not bool(item.get("enabled", False)) or str(item.get("availability_status", "available")) == "unavailable":
+                continue
+            signal_id = str(item.get("signal_id", "")).strip()
+            if signal_id:
+                enabled_metric_refs.append(("diagnostic", signal_id, str(item.get("title", signal_id)).strip() or signal_id))
+
+        uncovered_metrics = [f"{title} ({kind}:{metric_id})" for kind, metric_id, title in enabled_metric_refs if (kind, metric_id) not in link_coverage]
+        if uncovered_metrics:
+            preview = ", ".join(uncovered_metrics[:5])
+            suffix = "" if len(uncovered_metrics) <= 5 else f", +{len(uncovered_metrics) - 5} more"
+            issues.append(
+                {
+                    "severity": "error",
+                    "code": "evaluator_metric_coverage_gap",
+                    "message": f"Missing evaluator links for enabled metrics/signals: {preview}{suffix}.",
+                }
+            )
 
     max_cases = int(budget.get("max_cases", 0) or 0)
     max_llm_calls = int(budget.get("max_llm_calls", 0) or 0)
@@ -2541,6 +2749,12 @@ def _sync_evaluation_profile_availability(
     target_profile["diagnostic_signals"] = _apply_diagnostic_signal_availability(
         diagnostic_signals=target_profile.get("diagnostic_signals", []),
         feature_flags=feature_flags,
+    )
+    target_profile["evaluator_metric_links"] = _normalize_evaluator_metric_links(
+        raw_links=target_profile.get("evaluator_metric_links", []),
+        comparative_metrics=target_profile.get("comparative_metrics", []),
+        diagnostic_signals=target_profile.get("diagnostic_signals", []),
+        evaluators=target_profile.get("evaluators", []),
     )
     _sync_evaluation_studio_legacy_mirror_fields(studio_state)
     studio_state["candidate_features"] = dict(feature_flags)

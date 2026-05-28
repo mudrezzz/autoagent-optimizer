@@ -241,6 +241,7 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert len(eval_state_payload["comparative_metrics"]) >= 1
         assert len(eval_state_payload["diagnostic_signals"]) >= 1
         assert len(eval_state_payload["evaluators"]) >= 1
+        assert isinstance(eval_state_payload["evaluator_metric_links"], list)
         assert isinstance(eval_state_payload["candidate_features"], dict)
         assert eval_state_payload["candidate_features"]["llm"] is False
         assert eval_state_payload["candidate_features"]["retrieval"] is False
@@ -275,6 +276,20 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert status_eval_evaluators_save == 200
         assert eval_evaluators_save_payload["status"] == "success"
         assert len(eval_evaluators_save_payload["evaluators"]) == 2
+
+        status_eval_matrix_save, eval_matrix_save_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/evaluation/matrix/save",
+            {
+                "evaluator_metric_links": [
+                    {"evaluator_id": "golden_oracle", "metric_kind": "comparative", "metric_id": "quality_f1", "enabled": True},
+                    {"evaluator_id": "golden_oracle", "metric_kind": "diagnostic", "metric_id": "synthesis_drift", "enabled": True},
+                    {"evaluator_id": "llm_judge", "metric_kind": "comparative", "metric_id": "quality_f1", "enabled": False},
+                ]
+            },
+        )
+        assert status_eval_matrix_save == 200
+        assert eval_matrix_save_payload["status"] == "success"
+        assert isinstance(eval_matrix_save_payload["evaluator_metric_links"], list)
 
         status_eval_budget_save, eval_budget_save_payload = _json_post(
             f"{base_url}/api/arenas/{arena_id}/evaluation/budget/save",

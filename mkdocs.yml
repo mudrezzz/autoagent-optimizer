@@ -33,6 +33,7 @@ nav:
       - C3 Pattern Selection: user_guides/c3-pattern-selection.md
       - C4 Dataset Studio: user_guides/c4-dataset-studio.md
       - C5 Optimizer Setup: user_guides/c5-optimizer-setup.md
+      - C6 Evaluators Matrix: user_guides/c6-evaluators-matrix.md
   - Developer Guides:
       - Backend: developer/backend.md
       - Frontend: developer/frontend.md
@@ -45,5 +46,6 @@ nav:
       - V2.3.S6a: releases/v2.3.s6a.md
       - V2.3.S7: releases/v2.3.s7.md
       - V2.4.S3: releases/v2.4.s3.md
+      - V2.4.S4: releases/v2.4.s4.md
   - Governance:
       - ADR to Wiki Policy: governance/adr-to-wiki-policy.md

@@ -149,6 +149,7 @@ def _build_c4_evaluation_state_payload(*, arena_id: str, studio_state: dict[str,
         "comparative_metrics": [dict(item) for item in studio_state.get("comparative_metrics", []) if isinstance(item, dict)],
         "diagnostic_signals": [dict(item) for item in studio_state.get("diagnostic_signals", []) if isinstance(item, dict)],
         "evaluators": [dict(item) for item in studio_state.get("evaluators", []) if isinstance(item, dict)],
+        "evaluator_metric_links": [dict(item) for item in studio_state.get("evaluator_metric_links", []) if isinstance(item, dict)],
         "candidate_features": dict(studio_state.get("candidate_features", {})),
         "budget": dict(studio_state.get("budget", {})),
         "versions": [_build_c4_evaluation_version(item) for item in versions if isinstance(item, dict)],
@@ -472,6 +473,15 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
                     tenant_id=tenant_id,
                     user_id=user_id,
                     arena_id=arena_evaluation_evaluators_save_match.group(1),
+                )
+                return
+
+            arena_evaluation_matrix_save_match = re.fullmatch(r"/api/arenas/([^/]+)/evaluation/matrix/save", path)
+            if arena_evaluation_matrix_save_match is not None:
+                self._handle_post_arena_evaluation_matrix_save(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    arena_id=arena_evaluation_matrix_save_match.group(1),
                 )
                 return
 
@@ -1588,6 +1598,47 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
 
             response_payload = _build_c4_evaluation_state_payload(arena_id=arena_id, studio_state=studio_state)
             response_payload["action"] = "save_evaluation_evaluators"
+            self._send_json(response_payload)
+
+        def _handle_post_arena_evaluation_matrix_save(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Сохраняет матрицу покрытия Evaluator x Metric для evaluation profile."""
+
+            try:
+                payload = self._read_json_body()
+            except ValueError as exc:
+                self._send_json({"status": "error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            evaluator_metric_links = payload.get("evaluator_metric_links", [])
+            if not isinstance(evaluator_metric_links, list):
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Field `evaluator_metric_links` must be an array."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            if any(not isinstance(item, dict) for item in evaluator_metric_links):
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Field `evaluator_metric_links` must contain objects only."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            try:
+                studio_state = registry_store.save_arena_evaluation_evaluator_metric_links(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                    evaluator_metric_links=[dict(item) for item in evaluator_metric_links],
+                )
+            except KeyError as exc:
+                self._send_json({"status": "error", "code": "arena_not_found", "message": str(exc)}, status=HTTPStatus.NOT_FOUND)
+                return
+            except ValueError as exc:
+                self._send_json({"status": "error", "code": "validation_error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            response_payload = _build_c4_evaluation_state_payload(arena_id=arena_id, studio_state=studio_state)
+            response_payload["action"] = "save_evaluation_matrix"
             self._send_json(response_payload)
 
         def _handle_post_arena_evaluation_budget_save(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
