@@ -2,7 +2,7 @@
 
 C4 is used to prepare test datasets before optimization.
 
-## Available in v0
+## Available in v2
 
 1. Create a dataset inside Battle Workspace.
 2. Mark datasets via checkboxes and save arena assignment with `Save`.
@@ -27,6 +27,10 @@ C4 is used to prepare test datasets before optimization.
 
 ![C4 Metrics Tab](../assets/screenshots/real-workspace-c4-metrics.png)
 
+### Dataset Editor (Stage-aware)
+
+![C4 Dataset Editor Stage-aware](../assets/screenshots/real-workspace-c4-dataset-editor-v2.png)
+
 ## Minimal Flow
 
 1. Open capability `C4 Dataset Studio`.
@@ -45,13 +49,22 @@ Each row contains:
 
 1. `case_id` - unique case identifier.
 2. `input` - source text/query.
-3. `expected` - expected output/behavior.
-4. `notes` - optional comment.
+3. `target_stage` - one of `retrieval | rerank | synthesis | final`.
+4. `expected_payload` - stage-specific expected structure.
+5. `expected` - editor-friendly text mirror for quick input.
+6. `notes` - optional comment.
+
+Stage expectations:
+
+1. `retrieval`: `expected_payload.evidence_ids` (list of expected evidence ids).
+2. `rerank`: `expected_payload.ranked_ids` (expected ranking order).
+3. `synthesis`: `expected_payload.must_include` (+ optional `forbidden`).
+4. `final`: `expected_payload.answer` (final expected answer text).
 
 ## How to Read Validate Results
 
-1. `error` - blocking issue (for example: empty `input`, duplicate `case_id`, empty dataset).
-2. `warning` - non-blocking issue (for example: empty `expected`).
+1. `error` - blocking issue (for example: empty `input`, duplicate `case_id`, empty dataset, invalid `target_stage`).
+2. `warning` - non-blocking issue (for example: stage-specific expected payload is incomplete).
 
 ## Next Step
 

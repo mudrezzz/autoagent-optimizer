@@ -835,7 +835,7 @@ class WorkspaceRegistryStore:
         arena_id: str,
         dataset_id: str,
     ) -> dict[str, Any]:
-        """Выполняет базовую валидацию dataset v0 и возвращает отчет issues."""
+        """Выполняет stage-aware валидацию dataset v2 и возвращает отчет issues."""
 
         with self._lock:
             data = self._read_store()
@@ -853,7 +853,8 @@ class WorkspaceRegistryStore:
             for index, row in enumerate(rows):
                 case_id = str(row.get("case_id", "")).strip()
                 input_text = str(row.get("input", "")).strip()
-                expected_text = str(row.get("expected", "")).strip()
+                target_stage = str(row.get("target_stage", "final")).strip().lower() or "final"
+                expected_payload = row.get("expected_payload", {})
                 if not case_id:
                     issues.append({"severity": "error", "code": "missing_case_id", "row_index": index, "message": "case_id is required."})
                 elif case_id in seen_case_ids:
@@ -863,8 +864,70 @@ class WorkspaceRegistryStore:
                 seen_case_ids.add(case_id)
                 if not input_text:
                     issues.append({"severity": "error", "code": "missing_input", "row_index": index, "message": "input is required."})
-                if not expected_text:
-                    issues.append({"severity": "warning", "code": "missing_expected", "row_index": index, "message": "expected is empty."})
+                if target_stage not in _DATASET_TARGET_STAGES:
+                    issues.append(
+                        {
+                            "severity": "error",
+                            "code": "invalid_target_stage",
+                            "row_index": index,
+                            "message": f"target_stage must be one of: {', '.join(_DATASET_TARGET_STAGES)}.",
+                        }
+                    )
+                    continue
+                if not isinstance(expected_payload, dict):
+                    issues.append(
+                        {
+                            "severity": "error",
+                            "code": "invalid_expected_payload",
+                            "row_index": index,
+                            "message": "expected_payload must be an object.",
+                        }
+                    )
+                    continue
+                if target_stage == "retrieval":
+                    evidence_ids = _normalize_string_list(expected_payload.get("evidence_ids", []))
+                    if not evidence_ids:
+                        issues.append(
+                            {
+                                "severity": "warning",
+                                "code": "missing_expected_retrieval",
+                                "row_index": index,
+                                "message": "retrieval target should define `expected_payload.evidence_ids`.",
+                            }
+                        )
+                elif target_stage == "rerank":
+                    ranked_ids = _normalize_string_list(expected_payload.get("ranked_ids", []))
+                    if not ranked_ids:
+                        issues.append(
+                            {
+                                "severity": "warning",
+                                "code": "missing_expected_rerank",
+                                "row_index": index,
+                                "message": "rerank target should define `expected_payload.ranked_ids`.",
+                            }
+                        )
+                elif target_stage == "synthesis":
+                    must_include = _normalize_string_list(expected_payload.get("must_include", []))
+                    if not must_include:
+                        issues.append(
+                            {
+                                "severity": "warning",
+                                "code": "missing_expected_synthesis",
+                                "row_index": index,
+                                "message": "synthesis target should define `expected_payload.must_include`.",
+                            }
+                        )
+                else:
+                    answer = str(expected_payload.get("answer", "")).strip()
+                    if not answer:
+                        issues.append(
+                            {
+                                "severity": "warning",
+                                "code": "missing_expected_final",
+                                "row_index": index,
+                                "message": "final target should define non-empty `expected_payload.answer`.",
+                            }
+                        )
 
             if not rows:
                 issues.append({"severity": "error", "code": "empty_dataset", "row_index": None, "message": "Dataset must contain at least one row."})
@@ -1718,18 +1781,97 @@ def _normalize_dataset_payload(raw_dataset: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+_DATASET_TARGET_STAGES: tuple[str, ...] = ("retrieval", "rerank", "synthesis", "final")
+
+
+def _normalize_dataset_target_stage(raw_stage: Any) -> str:
+    """Нормализует целевую стадию dataset-row и валидирует допустимые значения."""
+
+    stage = str(raw_stage or "final").strip().lower() or "final"
+    if stage not in _DATASET_TARGET_STAGES:
+        raise ValueError(f"Unsupported target_stage: {stage}")
+    return stage
+
+
+def _normalize_string_list(raw_value: Any) -> list[str]:
+    """Нормализует массив строк: trim, unique, stable order."""
+
+    if not isinstance(raw_value, list):
+        return []
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for item in raw_value:
+        value = str(item).strip()
+        if not value or value in seen:
+            continue
+        seen.add(value)
+        normalized.append(value)
+    return normalized
+
+
+def _coerce_expected_payload(*, target_stage: str, raw_payload: Any, raw_expected: Any) -> dict[str, Any]:
+    """Строит stage-aware expected payload с обратной совместимостью к полю expected."""
+
+    payload: dict[str, Any] = {}
+    if isinstance(raw_payload, dict):
+        payload = dict(raw_payload)
+    elif isinstance(raw_expected, dict):
+        payload = dict(raw_expected)
+    elif isinstance(raw_expected, str):
+        expected_text = raw_expected.strip()
+        if expected_text:
+            try:
+                parsed = json.loads(expected_text)
+            except json.JSONDecodeError:
+                parsed = None
+            if isinstance(parsed, dict):
+                payload = dict(parsed)
+            elif target_stage == "final":
+                payload = {"answer": expected_text}
+            else:
+                payload = {"text": expected_text}
+
+    if target_stage == "retrieval":
+        payload["evidence_ids"] = _normalize_string_list(payload.get("evidence_ids", payload.get("expected_evidence_ids", [])))
+        payload["must_include"] = _normalize_string_list(payload.get("must_include", []))
+    elif target_stage == "rerank":
+        payload["ranked_ids"] = _normalize_string_list(payload.get("ranked_ids", payload.get("expected_ranking", [])))
+    elif target_stage == "synthesis":
+        payload["must_include"] = _normalize_string_list(payload.get("must_include", []))
+        payload["forbidden"] = _normalize_string_list(payload.get("forbidden", []))
+    else:
+        payload["answer"] = str(payload.get("answer", payload.get("final_answer", payload.get("text", "")))).strip()
+    return payload
+
+
+def _stringify_expected_payload(*, target_stage: str, expected_payload: dict[str, Any]) -> str:
+    """Готовит человекочитаемое поле expected для UI-редактора и legacy DTO."""
+
+    if target_stage == "final":
+        return str(expected_payload.get("answer", "")).strip()
+    return json.dumps(expected_payload, ensure_ascii=False, sort_keys=True)
+
+
 def _normalize_dataset_row(raw_row: Any) -> dict[str, Any]:
-    """Нормализует одну dataset-row в контракт `case_id/input/expected/notes`."""
+    """Нормализует одну dataset-row в stage-aware контракт c совместимостью v1."""
 
     if not isinstance(raw_row, dict):
         raise ValueError("Dataset row must be an object.")
     case_id = str(raw_row.get("case_id", "")).strip() or f"case_{uuid4().hex[:8]}"
     input_text = str(raw_row.get("input", "")).strip()
-    expected_text = str(raw_row.get("expected", "")).strip()
+    target_stage = _normalize_dataset_target_stage(raw_row.get("target_stage", "final"))
+    expected_payload = _coerce_expected_payload(
+        target_stage=target_stage,
+        raw_payload=raw_row.get("expected_payload"),
+        raw_expected=raw_row.get("expected", ""),
+    )
+    expected_text = _stringify_expected_payload(target_stage=target_stage, expected_payload=expected_payload)
     notes = str(raw_row.get("notes", "")).strip()
     return {
         "case_id": case_id,
         "input": input_text,
+        "target_stage": target_stage,
+        "expected_payload": expected_payload,
         "expected": expected_text,
         "notes": notes,
     }

@@ -65,6 +65,10 @@ Response includes:
   "row": {
     "case_id": "case_01",
     "input": "source text",
+    "target_stage": "final",
+    "expected_payload": {
+      "answer": "target style text"
+    },
     "expected": "target style text",
     "notes": "optional"
   }
@@ -79,7 +83,10 @@ Response includes:
     {
       "case_id": "case_01",
       "input": "source text",
-      "expected": "target style text",
+      "target_stage": "retrieval",
+      "expected_payload": {
+        "evidence_ids": ["doc_12", "doc_53"]
+      },
       "notes": ""
     }
   ]
@@ -97,12 +104,18 @@ Response includes:
 }
 ```
 
-Validation contract v0:
+Validation contract v2:
 
 1. Error for an empty dataset.
 2. Error for missing `case_id` or `input`.
 3. Error for duplicate `case_id`.
-4. Warning for empty `expected`.
+4. Error for unknown `target_stage`.
+5. Error for non-object `expected_payload`.
+6. Warning for stage-specific missing expected values:
+- retrieval: missing `expected_payload.evidence_ids`,
+- rerank: missing `expected_payload.ranked_ids`,
+- synthesis: missing `expected_payload.must_include`,
+- final: missing `expected_payload.answer`.
 
 ## C4 Evaluation Endpoints
 

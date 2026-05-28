@@ -194,6 +194,8 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert status_c4_add_row == 200
         assert c4_add_row_payload["status"] == "success"
         assert c4_add_row_payload["active_dataset"]["rows_total"] == 1
+        assert c4_add_row_payload["row"]["target_stage"] == "final"
+        assert c4_add_row_payload["row"]["expected_payload"]["answer"] == "expected text"
 
         status_c4_validate, c4_validate_payload = _json_post(
             f"{base_url}/api/arenas/{arena_id}/datasets/{dataset_id}/validate",
@@ -215,7 +217,13 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
             f"{base_url}/api/arenas/{arena_id}/datasets/{dataset_id}/rows/replace",
             {
                 "rows": [
-                    {"case_id": "case_010", "input": "i1", "expected": "e1", "notes": ""},
+                    {
+                        "case_id": "case_010",
+                        "input": "i1",
+                        "target_stage": "retrieval",
+                        "expected_payload": {"evidence_ids": ["doc_1", "doc_2"]},
+                        "notes": "",
+                    },
                     {"case_id": "case_011", "input": "i2", "expected": "e2", "notes": ""},
                 ]
             },
@@ -224,6 +232,8 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert c4_replace_rows_payload["status"] == "success"
         assert c4_replace_rows_payload["active_dataset"]["rows_total"] == 2
         assert len(c4_replace_rows_payload["datasets"][0]["preview_rows"]) == 2
+        assert c4_replace_rows_payload["active_dataset"]["rows"][0]["target_stage"] == "retrieval"
+        assert c4_replace_rows_payload["active_dataset"]["rows"][0]["expected_payload"]["evidence_ids"] == ["doc_1", "doc_2"]
 
         status_c4_assign, c4_assign_payload = _json_post(
             f"{base_url}/api/arenas/{arena_id}/datasets/assign",

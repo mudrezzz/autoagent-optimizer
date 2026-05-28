@@ -14,6 +14,10 @@
 
 ![Battle Workspace C3](../assets/screenshots/real-workspace-c3.png)
 
+### Battle Workspace (C4 Dataset Editor v2)
+
+![Battle Workspace C4 Dataset Editor](../assets/screenshots/real-workspace-c4-dataset-editor-v2.png)
+
 ### Battle Workspace (C6 Evaluators)
 
 ![Battle Workspace C6](../assets/screenshots/real-workspace-c6-evaluators-matrix.png)

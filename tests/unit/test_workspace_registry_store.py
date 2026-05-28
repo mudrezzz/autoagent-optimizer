@@ -370,3 +370,73 @@ def test_evaluation_profile_validation_requires_matrix_coverage(tmp_path: Path) 
     assert report["status"] == "invalid"
     issue_codes = {item["code"] for item in report["issues"]}
     assert "evaluator_metric_coverage_gap" in issue_codes
+
+
+def test_dataset_row_stage_aware_payload_is_persisted(tmp_path: Path) -> None:
+    """Проверяет, что dataset row хранит target_stage и expected_payload в нормализованном виде."""
+
+    store = WorkspaceRegistryStore(store_file=tmp_path / "registry.json")
+    arena = store.create_arena(tenant_id="tenant_a", owner_user_id="user_a", name="dataset-v2", description="")
+    dataset = store.create_arena_dataset(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+        name="rows",
+        description="",
+    )
+    store.append_arena_dataset_row(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+        dataset_id=dataset["dataset_id"],
+        row={
+            "case_id": "case_r1",
+            "input": "find evidence",
+            "target_stage": "retrieval",
+            "expected_payload": {"evidence_ids": ["doc_1", "doc_2"]},
+            "notes": "",
+        },
+    )
+    state = store.get_arena_dataset_studio_state(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+    )
+    rows = state["datasets"][0]["rows"]
+    assert rows[0]["target_stage"] == "retrieval"
+    assert rows[0]["expected_payload"]["evidence_ids"] == ["doc_1", "doc_2"]
+
+
+def test_dataset_validation_reports_stage_specific_warnings(tmp_path: Path) -> None:
+    """Проверяет stage-aware валидацию expected_payload по target_stage."""
+
+    store = WorkspaceRegistryStore(store_file=tmp_path / "registry.json")
+    arena = store.create_arena(tenant_id="tenant_a", owner_user_id="user_a", name="dataset-v2-validate", description="")
+    dataset = store.create_arena_dataset(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+        name="rows",
+        description="",
+    )
+    store.append_arena_dataset_row(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+        dataset_id=dataset["dataset_id"],
+        row={
+            "case_id": "case_r1",
+            "input": "find evidence",
+            "target_stage": "retrieval",
+            "expected_payload": {},
+            "notes": "",
+        },
+    )
+    report = store.validate_arena_dataset(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+        dataset_id=dataset["dataset_id"],
+    )
+    warning_codes = {item["code"] for item in report["issues"]}
+    assert "missing_expected_retrieval" in warning_codes

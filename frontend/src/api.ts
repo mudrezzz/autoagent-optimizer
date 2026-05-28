@@ -7,6 +7,7 @@
   C3PatternSelectionResponse,
   C5OptimizerStateResponse,
   C4EvaluationStateResponse,
+  C4DatasetRow,
   C4DatasetStateResponse,
   C2SelectForTestsResponse,
   C2ChatPostMessageResponse,
@@ -271,7 +272,7 @@ export async function assignArenaDatasets(arenaId: string, datasetIds: string[])
 export async function addArenaDatasetRow(
   arenaId: string,
   datasetId: string,
-  row: { case_id: string; input: string; expected: string; notes: string },
+  row: C4DatasetRow,
 ): Promise<C4DatasetStateResponse> {
   const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/datasets/${encodeURIComponent(datasetId)}/rows/add`, {
     method: "POST",
@@ -289,7 +290,7 @@ export async function addArenaDatasetRow(
 export async function replaceArenaDatasetRows(
   arenaId: string,
   datasetId: string,
-  rows: Array<{ case_id: string; input: string; expected: string; notes: string }>,
+  rows: C4DatasetRow[],
 ): Promise<C4DatasetStateResponse> {
   const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/datasets/${encodeURIComponent(datasetId)}/rows/replace`, {
     method: "POST",

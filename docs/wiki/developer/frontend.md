@@ -38,6 +38,9 @@ In C4 Dataset Studio:
 4. `Details` expands a preview of first 5 rows.
 5. `Edit` opens a dedicated editor screen with breadcrumbs.
 6. In `edit` mode: add/delete/edit rows, JSONL import, `Save changes`, `Validate`, `Save version`.
+7. Row editor supports stage-aware fields:
+- `target_stage` selector (`retrieval | rerank | synthesis | final`),
+- `expected` text input (auto-mapped into `expected_payload` per stage).
 
 In C4 Metrics & Evaluators Studio:
 

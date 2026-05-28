@@ -129,7 +129,7 @@ Input (Tenant + User + Battle + Task Brief + Constraints + Data + Budget)
 2.  pattern library browser  include/exclude controls;
 3.  разделенные `dataset` / `metrics` / `evaluators` capability-экраны;
 4.  evaluator x metric matrix и coverage-preflight на UI уровне;
-5.  stage-aware dataset editor (`retrieval/rerank/synthesis/final`) на UI уровне;
+5.  stage-aware dataset contract v2 реализован в C4 (`target_stage` + `expected_payload`), но требуется дальнейшее UX-углубление по bulk-инструментам;
 6.  run-monitor    version-manifest;
 7.  native import UX path.
 

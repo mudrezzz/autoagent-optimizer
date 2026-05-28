@@ -44,7 +44,9 @@ import type {
   C2ChatMessage,
   C4DiagnosticSignal,
   C4DatasetDetail,
+  C4DatasetRow,
   C4DatasetSummary,
+  C4DatasetTargetStage,
   C4EvaluationBudget,
   C4EvaluatorMetricLink,
   C4EvaluationVersion,
@@ -135,7 +137,7 @@ type UiState = {
   c4StudioTab: "datasets" | "metrics";
   c4ViewMode: "list" | "edit";
   c4EditorDatasetId: string;
-  c4EditorRows: Array<{ case_id: string; input: string; expected: string; notes: string }>;
+  c4EditorRows: C4DatasetRow[];
   c4EditorImportJsonl: string;
   c4ComparativeMetrics: C4ComparativeMetric[];
   c4DiagnosticSignals: C4DiagnosticSignal[];
@@ -915,10 +917,46 @@ export function App(): JSX.Element {
   }
 
   // Русский комментарий: обновляет поле строки в editor-таблице dataset.
-  function handleUpdateC4EditorRowField(rowIndex: number, field: "case_id" | "input" | "expected" | "notes", value: string): void {
+  function handleUpdateC4EditorRowField(
+    rowIndex: number,
+    field: "case_id" | "input" | "target_stage" | "expected" | "notes",
+    value: string,
+  ): void {
     setState((prev) => ({
       ...prev,
-      c4EditorRows: prev.c4EditorRows.map((row, index) => (index === rowIndex ? { ...row, [field]: value } : row)),
+      c4EditorRows: prev.c4EditorRows.map((row, index) => {
+        if (index !== rowIndex) {
+          return row;
+        }
+        if (field === "target_stage") {
+          const nextStage = normalizeDatasetTargetStage(value);
+          const nextPayload = normalizeExpectedPayloadFromEditorInput({
+            targetStage: nextStage,
+            expected: row.expected,
+            expectedPayload: row.expected_payload,
+          });
+          return {
+            ...row,
+            target_stage: nextStage,
+            expected_payload: nextPayload,
+            expected: stringifyExpectedPayloadForEditor(nextStage, nextPayload),
+          };
+        }
+        if (field === "expected") {
+          const currentStage = normalizeDatasetTargetStage(row.target_stage);
+          const nextPayload = normalizeExpectedPayloadFromEditorInput({
+            targetStage: currentStage,
+            expected: value,
+            expectedPayload: row.expected_payload,
+          });
+          return {
+            ...row,
+            expected: value,
+            expected_payload: nextPayload,
+          };
+        }
+        return { ...row, [field]: value };
+      }),
     }));
   }
 
@@ -931,6 +969,8 @@ export function App(): JSX.Element {
         {
           case_id: "",
           input: "",
+          target_stage: "final",
+          expected_payload: { answer: "" },
           expected: "",
           notes: "",
         },
@@ -956,14 +996,22 @@ export function App(): JSX.Element {
       setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "error", message: "JSONL payload is empty." }) }));
       return;
     }
-    const parsedRows: Array<{ case_id: string; input: string; expected: string; notes: string }> = [];
+    const parsedRows: C4DatasetRow[] = [];
     try {
       for (const line of lines) {
         const parsed = JSON.parse(line) as Record<string, unknown>;
+        const targetStage = normalizeDatasetTargetStage(parsed.target_stage);
+        const expectedPayload = normalizeExpectedPayloadFromEditorInput({
+          targetStage,
+          expected: parsed.expected,
+          expectedPayload: parsed.expected_payload,
+        });
         parsedRows.push({
           case_id: String(parsed.case_id ?? ""),
           input: String(parsed.input ?? parsed.query ?? ""),
-          expected: String(parsed.expected ?? parsed.answer ?? ""),
+          target_stage: targetStage,
+          expected_payload: expectedPayload,
+          expected: stringifyExpectedPayloadForEditor(targetStage, expectedPayload),
           notes: String(parsed.notes ?? ""),
         });
       }
@@ -987,7 +1035,21 @@ export function App(): JSX.Element {
     }
     setState((prev) => ({ ...prev, budgetStage: "saving dataset rows", budgetPercent: 65 }));
     try {
-      const response = await replaceArenaDatasetRows(state.activeArenaId, state.c4EditorDatasetId, state.c4EditorRows);
+      const rowsToSave = state.c4EditorRows.map((row) => {
+        const stage = normalizeDatasetTargetStage(row.target_stage);
+        const payload = normalizeExpectedPayloadFromEditorInput({
+          targetStage: stage,
+          expected: row.expected,
+          expectedPayload: row.expected_payload,
+        });
+        return {
+          ...row,
+          target_stage: stage,
+          expected_payload: payload,
+          expected: stringifyExpectedPayloadForEditor(stage, payload),
+        };
+      });
+      const response = await replaceArenaDatasetRows(state.activeArenaId, state.c4EditorDatasetId, rowsToSave);
       const snapshot = {
         status: "success",
         capability_id: "c4",
@@ -2597,6 +2659,7 @@ export function App(): JSX.Element {
                                   <tr>
                                     <th>case_id</th>
                                     <th>input</th>
+                                    <th>target_stage</th>
                                     <th>expected</th>
                                     <th>notes</th>
                                     <th />
@@ -2605,12 +2668,20 @@ export function App(): JSX.Element {
                                 <tbody>
                                   {state.c4EditorRows.length === 0 ? (
                                     <tr>
-                                      <td colSpan={5}>No rows yet.</td>
+                                      <td colSpan={6}>No rows yet.</td>
                                     </tr>
                                   ) : state.c4EditorRows.map((row, rowIndex) => (
                                     <tr key={`${state.c4EditorDatasetId}:${rowIndex}`}>
                                       <td><input value={row.case_id} onChange={(event) => { handleUpdateC4EditorRowField(rowIndex, "case_id", event.target.value); }} /></td>
                                       <td><input value={row.input} onChange={(event) => { handleUpdateC4EditorRowField(rowIndex, "input", event.target.value); }} /></td>
+                                      <td>
+                                        <select value={row.target_stage} onChange={(event) => { handleUpdateC4EditorRowField(rowIndex, "target_stage", event.target.value); }}>
+                                          <option value="final">final</option>
+                                          <option value="synthesis">synthesis</option>
+                                          <option value="rerank">rerank</option>
+                                          <option value="retrieval">retrieval</option>
+                                        </select>
+                                      </td>
                                       <td><input value={row.expected} onChange={(event) => { handleUpdateC4EditorRowField(rowIndex, "expected", event.target.value); }} /></td>
                                       <td><input value={row.notes} onChange={(event) => { handleUpdateC4EditorRowField(rowIndex, "notes", event.target.value); }} /></td>
                                       <td>
@@ -2629,7 +2700,7 @@ export function App(): JSX.Element {
                                 onChange={(event) => {
                                   setState((prev) => ({ ...prev, c4EditorImportJsonl: event.target.value }));
                                 }}
-                                placeholder='JSONL import, one row per line: {"case_id":"case_1","input":"...","expected":"...","notes":"..."}'
+                                placeholder='JSONL import, one row per line: {"case_id":"case_1","input":"...","target_stage":"retrieval|rerank|synthesis|final","expected_payload":{...},"expected":"...","notes":"..."}'
                               />
                               <button type="button" className="tb-btn tb-btn-ghost" onClick={handleImportC4EditorJsonl}>
                                 Import JSONL (replace in editor)
@@ -3673,6 +3744,70 @@ function formatCandidateFeatureSummary(featureFlags: Record<string, boolean>): s
   ];
   const present = labels.filter(([key]) => Boolean(featureFlags[key])).map(([, label]) => label);
   return present.length > 0 ? present.join(", ") : "No candidate features detected yet";
+}
+
+// Русский комментарий: нормализует stage-id dataset строки для editor/API payload.
+function normalizeDatasetTargetStage(rawValue: unknown): C4DatasetTargetStage {
+  const stage = String(rawValue ?? "final").trim().toLowerCase();
+  if (stage === "retrieval" || stage === "rerank" || stage === "synthesis" || stage === "final") {
+    return stage;
+  }
+  return "final";
+}
+
+// Русский комментарий: преобразует expected/expected_payload в stage-aware объект перед сохранением.
+function normalizeExpectedPayloadFromEditorInput(args: {
+  targetStage: C4DatasetTargetStage;
+  expected: unknown;
+  expectedPayload: unknown;
+}): Record<string, unknown> {
+  const { targetStage, expected, expectedPayload } = args;
+  const base = typeof expectedPayload === "object" && expectedPayload && !Array.isArray(expectedPayload)
+    ? { ...(expectedPayload as Record<string, unknown>) }
+    : {};
+  const expectedText = String(expected ?? "").trim();
+  if (expectedText) {
+    try {
+      const parsed = JSON.parse(expectedText) as unknown;
+      if (typeof parsed === "object" && parsed && !Array.isArray(parsed)) {
+        Object.assign(base, parsed as Record<string, unknown>);
+      } else if (targetStage === "final") {
+        base.answer = expectedText;
+      } else {
+        base.text = expectedText;
+      }
+    } catch {
+      if (targetStage === "final") {
+        base.answer = expectedText;
+      } else {
+        base.text = expectedText;
+      }
+    }
+  }
+  if (targetStage === "retrieval") {
+    base.evidence_ids = Array.isArray(base.evidence_ids) ? base.evidence_ids : [];
+    base.must_include = Array.isArray(base.must_include) ? base.must_include : [];
+  } else if (targetStage === "rerank") {
+    base.ranked_ids = Array.isArray(base.ranked_ids) ? base.ranked_ids : [];
+  } else if (targetStage === "synthesis") {
+    base.must_include = Array.isArray(base.must_include) ? base.must_include : [];
+    base.forbidden = Array.isArray(base.forbidden) ? base.forbidden : [];
+  } else {
+    base.answer = String(base.answer ?? base.final_answer ?? base.text ?? "").trim();
+  }
+  return base;
+}
+
+// Русский комментарий: готовит ожидаемый результат для строкового поля expected в editor-таблице.
+function stringifyExpectedPayloadForEditor(targetStage: C4DatasetTargetStage, payload: Record<string, unknown>): string {
+  if (targetStage === "final") {
+    return String(payload.answer ?? "").trim();
+  }
+  try {
+    return JSON.stringify(payload, null, 0);
+  } catch {
+    return "";
+  }
 }
 
 // Русский комментарий: определяет экран по текущему URL.

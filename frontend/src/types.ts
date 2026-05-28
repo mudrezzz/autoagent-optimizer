@@ -262,9 +262,14 @@ export type C3PatternSearchResponse = {
 };
 
 // Русский комментарий: строка dataset для C4 Dataset Studio.
+export type C4DatasetTargetStage = "retrieval" | "rerank" | "synthesis" | "final";
+
+// Русский комментарий: структура expected-пейлоада для stage-aware dataset строки.
 export type C4DatasetRow = {
   case_id: string;
   input: string;
+  target_stage: C4DatasetTargetStage | string;
+  expected_payload: Record<string, unknown>;
   expected: string;
   notes: string;
 };
