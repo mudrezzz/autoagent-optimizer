@@ -69,6 +69,7 @@
 40. [ADR-0040-wizard-driven-capability-flow-and-evaluation-ia-decoupling.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0040-wizard-driven-capability-flow-and-evaluation-ia-decoupling.md) - Accepted
 41. [ADR-0041-evaluator-metric-matrix-coverage-gate.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0041-evaluator-metric-matrix-coverage-gate.md) - Accepted
 42. [ADR-0042-dataset-v2-stage-aware-target-schema.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0042-dataset-v2-stage-aware-target-schema.md) - Accepted
+43. [ADR-0043-target-stage-first-mapping-and-stage-ref-demotion.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0043-target-stage-first-mapping-and-stage-ref-demotion.md) - Accepted
 
 ## Template
 
