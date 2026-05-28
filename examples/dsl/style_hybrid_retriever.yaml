@@ -1,0 +1,92 @@
+schema_version: "0.1"
+
+project:
+  id: "style-hybrid-retriever-v0"
+  name: "Hybrid Retriever Assist"
+  description: "RAG-style candidate with retrieval and rerank stages before rewrite."
+
+mission:
+  task_type: "style_rewrite_social_post"
+  objective: "Rewrite post in a human tone while grounding edits on retrieved style examples."
+  success_definition: "Low AI-pattern leakage with preserved structure and evidence-backed phrasing."
+
+constraints:
+  max_cost_usd: 90
+  max_latency_ms: 6000
+  allowed_model_providers:
+    - "openrouter"
+  require_human_approval: false
+
+datasets:
+  - id: "linkedin_stylizer_test_v1"
+    format: "jsonl"
+    path: "datasets/social/linkedin_stylizer_test.jsonl"
+    split: "test"
+
+components:
+  - id: "style_retriever"
+    kind: "deterministic"
+    implementation: "python://components.retrieval:retrieve_examples"
+  - id: "style_reranker"
+    kind: "deterministic"
+    implementation: "python://components.rerank:rerank_examples"
+  - id: "style_writer"
+    kind: "llm"
+    implementation: "provider://openrouter/openai/gpt-4o-mini"
+  - id: "style_guard"
+    kind: "validator"
+    implementation: "python://validators.style_output_guard:validate"
+
+graph:
+  entry_node: "retrieve_examples"
+  nodes:
+    - id: "retrieve_examples"
+      type: "deterministic"
+      component_id: "style_retriever"
+      on_fail: "fallback"
+    - id: "rerank_examples"
+      type: "deterministic"
+      component_id: "style_reranker"
+      on_fail: "fallback"
+    - id: "rewrite_post"
+      type: "llm"
+      component_id: "style_writer"
+      prompt_id: "style_rewrite_with_retrieval_v1"
+      on_fail: "retry"
+    - id: "validate_style"
+      type: "validator"
+      component_id: "style_guard"
+      on_fail: "stop"
+  edges:
+    - source: "retrieve_examples"
+      target: "rerank_examples"
+    - source: "rerank_examples"
+      target: "rewrite_post"
+    - source: "rewrite_post"
+      target: "validate_style"
+
+metrics:
+  - id: "style_pass_rate"
+    kind: "output"
+    direction: "maximize"
+    description: "Share of rewrites that pass style quality checks."
+  - id: "retrieval_coverage"
+    kind: "middle"
+    direction: "maximize"
+    description: "Fraction of cases with relevant retrieved examples."
+  - id: "rerank_gain"
+    kind: "middle"
+    direction: "maximize"
+    description: "Improvement from rerank stage compared to raw retrieval."
+
+budget:
+  max_trials: 24
+  max_total_cost_usd: 90
+  max_wall_time_minutes: 120
+
+architecture_space:
+  selection_policy: "equal_budget_tournament"
+  candidates:
+    - id: "style_hybrid_retriever_v1"
+      template: "style_hybrid_retriever"
+      enabled: true

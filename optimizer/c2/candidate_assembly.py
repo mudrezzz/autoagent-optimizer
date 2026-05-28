@@ -15,6 +15,7 @@ from optimizer.dsl.compiler import DslToGraphIRCompiler
 _PATTERN_DSL_FALLBACKS: dict[str, str] = {
     "style.direct_llm": "examples/dsl/style_direct_llm.yaml",
     "style.pattern_cleaner": "examples/dsl/style_pattern_cleaner.yaml",
+    "style.hybrid_retriever": "examples/dsl/style_hybrid_retriever.yaml",
     "style.hitl_reviewer": "examples/dsl/style_hitl_reviewer.yaml",
 }
 

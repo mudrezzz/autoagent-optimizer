@@ -61,6 +61,19 @@ def test_candidate_draft_builder_applies_pattern_filters() -> None:
     assert payload["applied_pattern_filters"]["exclude_pattern_refs"] == ["style.hitl_reviewer"]
 
 
+def test_candidate_draft_builder_includes_rag_candidate_in_default_shortlist() -> None:
+    """Проверяет, что default shortlist C2 содержит RAG-кандидата для диагностики retrieval/rerank."""
+
+    payload = build_candidate_draft_from_brief(
+        arena_id="arena_demo_1",
+        brief="Собери кандидатов для стилизатора.",
+        max_candidates=3,
+    )
+
+    assert payload["total"] == 3
+    assert payload["source_patterns"] == ["style.direct_llm", "style.pattern_cleaner", "style.hybrid_retriever"]
+
+
 def test_candidate_draft_builder_raises_when_filters_remove_all_candidates() -> None:
     """Проверяет ошибку, когда фильтры исключают все шаблоны кандидатов."""
 
@@ -69,5 +82,10 @@ def test_candidate_draft_builder_raises_when_filters_remove_all_candidates() -> 
             arena_id="arena_demo_1",
             brief="нет доступных шаблонов",
             max_candidates=3,
-            excluded_pattern_refs=["style.direct_llm", "style.pattern_cleaner", "style.hitl_reviewer"],
+            excluded_pattern_refs=[
+                "style.direct_llm",
+                "style.pattern_cleaner",
+                "style.hybrid_retriever",
+                "style.hitl_reviewer",
+            ],
         )

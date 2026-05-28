@@ -34,9 +34,9 @@ def test_select_for_tests_prepares_only_selected_candidates() -> None:
     by_id = {candidate["candidate_id"]: candidate for candidate in prepared["candidates"]}
     assert by_id["cand_direct_llm_v0"]["selected_for_tests"] is True
     assert by_id["cand_pattern_cleaner_v0"]["selected_for_tests"] is True
-    assert by_id["cand_hitl_reviewer_v0"]["selected_for_tests"] is False
+    assert by_id["cand_hybrid_retriever_v0"]["selected_for_tests"] is False
     assert by_id["cand_direct_llm_v0"]["compile_readiness"]["status"] == "ready"
-    assert by_id["cand_hitl_reviewer_v0"]["compile_readiness"]["status"] == "draft"
+    assert by_id["cand_hybrid_retriever_v0"]["compile_readiness"]["status"] == "draft"
 
 
 def test_select_for_tests_marks_issue_after_internal_retries() -> None:
