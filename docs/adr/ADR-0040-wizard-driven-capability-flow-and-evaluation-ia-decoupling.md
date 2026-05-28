@@ -29,8 +29,12 @@
    - comparative-метрики доступны только когда релевантны выбранным candidate-архитектурам.
 4. Evaluators конфигурируются отдельно и связываются с метриками через матрицу `Evaluator x Metric`.
 5. Dataset-контракт расширяется до stage-aware модели (`retrieval/rerank/synthesis/final`), а не только `input/final output`.
-6. Правый чат становится контекстным: его автоматизации зависят от активной capability-вкладки.
-7. `Runtime snapshot` убирается из основного пользовательского полотна в debug-surface.
+6. Для non-final оценки вводится `stage_ref-first` привязка:
+   - `stage_ref` виден пользователю и редактируем вручную,
+   - AI предлагает и авто-маппит `stage_ref` по кандидатам,
+   - пользователь может переопределить выбор вручную.
+7. Правый чат становится контекстным: его автоматизации зависят от активной capability-вкладки.
+8. `Runtime snapshot` убирается из основного пользовательского полотна в debug-surface.
 
 ## Alternatives Considered
 
@@ -62,8 +66,9 @@
 3. `V2.4.S3` feature-aware metrics,
 4. `V2.4.S4` evaluator x metric matrix,
 5. `V2.4.S5` dataset v2 schema,
-6. `V2.4.S6` contextual chat per capability,
-7. `V2.4.S7` runtime snapshot UX cleanup.
+6. `V2.4.S5a` stage-ref-first non-final binding (`AI + manual`),
+7. `V2.4.S6` contextual chat per capability,
+8. `V2.4.S7` runtime snapshot UX cleanup.
 
 ## Verification
 
@@ -71,6 +76,7 @@
 2. Невозможен `optimizer launch`, если wizard prerequisites не выполнены.
 3. Для каждой comparative-метрики есть evaluator coverage в matrix preflight.
 4. Stage-aware dataset сценарии валидируются unit/integration тестами.
+5. Stage-ref-first binding проверяется unit/integration/frontend тестами, включая suggest/save и preflight-валидацию.
 
 ## Links
 

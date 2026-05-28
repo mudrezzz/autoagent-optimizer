@@ -149,6 +149,8 @@ def _build_c4_evaluation_state_payload(*, arena_id: str, studio_state: dict[str,
         "comparative_metrics": [dict(item) for item in studio_state.get("comparative_metrics", []) if isinstance(item, dict)],
         "diagnostic_signals": [dict(item) for item in studio_state.get("diagnostic_signals", []) if isinstance(item, dict)],
         "evaluators": [dict(item) for item in studio_state.get("evaluators", []) if isinstance(item, dict)],
+        "stage_bindings": [dict(item) for item in studio_state.get("stage_bindings", []) if isinstance(item, dict)],
+        "stage_binding_coverage": [dict(item) for item in studio_state.get("stage_binding_coverage", []) if isinstance(item, dict)],
         "evaluator_metric_links": [dict(item) for item in studio_state.get("evaluator_metric_links", []) if isinstance(item, dict)],
         "candidate_features": dict(studio_state.get("candidate_features", {})),
         "budget": dict(studio_state.get("budget", {})),
@@ -163,6 +165,7 @@ def _build_c4_evaluation_version(version: dict[str, Any]) -> dict[str, Any]:
     comparative_metrics = version.get("comparative_metrics", [])
     diagnostic_signals = version.get("diagnostic_signals", [])
     evaluators = version.get("evaluators", [])
+    stage_bindings = version.get("stage_bindings", [])
     return {
         "version_id": str(version.get("version_id", "")),
         "label": str(version.get("label", "")),
@@ -171,6 +174,7 @@ def _build_c4_evaluation_version(version: dict[str, Any]) -> dict[str, Any]:
         "enabled_comparative_total": len([item for item in comparative_metrics if isinstance(item, dict) and bool(item.get("enabled", False))]),
         "enabled_diagnostic_total": len([item for item in diagnostic_signals if isinstance(item, dict) and bool(item.get("enabled", False))]),
         "enabled_evaluators_total": len([item for item in evaluators if isinstance(item, dict) and bool(item.get("enabled", False))]),
+        "enabled_stage_bindings_total": len([item for item in stage_bindings if isinstance(item, dict) and bool(item.get("enabled", True))]),
     }
 
 
@@ -482,6 +486,24 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
                     tenant_id=tenant_id,
                     user_id=user_id,
                     arena_id=arena_evaluation_matrix_save_match.group(1),
+                )
+                return
+
+            arena_evaluation_stage_bindings_save_match = re.fullmatch(r"/api/arenas/([^/]+)/evaluation/stage-bindings/save", path)
+            if arena_evaluation_stage_bindings_save_match is not None:
+                self._handle_post_arena_evaluation_stage_bindings_save(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    arena_id=arena_evaluation_stage_bindings_save_match.group(1),
+                )
+                return
+
+            arena_evaluation_stage_bindings_suggest_match = re.fullmatch(r"/api/arenas/([^/]+)/evaluation/stage-bindings/suggest", path)
+            if arena_evaluation_stage_bindings_suggest_match is not None:
+                self._handle_post_arena_evaluation_stage_bindings_suggest(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    arena_id=arena_evaluation_stage_bindings_suggest_match.group(1),
                 )
                 return
 
@@ -1639,6 +1661,73 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
 
             response_payload = _build_c4_evaluation_state_payload(arena_id=arena_id, studio_state=studio_state)
             response_payload["action"] = "save_evaluation_matrix"
+            self._send_json(response_payload)
+
+        def _handle_post_arena_evaluation_stage_bindings_save(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Сохраняет stage_ref bindings для non-final stage-оценки."""
+
+            try:
+                payload = self._read_json_body()
+            except ValueError as exc:
+                self._send_json({"status": "error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            stage_bindings = payload.get("stage_bindings", [])
+            if not isinstance(stage_bindings, list):
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Field `stage_bindings` must be an array."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            if any(not isinstance(item, dict) for item in stage_bindings):
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Field `stage_bindings` must contain objects only."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            try:
+                studio_state = registry_store.save_arena_evaluation_stage_bindings(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                    stage_bindings=[dict(item) for item in stage_bindings],
+                )
+            except KeyError as exc:
+                self._send_json({"status": "error", "code": "arena_not_found", "message": str(exc)}, status=HTTPStatus.NOT_FOUND)
+                return
+            except ValueError as exc:
+                self._send_json({"status": "error", "code": "validation_error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            response_payload = _build_c4_evaluation_state_payload(arena_id=arena_id, studio_state=studio_state)
+            response_payload["action"] = "save_stage_bindings"
+            self._send_json(response_payload)
+
+        def _handle_post_arena_evaluation_stage_bindings_suggest(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Возвращает предложенные stage_ref bindings без автосохранения профиля."""
+
+            try:
+                suggestion_payload = registry_store.suggest_arena_evaluation_stage_bindings(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                )
+                studio_state = registry_store.get_arena_evaluation_studio_state(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                )
+            except KeyError as exc:
+                self._send_json({"status": "error", "code": "arena_not_found", "message": str(exc)}, status=HTTPStatus.NOT_FOUND)
+                return
+
+            response_payload = _build_c4_evaluation_state_payload(arena_id=arena_id, studio_state=studio_state)
+            response_payload["action"] = "suggest_stage_bindings"
+            response_payload["suggested_stage_bindings"] = [dict(item) for item in suggestion_payload.get("stage_bindings", []) if isinstance(item, dict)]
+            response_payload["suggested_stage_binding_coverage"] = [
+                dict(item) for item in suggestion_payload.get("stage_binding_coverage", []) if isinstance(item, dict)
+            ]
             self._send_json(response_payload)
 
         def _handle_post_arena_evaluation_budget_save(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:

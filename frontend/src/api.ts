@@ -7,6 +7,7 @@
   C3PatternSelectionResponse,
   C5OptimizerStateResponse,
   C4EvaluationStateResponse,
+  C4StageBinding,
   C4DatasetRow,
   C4DatasetStateResponse,
   C2SelectForTestsResponse,
@@ -398,6 +399,39 @@ export async function saveArenaEvaluationMatrix(
   if (!response.ok) {
     const payload = await parseJsonOrThrow<ErrorPayload>(response);
     throw new Error(payload.message || `Failed to save C4 evaluator-metric matrix: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C4EvaluationStateResponse>(response);
+}
+
+// Русский комментарий: сохраняет пользовательские stage_ref bindings для non-final оценки.
+export async function saveArenaEvaluationStageBindings(
+  arenaId: string,
+  stageBindings: C4StageBinding[],
+): Promise<C4EvaluationStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/evaluation/stage-bindings/save`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ stage_bindings: stageBindings }),
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to save C4 stage bindings: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C4EvaluationStateResponse>(response);
+}
+
+// Русский комментарий: получает rule-based предложения stage_ref bindings без записи в профиль.
+export async function suggestArenaEvaluationStageBindings(
+  arenaId: string,
+): Promise<C4EvaluationStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/evaluation/stage-bindings/suggest`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to suggest C4 stage bindings: HTTP ${response.status}`);
   }
   return parseJsonOrThrow<C4EvaluationStateResponse>(response);
 }

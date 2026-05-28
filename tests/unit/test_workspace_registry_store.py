@@ -307,6 +307,99 @@ def test_evaluation_metrics_availability_enables_retrieval_signals_for_rag_candi
     assert diagnostics["rerank_gain"]["availability_status"] == "available"
 
 
+def test_stage_binding_suggest_and_save_updates_coverage(tmp_path: Path) -> None:
+    """Проверяет suggest/save цикл stage-bindings и покрытие по кандидатам."""
+
+    store = WorkspaceRegistryStore(store_file=tmp_path / "registry.json")
+    arena = store.create_arena(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        name="stage-bindings-suggest-save",
+        description="",
+    )
+    store.save_arena_candidate_set_draft(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+        candidate_set_draft={
+            "candidate_set_id": "cset_bindings",
+            "arena_id": arena.workspace_id,
+            "candidates": [
+                {
+                    "candidate_id": "cand_rag",
+                    "selected_for_tests": True,
+                    "mini_graph": {
+                        "nodes": [
+                            {"id": "retrieve_main", "label": "retriever.bm25", "kind": "retriever"},
+                            {"id": "answer_main", "label": "llm.answer", "kind": "llm"},
+                        ]
+                    },
+                }
+            ],
+        },
+    )
+
+    suggestion = store.suggest_arena_evaluation_stage_bindings(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+    )
+    suggested_bindings = suggestion["stage_bindings"]
+    assert any(item["target_stage"] == "retrieval" for item in suggested_bindings)
+    assert any(item["target_stage"] == "synthesis" for item in suggested_bindings)
+    assert all(item["summary"]["missing_total"] == 0 for item in suggestion["stage_binding_coverage"])
+
+    saved_state = store.save_arena_evaluation_stage_bindings(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+        stage_bindings=suggested_bindings,
+    )
+    assert len(saved_state["stage_bindings"]) == len(suggested_bindings)
+    assert all(item["summary"]["bound_total"] >= 1 for item in saved_state["stage_binding_coverage"])
+
+
+def test_validation_reports_missing_stage_binding_for_enabled_diagnostics(tmp_path: Path) -> None:
+    """Проверяет ошибку validate, когда diagnostic включен без required stage-binding."""
+
+    store = WorkspaceRegistryStore(store_file=tmp_path / "registry.json")
+    arena = store.create_arena(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        name="stage-bindings-validation",
+        description="",
+    )
+    store.save_arena_candidate_set_draft(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+        candidate_set_draft={
+            "candidate_set_id": "cset_validation",
+            "arena_id": arena.workspace_id,
+            "candidates": [
+                {
+                    "candidate_id": "cand_rag",
+                    "selected_for_tests": True,
+                    "mini_graph": {
+                        "nodes": [
+                            {"id": "retrieve_main", "label": "retriever.bm25", "kind": "retriever"},
+                            {"id": "answer_main", "label": "llm.answer", "kind": "llm"},
+                        ]
+                    },
+                }
+            ],
+        },
+    )
+
+    validation_report = store.validate_arena_evaluation_profile(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+    )
+    issue_codes = {item["code"] for item in validation_report["issues"]}
+    assert validation_report["status"] == "invalid"
+    assert "stage_ref_missing" in issue_codes
+
 def test_evaluator_metric_matrix_is_present_in_evaluation_state(tmp_path: Path) -> None:
     """Проверяет, что в C4 состоянии есть матрица Evaluator x Metric по умолчанию."""
 

@@ -1465,6 +1465,55 @@ code { font-family: var(--font-mono); }
   letter-spacing: 0.05em;
 }
 
+.c4-stage-binding-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.c4-stage-binding-head,
+.c4-stage-binding-row {
+  display: grid;
+  grid-template-columns: 64px 1.4fr 0.9fr 1fr 1.2fr 1fr 90px;
+  gap: 8px;
+  align-items: center;
+}
+
+.c4-stage-binding-head {
+  color: var(--gray-500);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.c4-stage-binding-row input,
+.c4-stage-binding-row select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--gray-0);
+  color: var(--gray-900);
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.c4-stage-binding-row input[type="checkbox"] {
+  width: auto;
+  justify-self: start;
+}
+
+.c4-stage-coverage-label {
+  color: var(--gray-600);
+  font-size: 11px;
+}
+
+.c4-stage-binding-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .c4-budget-fields,
 .c5-budget-fields {
   display: grid;

@@ -1083,6 +1083,80 @@ class WorkspaceRegistryStore:
             self._write_store(data)
             return dict(studio_state)
 
+    def save_arena_evaluation_stage_bindings(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        stage_bindings: list[dict[str, Any]],
+        profile_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Сохраняет пользовательские stage_ref bindings для non-final stage-оценки."""
+
+        normalized_stage_bindings = _normalize_stage_bindings(stage_bindings)
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            studio_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
+            target_profile = _find_target_evaluation_profile(
+                studio_state=studio_state,
+                profile_id=profile_id,
+            )
+            target_profile["stage_bindings"] = normalized_stage_bindings
+            target_profile["updated_at"] = _utc_now_iso()
+            _sync_evaluation_profile_availability(
+                studio_state=studio_state,
+                candidate_set_draft=workspace.get("candidate_set_draft") if isinstance(workspace.get("candidate_set_draft"), dict) else None,
+                profile_id=profile_id,
+            )
+            studio_state["updated_at"] = _utc_now_iso()
+            workspace["evaluation_studio"] = studio_state
+            self._write_store(data)
+            return dict(studio_state)
+
+    def suggest_arena_evaluation_stage_bindings(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        profile_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Возвращает rule-based предложения stage_ref binding без автосохранения в профиль."""
+
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            candidate_set_draft = workspace.get("candidate_set_draft") if isinstance(workspace.get("candidate_set_draft"), dict) else None
+            studio_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
+            feature_flags = _extract_candidate_feature_flags(candidate_set_draft)
+            suggested_stage_bindings = _build_suggested_stage_bindings(feature_flags=feature_flags)
+            coverage = _build_stage_binding_coverage(
+                stage_bindings=suggested_stage_bindings,
+                candidate_set_draft=candidate_set_draft,
+            )
+            target_profile = _find_target_evaluation_profile(
+                studio_state=studio_state,
+                profile_id=profile_id,
+            )
+            return {
+                "profile_id": str(target_profile.get("profile_id", "")),
+                "stage_bindings": suggested_stage_bindings,
+                "stage_binding_coverage": coverage,
+                "candidate_features": feature_flags,
+            }
+
     def save_arena_evaluation_budget(
         self,
         *,
@@ -1185,6 +1259,7 @@ class WorkspaceRegistryStore:
                 "comparative_metrics": [dict(item) for item in target_profile.get("comparative_metrics", [])],
                 "diagnostic_signals": [dict(item) for item in target_profile.get("diagnostic_signals", [])],
                 "evaluators": [dict(item) for item in target_profile.get("evaluators", [])],
+                "stage_bindings": [dict(item) for item in target_profile.get("stage_bindings", [])],
                 "evaluator_metric_links": [dict(item) for item in target_profile.get("evaluator_metric_links", [])],
                 "budget": dict(target_profile.get("budget", {})),
             }
@@ -1948,6 +2023,112 @@ _DIAGNOSTIC_SIGNAL_REQUIRED_FEATURES: dict[str, tuple[str, ...]] = {
     "synthesis_drift": ("llm",),
 }
 
+# Русский комментарий: какие target_stage требуются для включенных диагностических сигналов.
+_DIAGNOSTIC_SIGNAL_REQUIRED_STAGES: dict[str, str] = {
+    "retrieval_coverage": "retrieval",
+    "rerank_gain": "rerank",
+    "synthesis_drift": "synthesis",
+}
+
+# Русский комментарий: допустимые политики резолва stage_ref при множественных совпадениях.
+_STAGE_BINDING_MATCH_POLICIES: tuple[str, ...] = ("primary_only", "all_must_pass", "best_of")
+
+
+def _normalize_stage_binding_match_policy(raw_policy: Any) -> str:
+    """Нормализует политику сопоставления stage_ref и защищает от неизвестных значений."""
+
+    normalized = str(raw_policy or "primary_only").strip().lower() or "primary_only"
+    if normalized not in _STAGE_BINDING_MATCH_POLICIES:
+        return "primary_only"
+    return normalized
+
+
+def _normalize_stage_ref(raw_value: Any, *, fallback_stage: str) -> str:
+    """Нормализует stage_ref к стабильному lower-case виду."""
+
+    value = str(raw_value or "").strip().lower()
+    if value:
+        return value
+    return f"{fallback_stage}.main"
+
+
+def _normalize_stage_binding(raw_binding: Any) -> dict[str, Any]:
+    """Нормализует одну запись stage-binding в контракт хранения."""
+
+    if not isinstance(raw_binding, dict):
+        raise ValueError("Stage binding must be an object.")
+    target_stage = _normalize_dataset_target_stage(raw_binding.get("target_stage", "final"))
+    stage_ref = _normalize_stage_ref(raw_binding.get("stage_ref", ""), fallback_stage=target_stage)
+    binding_id = str(raw_binding.get("binding_id", "")).strip() or f"sbind_{uuid4().hex[:10]}"
+    return {
+        "binding_id": binding_id,
+        "stage_ref": stage_ref,
+        "target_stage": target_stage,
+        "match_policy": _normalize_stage_binding_match_policy(raw_binding.get("match_policy", "primary_only")),
+        "enabled": bool(raw_binding.get("enabled", True)),
+        "notes": str(raw_binding.get("notes", "")).strip(),
+    }
+
+
+def _normalize_stage_bindings(raw_bindings: Any) -> list[dict[str, Any]]:
+    """Нормализует список stage-bindings и удаляет дубли по stage_ref."""
+
+    if not isinstance(raw_bindings, list):
+        return []
+    normalized: list[dict[str, Any]] = []
+    seen_stage_refs: set[str] = set()
+    for item in raw_bindings:
+        try:
+            binding = _normalize_stage_binding(item)
+        except ValueError:
+            continue
+        dedupe_key = str(binding.get("stage_ref", "")).strip().lower()
+        if not dedupe_key or dedupe_key in seen_stage_refs:
+            continue
+        seen_stage_refs.add(dedupe_key)
+        normalized.append(binding)
+    return normalized
+
+
+def _build_suggested_stage_bindings(*, feature_flags: dict[str, bool]) -> list[dict[str, Any]]:
+    """Строит детерминированные stage_ref предложения на основе feature-профиля кандидатов."""
+
+    suggestions: list[dict[str, Any]] = []
+    if bool(feature_flags.get("retrieval", False)):
+        suggestions.append(
+            {
+                "binding_id": f"sbind_{uuid4().hex[:10]}",
+                "stage_ref": "retrieval.main",
+                "target_stage": "retrieval",
+                "match_policy": "primary_only",
+                "enabled": True,
+                "notes": "Auto-suggested for retrieval diagnostics.",
+            }
+        )
+    if bool(feature_flags.get("rerank", False)):
+        suggestions.append(
+            {
+                "binding_id": f"sbind_{uuid4().hex[:10]}",
+                "stage_ref": "rerank.main",
+                "target_stage": "rerank",
+                "match_policy": "primary_only",
+                "enabled": True,
+                "notes": "Auto-suggested for rerank diagnostics.",
+            }
+        )
+    if bool(feature_flags.get("llm", False)):
+        suggestions.append(
+            {
+                "binding_id": f"sbind_{uuid4().hex[:10]}",
+                "stage_ref": "synthesis.main",
+                "target_stage": "synthesis",
+                "match_policy": "best_of",
+                "enabled": True,
+                "notes": "Auto-suggested for synthesis diagnostics.",
+            }
+        )
+    return _normalize_stage_bindings(suggestions)
+
 
 def _build_default_evaluation_studio_state() -> dict[str, Any]:
     """Строит default-состояние C4 Metrics & Evaluators Studio для новой арены."""
@@ -1966,6 +2147,8 @@ def _build_default_evaluation_studio_state() -> dict[str, Any]:
         "comparative_metrics": [dict(item) for item in default_profile.get("comparative_metrics", [])],
         "diagnostic_signals": [dict(item) for item in default_profile.get("diagnostic_signals", [])],
         "evaluators": [dict(item) for item in default_profile.get("evaluators", [])],
+        "stage_bindings": [dict(item) for item in default_profile.get("stage_bindings", [])],
+        "stage_binding_coverage": [dict(item) for item in default_profile.get("stage_binding_coverage", [])],
         "evaluator_metric_links": [dict(item) for item in default_profile.get("evaluator_metric_links", [])],
         "budget": dict(default_profile.get("budget", {})),
         "versions": [dict(item) for item in default_profile.get("versions", [])],
@@ -1981,6 +2164,7 @@ def _build_default_evaluation_profile(
     comparative_metrics: list[dict[str, Any]] | None = None,
     diagnostic_signals: list[dict[str, Any]] | None = None,
     evaluators: list[dict[str, Any]] | None = None,
+    stage_bindings: list[dict[str, Any]] | None = None,
     budget: dict[str, Any] | None = None,
     versions: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
@@ -2053,6 +2237,7 @@ def _build_default_evaluation_profile(
     normalized_comparative_metrics = _normalize_comparative_metrics(base_comparative_metrics)
     normalized_diagnostic_signals = _normalize_diagnostic_signals(base_diagnostic_signals)
     normalized_evaluators = _normalize_evaluators(base_evaluators)
+    normalized_stage_bindings = _normalize_stage_bindings(stage_bindings if stage_bindings is not None else [])
     base_budget = budget if budget is not None else {"max_cases": 20, "max_llm_calls": 100, "max_cost_usd": 5.0}
     base_versions = versions if versions is not None else []
     return {
@@ -2062,6 +2247,8 @@ def _build_default_evaluation_profile(
         "comparative_metrics": normalized_comparative_metrics,
         "diagnostic_signals": normalized_diagnostic_signals,
         "evaluators": normalized_evaluators,
+        "stage_bindings": normalized_stage_bindings,
+        "stage_binding_coverage": [],
         "evaluator_metric_links": _normalize_evaluator_metric_links(
             raw_links=[],
             comparative_metrics=normalized_comparative_metrics,
@@ -2086,6 +2273,7 @@ def _normalize_evaluation_profile_payload(raw_profile: Any) -> dict[str, Any]:
     comparative_raw = raw_profile.get("comparative_metrics", [])
     diagnostic_raw = raw_profile.get("diagnostic_signals", [])
     evaluators_raw = raw_profile.get("evaluators", [])
+    stage_bindings_raw = raw_profile.get("stage_bindings", [])
     evaluator_metric_links_raw = raw_profile.get("evaluator_metric_links", [])
     budget_raw = raw_profile.get("budget", {})
     versions_raw = raw_profile.get("versions", [])
@@ -2099,6 +2287,7 @@ def _normalize_evaluation_profile_payload(raw_profile: Any) -> dict[str, Any]:
     normalized_comparative_metrics = _normalize_comparative_metrics(comparative_raw)
     normalized_diagnostic_signals = _normalize_diagnostic_signals(diagnostic_raw)
     normalized_evaluators = _normalize_evaluators(evaluators_raw)
+    normalized_stage_bindings = _normalize_stage_bindings(stage_bindings_raw)
     return {
         "profile_id": profile_id,
         "name": name,
@@ -2106,6 +2295,8 @@ def _normalize_evaluation_profile_payload(raw_profile: Any) -> dict[str, Any]:
         "comparative_metrics": normalized_comparative_metrics,
         "diagnostic_signals": normalized_diagnostic_signals,
         "evaluators": normalized_evaluators,
+        "stage_bindings": normalized_stage_bindings,
+        "stage_binding_coverage": [],
         "evaluator_metric_links": _normalize_evaluator_metric_links(
             raw_links=evaluator_metric_links_raw,
             comparative_metrics=normalized_comparative_metrics,
@@ -2147,6 +2338,7 @@ def _normalize_evaluation_studio_state(raw_state: Any) -> dict[str, Any]:
                 comparative_metrics=raw_state.get("comparative_metrics", default_state.get("comparative_metrics", [])),
                 diagnostic_signals=raw_state.get("diagnostic_signals", default_state.get("diagnostic_signals", [])),
                 evaluators=raw_state.get("evaluators", default_state.get("evaluators", [])),
+                stage_bindings=raw_state.get("stage_bindings", default_state.get("stage_bindings", [])),
                 budget=raw_state.get("budget", default_state.get("budget", {})),
                 versions=raw_state.get("versions", []),
             )
@@ -2179,6 +2371,8 @@ def _normalize_evaluation_studio_state(raw_state: Any) -> dict[str, Any]:
         "comparative_metrics": [dict(item) for item in active_profile.get("comparative_metrics", [])],
         "diagnostic_signals": [dict(item) for item in active_profile.get("diagnostic_signals", [])],
         "evaluators": [dict(item) for item in active_profile.get("evaluators", [])],
+        "stage_bindings": [dict(item) for item in active_profile.get("stage_bindings", [])],
+        "stage_binding_coverage": [dict(item) for item in active_profile.get("stage_binding_coverage", [])],
         "evaluator_metric_links": [dict(item) for item in active_profile.get("evaluator_metric_links", [])],
         "budget": dict(active_profile.get("budget", {})),
         "versions": [dict(item) for item in active_profile.get("versions", [])],
@@ -2236,6 +2430,8 @@ def _sync_evaluation_studio_legacy_mirror_fields(studio_state: dict[str, Any]) -
     studio_state["comparative_metrics"] = [dict(item) for item in active_profile.get("comparative_metrics", [])]
     studio_state["diagnostic_signals"] = [dict(item) for item in active_profile.get("diagnostic_signals", [])]
     studio_state["evaluators"] = [dict(item) for item in active_profile.get("evaluators", [])]
+    studio_state["stage_bindings"] = [dict(item) for item in active_profile.get("stage_bindings", [])]
+    studio_state["stage_binding_coverage"] = [dict(item) for item in active_profile.get("stage_binding_coverage", [])]
     studio_state["evaluator_metric_links"] = [dict(item) for item in active_profile.get("evaluator_metric_links", [])]
     studio_state["budget"] = dict(active_profile.get("budget", {}))
     studio_state["versions"] = [dict(item) for item in active_profile.get("versions", [])]
@@ -2479,6 +2675,7 @@ def _normalize_evaluation_version(raw_version: dict[str, Any]) -> dict[str, Any]
     comparative_metrics_raw = raw_version.get("comparative_metrics", [])
     diagnostic_signals_raw = raw_version.get("diagnostic_signals", [])
     evaluators_raw = raw_version.get("evaluators", [])
+    stage_bindings_raw = raw_version.get("stage_bindings", [])
     evaluator_metric_links_raw = raw_version.get("evaluator_metric_links", [])
     budget_raw = raw_version.get("budget", {})
     normalized_comparative_metrics = _normalize_comparative_metrics(comparative_metrics_raw)
@@ -2492,6 +2689,8 @@ def _normalize_evaluation_version(raw_version: dict[str, Any]) -> dict[str, Any]
         "comparative_metrics": normalized_comparative_metrics,
         "diagnostic_signals": normalized_diagnostic_signals,
         "evaluators": normalized_evaluators,
+        "stage_bindings": _normalize_stage_bindings(stage_bindings_raw),
+        "stage_binding_coverage": [],
         "evaluator_metric_links": _normalize_evaluator_metric_links(
             raw_links=evaluator_metric_links_raw,
             comparative_metrics=normalized_comparative_metrics,
@@ -2508,6 +2707,8 @@ def _build_evaluation_profile_validation_report(*, profile: dict[str, Any]) -> d
     comparative_metrics = profile.get("comparative_metrics", [])
     diagnostic_signals = profile.get("diagnostic_signals", [])
     evaluators = profile.get("evaluators", [])
+    stage_bindings = profile.get("stage_bindings", [])
+    stage_binding_coverage = profile.get("stage_binding_coverage", [])
     evaluator_metric_links = profile.get("evaluator_metric_links", [])
     budget = profile.get("budget", {})
     issues: list[dict[str, Any]] = []
@@ -2596,6 +2797,99 @@ def _build_evaluation_profile_validation_report(*, profile: dict[str, Any]) -> d
                     "severity": "error",
                     "code": "evaluator_metric_coverage_gap",
                     "message": f"Missing evaluator links for enabled metrics/signals: {preview}{suffix}.",
+                }
+            )
+
+    required_stage_targets: list[tuple[str, str, str]] = []
+    for item in diagnostic_signals:
+        if not isinstance(item, dict):
+            continue
+        if not bool(item.get("enabled", False)) or str(item.get("availability_status", "available")) == "unavailable":
+            continue
+        signal_id = str(item.get("signal_id", "")).strip()
+        required_stage = _DIAGNOSTIC_SIGNAL_REQUIRED_STAGES.get(signal_id)
+        if required_stage:
+            required_stage_targets.append(
+                (
+                    signal_id,
+                    required_stage,
+                    str(item.get("title", signal_id)).strip() or signal_id,
+                )
+            )
+
+    stage_bindings_by_stage: dict[str, list[dict[str, Any]]] = {}
+    for item in stage_bindings:
+        if not isinstance(item, dict):
+            continue
+        if not bool(item.get("enabled", True)):
+            continue
+        target_stage = _normalize_dataset_target_stage(item.get("target_stage", "final"))
+        stage_bindings_by_stage.setdefault(target_stage, []).append(item)
+
+    coverage_by_binding_id: dict[str, dict[str, Any]] = {}
+    for item in stage_binding_coverage:
+        if not isinstance(item, dict):
+            continue
+        binding_id = str(item.get("binding_id", "")).strip()
+        if binding_id:
+            coverage_by_binding_id[binding_id] = item
+
+    for signal_id, target_stage, signal_title in required_stage_targets:
+        stage_rows = stage_bindings_by_stage.get(target_stage, [])
+        if not stage_rows:
+            issues.append(
+                {
+                    "severity": "error",
+                    "code": "stage_ref_missing",
+                    "message": f"Diagnostic `{signal_title}` requires an enabled stage binding for `{target_stage}`.",
+                }
+            )
+            continue
+
+        has_valid_binding = False
+        for binding in stage_rows:
+            binding_id = str(binding.get("binding_id", "")).strip()
+            stage_ref = str(binding.get("stage_ref", "")).strip()
+            match_policy = _normalize_stage_binding_match_policy(binding.get("match_policy", "primary_only"))
+            coverage = coverage_by_binding_id.get(binding_id, {})
+            candidates = coverage.get("candidates", []) if isinstance(coverage, dict) else []
+            if not isinstance(candidates, list):
+                candidates = []
+            missing_candidates = [item for item in candidates if isinstance(item, dict) and str(item.get("status", "")) == "missing"]
+            ambiguous_candidates = [item for item in candidates if isinstance(item, dict) and str(item.get("status", "")) == "ambiguous"]
+            if missing_candidates:
+                issues.append(
+                    {
+                        "severity": "error",
+                        "code": "stage_ref_unresolved",
+                        "message": f"Stage binding `{stage_ref}` is unresolved for {len(missing_candidates)} candidate(s).",
+                    }
+                )
+                continue
+            if ambiguous_candidates and match_policy == "primary_only":
+                issues.append(
+                    {
+                        "severity": "error",
+                        "code": "stage_ref_ambiguous",
+                        "message": f"Stage binding `{stage_ref}` has ambiguous matches under `primary_only` policy.",
+                    }
+                )
+                continue
+            if ambiguous_candidates and match_policy in {"all_must_pass", "best_of"}:
+                issues.append(
+                    {
+                        "severity": "warning",
+                        "code": "stage_ref_multi_match",
+                        "message": f"Stage binding `{stage_ref}` matched multiple candidate steps (policy `{match_policy}`).",
+                    }
+                )
+            has_valid_binding = True
+        if not has_valid_binding:
+            issues.append(
+                {
+                    "severity": "error",
+                    "code": "stage_ref_policy_violation",
+                    "message": f"Diagnostic `{signal_title}` has no valid stage binding after policy checks.",
                 }
             )
 
@@ -2898,6 +3192,11 @@ def _sync_evaluation_profile_availability(
         diagnostic_signals=target_profile.get("diagnostic_signals", []),
         evaluators=target_profile.get("evaluators", []),
     )
+    target_profile["stage_bindings"] = _normalize_stage_bindings(target_profile.get("stage_bindings", []))
+    target_profile["stage_binding_coverage"] = _build_stage_binding_coverage(
+        stage_bindings=target_profile.get("stage_bindings", []),
+        candidate_set_draft=candidate_set_draft,
+    )
     _sync_evaluation_studio_legacy_mirror_fields(studio_state)
     studio_state["candidate_features"] = dict(feature_flags)
 
@@ -3031,6 +3330,149 @@ def _resolve_candidates_for_feature_scan(candidate_set_draft: dict[str, Any] | N
     if selected_candidates:
         return selected_candidates
     return candidate_objects
+
+
+def _build_stage_binding_coverage(
+    *,
+    stage_bindings: list[dict[str, Any]],
+    candidate_set_draft: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Строит coverage-отчет stage_ref по кандидатам для C4/C6 и preflight-валидации."""
+
+    candidates = _resolve_candidates_for_feature_scan(candidate_set_draft)
+    coverage_items: list[dict[str, Any]] = []
+    for binding in stage_bindings:
+        if not isinstance(binding, dict):
+            continue
+        binding_id = str(binding.get("binding_id", "")).strip()
+        stage_ref = str(binding.get("stage_ref", "")).strip().lower()
+        target_stage = _normalize_dataset_target_stage(binding.get("target_stage", "final"))
+        match_policy = _normalize_stage_binding_match_policy(binding.get("match_policy", "primary_only"))
+        enabled = bool(binding.get("enabled", True))
+        candidate_rows: list[dict[str, Any]] = []
+        for candidate in candidates:
+            candidate_rows.append(
+                _resolve_stage_binding_for_candidate(
+                    binding_id=binding_id,
+                    stage_ref=stage_ref,
+                    target_stage=target_stage,
+                    match_policy=match_policy,
+                    candidate=candidate,
+                )
+            )
+        summary = {
+            "candidates_total": len(candidate_rows),
+            "bound_total": len([item for item in candidate_rows if str(item.get("status", "")) == "bound"]),
+            "ambiguous_total": len([item for item in candidate_rows if str(item.get("status", "")) == "ambiguous"]),
+            "missing_total": len([item for item in candidate_rows if str(item.get("status", "")) == "missing"]),
+        }
+        coverage_items.append(
+            {
+                "binding_id": binding_id,
+                "stage_ref": stage_ref,
+                "target_stage": target_stage,
+                "match_policy": match_policy,
+                "enabled": enabled,
+                "summary": summary,
+                "candidates": candidate_rows,
+            }
+        )
+    return coverage_items
+
+
+def _resolve_stage_binding_for_candidate(
+    *,
+    binding_id: str,
+    stage_ref: str,
+    target_stage: str,
+    match_policy: str,
+    candidate: dict[str, Any],
+) -> dict[str, Any]:
+    """Резолвит stage_ref в конкретном кандидате по mini_graph и возвращает подробный verdict."""
+
+    candidate_id = str(candidate.get("candidate_id", "")).strip()
+    candidate_title = str(candidate.get("title", candidate_id)).strip() or candidate_id
+    nodes = []
+    mini_graph = candidate.get("mini_graph", {})
+    if isinstance(mini_graph, dict):
+        raw_nodes = mini_graph.get("nodes", [])
+        if isinstance(raw_nodes, list):
+            nodes = [item for item in raw_nodes if isinstance(item, dict)]
+
+    matched_node_ids: list[str] = []
+    for node in nodes:
+        if _node_matches_stage_binding(node=node, stage_ref=stage_ref, target_stage=target_stage):
+            node_id = str(node.get("id", "")).strip() or str(node.get("label", "")).strip()
+            if node_id:
+                matched_node_ids.append(node_id)
+
+    resolved_total = len(matched_node_ids)
+    status = "bound"
+    reason = "Stage binding resolved."
+    confidence = 1.0
+    if resolved_total <= 0:
+        status = "missing"
+        reason = "No candidate steps matched stage_ref."
+        confidence = 0.0
+    elif match_policy == "primary_only" and resolved_total > 1:
+        status = "ambiguous"
+        reason = "Multiple candidate steps matched stage_ref under primary_only policy."
+        confidence = 0.45
+    elif resolved_total > 1:
+        status = "bound"
+        reason = f"Multiple steps matched; policy `{match_policy}` allows this."
+        confidence = 0.75
+
+    return {
+        "binding_id": binding_id,
+        "candidate_id": candidate_id,
+        "candidate_title": candidate_title,
+        "status": status,
+        "resolved_step_ids": matched_node_ids,
+        "resolved_steps_total": resolved_total,
+        "confidence": round(confidence, 3),
+        "reason": reason,
+    }
+
+
+def _node_matches_stage_binding(*, node: dict[str, Any], stage_ref: str, target_stage: str) -> bool:
+    """Проверяет, соответствует ли узел mini_graph заданному stage_ref и target_stage."""
+
+    node_id = str(node.get("id", "")).strip().lower()
+    node_label = str(node.get("label", "")).strip().lower()
+    node_kind = str(node.get("kind", "")).strip().lower()
+    node_tags = node.get("tags", [])
+    tags_text = " ".join(str(item).strip().lower() for item in node_tags) if isinstance(node_tags, list) else ""
+    tokens = f"{node_id} {node_label} {node_kind} {tags_text}".strip()
+    stage_keywords = _target_stage_keywords(target_stage=target_stage)
+    if stage_keywords and not any(keyword in tokens for keyword in stage_keywords):
+        return False
+    tail = _stage_ref_tail_token(stage_ref)
+    if tail and tail not in {"main", "primary", "default"} and tail not in tokens:
+        return False
+    return True
+
+
+def _stage_ref_tail_token(stage_ref: str) -> str:
+    """Возвращает tail-токен stage_ref после точки для дополнительной фильтрации узлов."""
+
+    value = str(stage_ref).strip().lower()
+    if "." not in value:
+        return value
+    return value.split(".", 1)[1].strip()
+
+
+def _target_stage_keywords(*, target_stage: str) -> tuple[str, ...]:
+    """Возвращает эвристические ключевые слова для поиска узлов конкретной стадии."""
+
+    normalized_stage = _normalize_dataset_target_stage(target_stage)
+    if normalized_stage == "retrieval":
+        return ("retriev", "rag", "search")
+    if normalized_stage == "rerank":
+        return ("rerank",)
+    if normalized_stage == "synthesis":
+        return ("llm", "synth", "compose", "answer")
+    return ("llm", "answer", "output", "final")
 
 
 def _build_optimizer_setup_issues(

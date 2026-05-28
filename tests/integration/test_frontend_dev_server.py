@@ -252,6 +252,8 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert len(eval_state_payload["diagnostic_signals"]) >= 1
         assert len(eval_state_payload["evaluators"]) >= 1
         assert isinstance(eval_state_payload["evaluator_metric_links"], list)
+        assert isinstance(eval_state_payload["stage_bindings"], list)
+        assert isinstance(eval_state_payload["stage_binding_coverage"], list)
         assert isinstance(eval_state_payload["candidate_features"], dict)
         assert eval_state_payload["candidate_features"]["llm"] is False
         assert eval_state_payload["candidate_features"]["retrieval"] is False
@@ -417,6 +419,28 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert compile_gate_payload["compile_gate"]["selected_candidates"] == 1
         assert compile_gate_payload["candidate_set_draft"]["compile_gate"]["status"] == compile_gate_payload["compile_gate"]["status"]
         assert compile_gate_payload["messages_total"] >= 3
+
+        status_eval_stage_suggest, eval_stage_suggest_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/evaluation/stage-bindings/suggest",
+            {},
+        )
+        assert status_eval_stage_suggest == 200
+        assert eval_stage_suggest_payload["status"] == "success"
+        assert eval_stage_suggest_payload["action"] == "suggest_stage_bindings"
+        assert isinstance(eval_stage_suggest_payload["suggested_stage_bindings"], list)
+        assert isinstance(eval_stage_suggest_payload["suggested_stage_binding_coverage"], list)
+
+        status_eval_stage_save, eval_stage_save_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/evaluation/stage-bindings/save",
+            {
+                "stage_bindings": eval_stage_suggest_payload["suggested_stage_bindings"],
+            },
+        )
+        assert status_eval_stage_save == 200
+        assert eval_stage_save_payload["status"] == "success"
+        assert eval_stage_save_payload["action"] == "save_stage_bindings"
+        assert isinstance(eval_stage_save_payload["stage_bindings"], list)
+        assert isinstance(eval_stage_save_payload["stage_binding_coverage"], list)
 
         status_optimizer_validate_after_compile, optimizer_validate_after_compile_payload = _json_post(
             f"{base_url}/api/arenas/{arena_id}/optimizer/validate",

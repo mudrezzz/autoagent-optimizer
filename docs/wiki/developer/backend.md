@@ -127,6 +127,25 @@ Validation contract v2:
 
 `POST /api/arenas/{arena_id}/evaluation/matrix/save`
 
+`POST /api/arenas/{arena_id}/evaluation/stage-bindings/suggest`
+
+`POST /api/arenas/{arena_id}/evaluation/stage-bindings/save`
+
+```json
+{
+  "stage_bindings": [
+    {
+      "binding_id": "sbind_123",
+      "stage_ref": "retrieval.main",
+      "target_stage": "retrieval",
+      "match_policy": "primary_only",
+      "enabled": true,
+      "notes": "optional"
+    }
+  ]
+}
+```
+
 `POST /api/arenas/{arena_id}/evaluation/budget/save`
 
 `POST /api/arenas/{arena_id}/evaluation/validate`
@@ -147,6 +166,18 @@ Evaluator coverage behavior:
 
 1. `evaluator_metric_links` stores explicit mapping for comparative and diagnostic targets.
 2. Validation returns `evaluator_metric_coverage_gap` when enabled metric/signal has no enabled evaluator link.
+
+Stage binding behavior:
+
+1. `suggest` endpoint returns rule-based proposals and coverage without mutating profile state.
+2. `save` endpoint persists normalized bindings and recomputes `stage_binding_coverage`.
+3. Validation checks enabled non-final diagnostics against required `target_stage` bindings.
+4. Validation may return:
+- `stage_ref_missing`,
+- `stage_ref_unresolved`,
+- `stage_ref_ambiguous`,
+- `stage_ref_multi_match`,
+- `stage_ref_policy_violation`.
 
 Validate report statuses:
 

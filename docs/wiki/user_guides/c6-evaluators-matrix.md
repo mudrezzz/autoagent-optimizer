@@ -19,10 +19,16 @@ This prevents invalid evaluation profiles where metrics are enabled but no evalu
 - rows are comparative metrics and diagnostic signals,
 - columns are enabled/available evaluators.
 5. Click `Save matrix`.
-6. Click `Validate profile`:
-- `ready`: matrix coverage is valid,
-- `invalid`: missing evaluator links for one or more enabled metrics/signals.
+6. In `Stage bindings (stage_ref)`, define stage mappings for non-final diagnostics:
+- click `Suggest stage refs` to auto-fill rule-based bindings,
+- adjust `stage_ref`, `target_stage`, and `match_policy` if needed,
+- click `Save stage bindings`.
+7. Click `Validate profile`:
+- `ready`: matrix and stage bindings are valid,
+- `invalid`: missing evaluator links or invalid stage binding coverage.
 
 ## Validation Rule
 
-For each enabled metric/signal, at least one enabled evaluator must have an enabled matrix link.
+ For each enabled metric/signal, at least one enabled evaluator must have an enabled matrix link.
+
+For enabled non-final diagnostics, at least one valid stage binding must exist for the required target stage.

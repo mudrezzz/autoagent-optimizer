@@ -48,11 +48,12 @@ In C4 Metrics & Evaluators Studio:
 2. Diagnostic signals are edited via checkboxes and saved with `Save diagnostics`.
 3. Evaluators are edited via checkboxes and saved with `Save evaluators`.
 4. Evaluator x Metric matrix is edited via per-cell checkboxes and saved with `Save matrix`.
-5. Budget is edited via numeric fields and saved with `Save budget`.
-6. `Validate profile` returns status + issues.
-7. `Save version` snapshots the evaluation profile.
-8. Unavailable metrics/signals (based on candidate features) are rendered as disabled controls with reason text.
-9. Candidate feature summary is displayed at the top of C5 Metrics screen.
+5. `Stage bindings (stage_ref)` card allows manual edit plus auto-suggest (`Suggest stage refs`) and explicit persist (`Save stage bindings`).
+6. Budget is edited via numeric fields and saved with `Save budget`.
+7. `Validate profile` returns status + issues.
+8. `Save version` snapshots the evaluation profile.
+9. Unavailable metrics/signals (based on candidate features) are rendered as disabled controls with reason text.
+10. Candidate feature summary is displayed at the top of C5 Metrics screen.
 
 State is loaded through `fetchArenaDatasetState` + `fetchArenaEvaluationState` and refreshed after each C4 action.
 

@@ -48,5 +48,6 @@ nav:
       - V2.4.S3: releases/v2.4.s3.md
       - V2.4.S4: releases/v2.4.s4.md
       - V2.4.S5: releases/v2.4.s5.md
+      - V2.4.S5a: releases/v2.4.s5a.md
   - Governance:
       - ADR to Wiki Policy: governance/adr-to-wiki-policy.md

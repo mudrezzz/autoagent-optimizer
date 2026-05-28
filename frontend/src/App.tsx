@@ -25,6 +25,8 @@ import {
   saveArenaEvaluationBudget,
   saveArenaEvaluationEvaluators,
   saveArenaEvaluationMatrix,
+  saveArenaEvaluationStageBindings,
+  suggestArenaEvaluationStageBindings,
   saveArenaEvaluationMetrics,
   saveArenaEvaluationVersion,
   searchArenaPatterns,
@@ -49,6 +51,8 @@ import type {
   C4DatasetTargetStage,
   C4EvaluationBudget,
   C4EvaluatorMetricLink,
+  C4StageBinding,
+  C4StageBindingCoverage,
   C4EvaluationVersion,
   C4Evaluator,
   C5OptimizerBudget,
@@ -142,6 +146,8 @@ type UiState = {
   c4ComparativeMetrics: C4ComparativeMetric[];
   c4DiagnosticSignals: C4DiagnosticSignal[];
   c4Evaluators: C4Evaluator[];
+  c4StageBindings: C4StageBinding[];
+  c4StageBindingCoverage: C4StageBindingCoverage[];
   c4EvaluatorMetricLinks: C4EvaluatorMetricLink[];
   c4EvaluationBudget: C4EvaluationBudget;
   c4EvaluationVersions: C4EvaluationVersion[];
@@ -216,6 +222,8 @@ export function App(): JSX.Element {
     c4ComparativeMetrics: [],
     c4DiagnosticSignals: [],
     c4Evaluators: [],
+    c4StageBindings: [],
+    c4StageBindingCoverage: [],
     c4EvaluatorMetricLinks: [],
     c4EvaluationBudget: { max_cases: 0, max_llm_calls: 0, max_cost_usd: 0 },
     c4EvaluationVersions: [],
@@ -266,6 +274,18 @@ export function App(): JSX.Element {
     () => state.c4Evaluators.filter((item) => item.enabled),
     [state.c4Evaluators],
   );
+
+  // Русский комментарий: индекс coverage по binding_id для быстрого рендера C6 Stage bindings таблицы.
+  const c4StageCoverageByBindingId = useMemo(() => {
+    const index = new Map<string, C4StageBindingCoverage>();
+    for (const item of state.c4StageBindingCoverage) {
+      if (!item?.binding_id) {
+        continue;
+      }
+      index.set(item.binding_id, item);
+    }
+    return index;
+  }, [state.c4StageBindingCoverage]);
 
   // Русский комментарий: workspace-меню работает как wizard с вычисляемыми статусами шагов.
   const capabilityWizardItems = useMemo(
@@ -383,6 +403,8 @@ export function App(): JSX.Element {
       c4ComparativeMetrics: [],
       c4DiagnosticSignals: [],
       c4Evaluators: [],
+      c4StageBindings: [],
+      c4StageBindingCoverage: [],
       c4EvaluatorMetricLinks: [],
       c4EvaluationBudget: { max_cases: 0, max_llm_calls: 0, max_cost_usd: 0 },
       c4EvaluationVersions: [],
@@ -505,6 +527,8 @@ export function App(): JSX.Element {
         c4ComparativeMetrics: [],
         c4DiagnosticSignals: [],
         c4Evaluators: [],
+        c4StageBindings: [],
+        c4StageBindingCoverage: [],
         c4EvaluatorMetricLinks: [],
         c4EvaluationBudget: { max_cases: 0, max_llm_calls: 0, max_cost_usd: 0 },
         c4EvaluationVersions: [],
@@ -685,6 +709,8 @@ export function App(): JSX.Element {
       c4ComparativeMetrics: response.comparative_metrics,
       c4DiagnosticSignals: response.diagnostic_signals,
       c4Evaluators: response.evaluators,
+      c4StageBindings: response.stage_bindings ?? [],
+      c4StageBindingCoverage: response.stage_binding_coverage ?? [],
       c4EvaluatorMetricLinks: response.evaluator_metric_links,
       c4CandidateFeatures: response.candidate_features ?? {},
       c4EvaluationBudget: response.budget,
@@ -1268,6 +1294,8 @@ export function App(): JSX.Element {
         c4ComparativeMetrics: response.comparative_metrics,
         c4DiagnosticSignals: response.diagnostic_signals,
         c4Evaluators: response.evaluators,
+        c4StageBindings: response.stage_bindings ?? prev.c4StageBindings,
+        c4StageBindingCoverage: response.stage_binding_coverage ?? prev.c4StageBindingCoverage,
         c4EvaluatorMetricLinks: response.evaluator_metric_links,
         c4CandidateFeatures: response.candidate_features ?? prev.c4CandidateFeatures,
         c4EvaluationBudget: response.budget,
@@ -1301,6 +1329,8 @@ export function App(): JSX.Element {
         c4ComparativeMetrics: response.comparative_metrics,
         c4DiagnosticSignals: response.diagnostic_signals,
         c4Evaluators: response.evaluators,
+        c4StageBindings: response.stage_bindings ?? prev.c4StageBindings,
+        c4StageBindingCoverage: response.stage_binding_coverage ?? prev.c4StageBindingCoverage,
         c4EvaluatorMetricLinks: response.evaluator_metric_links,
         c4CandidateFeatures: response.candidate_features ?? prev.c4CandidateFeatures,
         c4EvaluationBudget: response.budget,
@@ -1334,12 +1364,135 @@ export function App(): JSX.Element {
         c4ComparativeMetrics: response.comparative_metrics,
         c4DiagnosticSignals: response.diagnostic_signals,
         c4Evaluators: response.evaluators,
+        c4StageBindings: response.stage_bindings ?? prev.c4StageBindings,
+        c4StageBindingCoverage: response.stage_binding_coverage ?? prev.c4StageBindingCoverage,
         c4EvaluatorMetricLinks: response.evaluator_metric_links,
         c4CandidateFeatures: response.candidate_features ?? prev.c4CandidateFeatures,
         c4EvaluationBudget: response.budget,
         c4EvaluationVersions: response.versions,
         budgetPercent: 100,
         budgetStage: "evaluation matrix saved",
+        jsonText: prettyJson(snapshot),
+        lastPayload: snapshot,
+      }));
+    } catch (error) {
+      setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
+    }
+  }
+
+  // Русский комментарий: добавляет новую пустую stage_ref binding строку в C6.
+  function handleAddC4StageBindingRow(): void {
+    const localId = `sbind_local_${Date.now()}`;
+    setState((prev) => ({
+      ...prev,
+      c4StageBindings: [
+        ...prev.c4StageBindings,
+        {
+          binding_id: localId,
+          stage_ref: "retrieval.main",
+          target_stage: "retrieval",
+          match_policy: "primary_only",
+          enabled: true,
+          notes: "",
+        },
+      ],
+    }));
+  }
+
+  // Русский комментарий: обновляет поле выбранной stage_ref binding строки.
+  function handleUpdateC4StageBindingField(
+    bindingId: string,
+    field: "stage_ref" | "target_stage" | "match_policy" | "enabled" | "notes",
+    value: string | boolean,
+  ): void {
+    setState((prev) => ({
+      ...prev,
+      c4StageBindings: prev.c4StageBindings.map((item) => {
+        if (item.binding_id !== bindingId) {
+          return item;
+        }
+        if (field === "enabled") {
+          return { ...item, enabled: Boolean(value) };
+        }
+        return { ...item, [field]: String(value) };
+      }),
+    }));
+  }
+
+  // Русский комментарий: удаляет stage_ref binding строку из локального C6 состояния.
+  function handleDeleteC4StageBinding(bindingId: string): void {
+    setState((prev) => ({
+      ...prev,
+      c4StageBindings: prev.c4StageBindings.filter((item) => item.binding_id !== bindingId),
+    }));
+  }
+
+  // Русский комментарий: сохраняет stage_ref bindings в backend и подтягивает coverage.
+  async function handleSaveC4StageBindings(): Promise<void> {
+    if (!state.activeArenaId) {
+      return;
+    }
+    setState((prev) => ({ ...prev, budgetStage: "saving stage bindings", budgetPercent: 60 }));
+    try {
+      const response = await saveArenaEvaluationStageBindings(state.activeArenaId, state.c4StageBindings);
+      const snapshot = {
+        status: "success",
+        capability_id: "c6",
+        action: response.action ?? "save_stage_bindings",
+        arena_id: state.activeArenaId,
+        stage_bindings_total: (response.stage_bindings ?? []).length,
+      };
+      setState((prev) => ({
+        ...prev,
+        c4ComparativeMetrics: response.comparative_metrics,
+        c4DiagnosticSignals: response.diagnostic_signals,
+        c4Evaluators: response.evaluators,
+        c4StageBindings: response.stage_bindings ?? prev.c4StageBindings,
+        c4StageBindingCoverage: response.stage_binding_coverage ?? prev.c4StageBindingCoverage,
+        c4EvaluatorMetricLinks: response.evaluator_metric_links,
+        c4CandidateFeatures: response.candidate_features ?? prev.c4CandidateFeatures,
+        c4EvaluationBudget: response.budget,
+        c4EvaluationVersions: response.versions,
+        budgetPercent: 100,
+        budgetStage: "stage bindings saved",
+        jsonText: prettyJson(snapshot),
+        lastPayload: snapshot,
+      }));
+    } catch (error) {
+      setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
+    }
+  }
+
+  // Русский комментарий: запрашивает rule-based предложения stage_ref bindings и подставляет их в форму.
+  async function handleSuggestC4StageBindings(): Promise<void> {
+    if (!state.activeArenaId) {
+      return;
+    }
+    setState((prev) => ({ ...prev, budgetStage: "suggesting stage bindings", budgetPercent: 60 }));
+    try {
+      const response = await suggestArenaEvaluationStageBindings(state.activeArenaId);
+      const suggestedBindings = response.suggested_stage_bindings ?? [];
+      const suggestedCoverage = response.suggested_stage_binding_coverage ?? [];
+      const snapshot = {
+        status: "success",
+        capability_id: "c6",
+        action: response.action ?? "suggest_stage_bindings",
+        arena_id: state.activeArenaId,
+        suggested_total: suggestedBindings.length,
+      };
+      setState((prev) => ({
+        ...prev,
+        c4ComparativeMetrics: response.comparative_metrics,
+        c4DiagnosticSignals: response.diagnostic_signals,
+        c4Evaluators: response.evaluators,
+        c4StageBindings: suggestedBindings.length > 0 ? suggestedBindings : prev.c4StageBindings,
+        c4StageBindingCoverage: suggestedCoverage.length > 0 ? suggestedCoverage : prev.c4StageBindingCoverage,
+        c4EvaluatorMetricLinks: response.evaluator_metric_links,
+        c4CandidateFeatures: response.candidate_features ?? prev.c4CandidateFeatures,
+        c4EvaluationBudget: response.budget,
+        c4EvaluationVersions: response.versions,
+        budgetPercent: 100,
+        budgetStage: "stage binding suggestions ready",
         jsonText: prettyJson(snapshot),
         lastPayload: snapshot,
       }));
@@ -1367,6 +1520,8 @@ export function App(): JSX.Element {
         c4ComparativeMetrics: response.comparative_metrics,
         c4DiagnosticSignals: response.diagnostic_signals,
         c4Evaluators: response.evaluators,
+        c4StageBindings: response.stage_bindings ?? prev.c4StageBindings,
+        c4StageBindingCoverage: response.stage_binding_coverage ?? prev.c4StageBindingCoverage,
         c4EvaluatorMetricLinks: response.evaluator_metric_links,
         c4CandidateFeatures: response.candidate_features ?? prev.c4CandidateFeatures,
         c4EvaluationBudget: response.budget,
@@ -1403,6 +1558,8 @@ export function App(): JSX.Element {
         c4ComparativeMetrics: response.comparative_metrics,
         c4DiagnosticSignals: response.diagnostic_signals,
         c4Evaluators: response.evaluators,
+        c4StageBindings: response.stage_bindings ?? prev.c4StageBindings,
+        c4StageBindingCoverage: response.stage_binding_coverage ?? prev.c4StageBindingCoverage,
         c4EvaluatorMetricLinks: response.evaluator_metric_links,
         c4CandidateFeatures: response.candidate_features ?? prev.c4CandidateFeatures,
         c4EvaluationBudget: response.budget,
@@ -1440,6 +1597,8 @@ export function App(): JSX.Element {
         c4ComparativeMetrics: response.comparative_metrics,
         c4DiagnosticSignals: response.diagnostic_signals,
         c4Evaluators: response.evaluators,
+        c4StageBindings: response.stage_bindings ?? prev.c4StageBindings,
+        c4StageBindingCoverage: response.stage_binding_coverage ?? prev.c4StageBindingCoverage,
         c4EvaluatorMetricLinks: response.evaluator_metric_links,
         c4CandidateFeatures: response.candidate_features ?? prev.c4CandidateFeatures,
         c4EvaluationBudget: response.budget,
@@ -2863,6 +3022,97 @@ export function App(): JSX.Element {
                                   <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EvaluationEvaluators(); }} disabled={!state.activeArenaId}>
                                     Save evaluators
                                   </button>
+                                </section>
+                                <section className="c4-eval-card">
+                                  <div className="c4-eval-card-title">Stage bindings (stage_ref)</div>
+                                  <div className="c4-stage-binding-grid">
+                                    <div className="c4-stage-binding-head">
+                                      <span>Enabled</span>
+                                      <span>stage_ref</span>
+                                      <span>target</span>
+                                      <span>policy</span>
+                                      <span>coverage</span>
+                                      <span>notes</span>
+                                      <span />
+                                    </div>
+                                    {state.c4StageBindings.length <= 0 ? (
+                                      <div className="issue-row info">No stage bindings yet. Use `Suggest stage refs` or add a row manually.</div>
+                                    ) : state.c4StageBindings.map((binding) => {
+                                      const coverage = c4StageCoverageByBindingId.get(binding.binding_id);
+                                      const summary = coverage?.summary;
+                                      const coverageLabel = summary
+                                        ? `bound ${summary.bound_total} · amb ${summary.ambiguous_total} · missing ${summary.missing_total}`
+                                        : "not computed";
+                                      return (
+                                        <div key={binding.binding_id} className="c4-stage-binding-row">
+                                          <input
+                                            type="checkbox"
+                                            checked={binding.enabled}
+                                            onChange={(event) => {
+                                              handleUpdateC4StageBindingField(binding.binding_id, "enabled", event.target.checked);
+                                            }}
+                                            aria-label={`toggle-stage-binding-${binding.binding_id}`}
+                                          />
+                                          <input
+                                            value={binding.stage_ref}
+                                            onChange={(event) => {
+                                              handleUpdateC4StageBindingField(binding.binding_id, "stage_ref", event.target.value);
+                                            }}
+                                            placeholder="retrieval.main"
+                                          />
+                                          <select
+                                            value={binding.target_stage}
+                                            onChange={(event) => {
+                                              handleUpdateC4StageBindingField(binding.binding_id, "target_stage", event.target.value);
+                                            }}
+                                          >
+                                            <option value="retrieval">retrieval</option>
+                                            <option value="rerank">rerank</option>
+                                            <option value="synthesis">synthesis</option>
+                                            <option value="final">final</option>
+                                          </select>
+                                          <select
+                                            value={binding.match_policy}
+                                            onChange={(event) => {
+                                              handleUpdateC4StageBindingField(binding.binding_id, "match_policy", event.target.value);
+                                            }}
+                                          >
+                                            <option value="primary_only">primary_only</option>
+                                            <option value="all_must_pass">all_must_pass</option>
+                                            <option value="best_of">best_of</option>
+                                          </select>
+                                          <div className="c4-stage-coverage-label">{coverageLabel}</div>
+                                          <input
+                                            value={binding.notes}
+                                            onChange={(event) => {
+                                              handleUpdateC4StageBindingField(binding.binding_id, "notes", event.target.value);
+                                            }}
+                                            placeholder="optional notes"
+                                          />
+                                          <button
+                                            type="button"
+                                            className="candidate-details-toggle"
+                                            onClick={() => {
+                                              handleDeleteC4StageBinding(binding.binding_id);
+                                            }}
+                                          >
+                                            Delete
+                                          </button>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                  <div className="c4-stage-binding-actions">
+                                    <button type="button" className="tb-btn tb-btn-ghost" onClick={handleAddC4StageBindingRow} disabled={!state.activeArenaId}>
+                                      Add row
+                                    </button>
+                                    <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSuggestC4StageBindings(); }} disabled={!state.activeArenaId}>
+                                      Suggest stage refs
+                                    </button>
+                                    <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4StageBindings(); }} disabled={!state.activeArenaId}>
+                                      Save stage bindings
+                                    </button>
+                                  </div>
                                 </section>
                                 <section className="c4-eval-card">
                                   <div className="c4-eval-card-title">Evaluator x Metric matrix</div>
