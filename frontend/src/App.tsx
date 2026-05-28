@@ -261,6 +261,12 @@ export function App(): JSX.Element {
     [state.arenas, state.activeArenaId],
   );
 
+  // Русский комментарий: в матрице Evaluator x Metric показываем только включенные evaluators.
+  const enabledC4Evaluators = useMemo(
+    () => state.c4Evaluators.filter((item) => item.enabled),
+    [state.c4Evaluators],
+  );
+
   // Русский комментарий: workspace-меню работает как wizard с вычисляемыми статусами шагов.
   const capabilityWizardItems = useMemo(
     () => buildCapabilityWizardItems(state.capabilities, state, route.name === "battle_workspace"),
@@ -1196,14 +1202,34 @@ export function App(): JSX.Element {
 
   // Русский комментарий: локально переключает связь evaluator x metric в матрице покрытия.
   function handleToggleC4EvaluatorMetricLink(evaluatorId: string, metricKind: "comparative" | "diagnostic", metricId: string): void {
-    setState((prev) => ({
-      ...prev,
-      c4EvaluatorMetricLinks: prev.c4EvaluatorMetricLinks.map((link) =>
-        link.evaluator_id === evaluatorId && link.metric_kind === metricKind && link.metric_id === metricId
-          ? { ...link, enabled: !link.enabled }
-          : link
-      ),
-    }));
+    setState((prev) => {
+      const index = prev.c4EvaluatorMetricLinks.findIndex(
+        (link) =>
+          link.evaluator_id === evaluatorId &&
+          link.metric_kind === metricKind &&
+          link.metric_id === metricId
+      );
+      if (index < 0) {
+        return {
+          ...prev,
+          c4EvaluatorMetricLinks: [
+            ...prev.c4EvaluatorMetricLinks,
+            {
+              evaluator_id: evaluatorId,
+              metric_kind: metricKind,
+              metric_id: metricId,
+              enabled: true,
+            },
+          ],
+        };
+      }
+      return {
+        ...prev,
+        c4EvaluatorMetricLinks: prev.c4EvaluatorMetricLinks.map((link, linkIndex) =>
+          linkIndex === index ? { ...link, enabled: !link.enabled } : link
+        ),
+      };
+    });
   }
 
   // Русский комментарий: обновляет одно поле бюджетных ограничений evaluation profile.
@@ -2845,7 +2871,7 @@ export function App(): JSX.Element {
                                       <thead>
                                         <tr>
                                           <th>Metric</th>
-                                          {state.c4Evaluators.map((evaluator) => (
+                                          {enabledC4Evaluators.map((evaluator) => (
                                             <th key={`matrix-head:${evaluator.evaluator_id}`}>{evaluator.title}</th>
                                           ))}
                                         </tr>
@@ -2875,7 +2901,7 @@ export function App(): JSX.Element {
                                                 {metricTarget.title}
                                                 <span className="c4-matrix-row-meta">{metricTarget.metric_kind}</span>
                                               </td>
-                                              {state.c4Evaluators.map((evaluator) => {
+                                              {enabledC4Evaluators.map((evaluator) => {
                                                 const link = state.c4EvaluatorMetricLinks.find(
                                                   (item) =>
                                                     item.evaluator_id === evaluator.evaluator_id &&
@@ -2903,6 +2929,11 @@ export function App(): JSX.Element {
                                             </tr>
                                           );
                                         })}
+                                        {enabledC4Evaluators.length <= 0 ? (
+                                          <tr>
+                                            <td colSpan={2}>Enable at least one evaluator to configure matrix coverage.</td>
+                                          </tr>
+                                        ) : null}
                                       </tbody>
                                     </table>
                                   </div>
