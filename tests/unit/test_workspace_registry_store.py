@@ -307,8 +307,8 @@ def test_evaluation_metrics_availability_enables_retrieval_signals_for_rag_candi
     assert diagnostics["rerank_gain"]["availability_status"] == "available"
 
 
-def test_stage_binding_suggest_and_save_updates_coverage(tmp_path: Path) -> None:
-    """Проверяет suggest/save цикл stage-bindings и покрытие по кандидатам."""
+def test_stage_mapping_auto_map_and_save_updates_coverage(tmp_path: Path) -> None:
+    """Проверяет auto-map/save цикл stage_mappings и покрытие по кандидатам."""
 
     store = WorkspaceRegistryStore(store_file=tmp_path / "registry.json")
     arena = store.create_arena(
@@ -339,28 +339,28 @@ def test_stage_binding_suggest_and_save_updates_coverage(tmp_path: Path) -> None
         },
     )
 
-    suggestion = store.suggest_arena_evaluation_stage_bindings(
+    suggestion = store.auto_map_arena_evaluation_stage_mappings(
         tenant_id="tenant_a",
         owner_user_id="user_a",
         arena_id=arena.workspace_id,
     )
-    suggested_bindings = suggestion["stage_bindings"]
-    assert any(item["target_stage"] == "retrieval" for item in suggested_bindings)
-    assert any(item["target_stage"] == "synthesis" for item in suggested_bindings)
-    assert all(item["summary"]["missing_total"] == 0 for item in suggestion["stage_binding_coverage"])
+    suggested_mappings = suggestion["stage_mappings"]
+    assert any(item["target_stage"] == "retrieval" for item in suggested_mappings)
+    assert any(item["target_stage"] == "synthesis" for item in suggested_mappings)
+    assert all(str(item["status"]) == "bound" for item in suggestion["stage_mapping_coverage"])
 
-    saved_state = store.save_arena_evaluation_stage_bindings(
+    saved_state = store.save_arena_evaluation_stage_mappings(
         tenant_id="tenant_a",
         owner_user_id="user_a",
         arena_id=arena.workspace_id,
-        stage_bindings=suggested_bindings,
+        stage_mappings=suggested_mappings,
     )
-    assert len(saved_state["stage_bindings"]) == len(suggested_bindings)
-    assert all(item["summary"]["bound_total"] >= 1 for item in saved_state["stage_binding_coverage"])
+    assert len(saved_state["stage_mappings"]) == len(suggested_mappings)
+    assert all(str(item["status"]) == "bound" for item in saved_state["stage_mapping_coverage"])
 
 
-def test_validation_reports_missing_stage_binding_for_enabled_diagnostics(tmp_path: Path) -> None:
-    """Проверяет ошибку validate, когда diagnostic включен без required stage-binding."""
+def test_validation_reports_missing_stage_mapping_for_enabled_diagnostics(tmp_path: Path) -> None:
+    """Проверяет ошибку validate, когда diagnostic включен без required stage-mapping."""
 
     store = WorkspaceRegistryStore(store_file=tmp_path / "registry.json")
     arena = store.create_arena(
@@ -398,7 +398,7 @@ def test_validation_reports_missing_stage_binding_for_enabled_diagnostics(tmp_pa
     )
     issue_codes = {item["code"] for item in validation_report["issues"]}
     assert validation_report["status"] == "invalid"
-    assert "stage_ref_missing" in issue_codes
+    assert "stage_mapping_missing" in issue_codes
 
 def test_evaluator_metric_matrix_is_present_in_evaluation_state(tmp_path: Path) -> None:
     """Проверяет, что в C4 состоянии есть матрица Evaluator x Metric по умолчанию."""

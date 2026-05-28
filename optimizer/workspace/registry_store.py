@@ -1083,18 +1083,17 @@ class WorkspaceRegistryStore:
             self._write_store(data)
             return dict(studio_state)
 
-    def save_arena_evaluation_stage_bindings(
+    def save_arena_evaluation_stage_mappings(
         self,
         *,
         tenant_id: str,
         owner_user_id: str,
         arena_id: str,
-        stage_bindings: list[dict[str, Any]],
+        stage_mappings: list[dict[str, Any]],
         profile_id: str | None = None,
     ) -> dict[str, Any]:
-        """Сохраняет пользовательские stage_ref bindings для non-final stage-оценки."""
+        """Сохраняет пользовательские stage mappings для non-final stage-оценки."""
 
-        normalized_stage_bindings = _normalize_stage_bindings(stage_bindings)
         with self._lock:
             data = self._read_store()
             workspace = self._find_workspace(
@@ -1108,11 +1107,15 @@ class WorkspaceRegistryStore:
                 studio_state=studio_state,
                 profile_id=profile_id,
             )
-            target_profile["stage_bindings"] = normalized_stage_bindings
+            candidate_set_draft = workspace.get("candidate_set_draft") if isinstance(workspace.get("candidate_set_draft"), dict) else None
+            target_profile["stage_mappings"] = _normalize_stage_mappings(
+                stage_mappings,
+                candidate_set_draft=candidate_set_draft,
+            )
             target_profile["updated_at"] = _utc_now_iso()
             _sync_evaluation_profile_availability(
                 studio_state=studio_state,
-                candidate_set_draft=workspace.get("candidate_set_draft") if isinstance(workspace.get("candidate_set_draft"), dict) else None,
+                candidate_set_draft=candidate_set_draft,
                 profile_id=profile_id,
             )
             studio_state["updated_at"] = _utc_now_iso()
@@ -1120,7 +1123,7 @@ class WorkspaceRegistryStore:
             self._write_store(data)
             return dict(studio_state)
 
-    def suggest_arena_evaluation_stage_bindings(
+    def auto_map_arena_evaluation_stage_mappings(
         self,
         *,
         tenant_id: str,
@@ -1128,7 +1131,7 @@ class WorkspaceRegistryStore:
         arena_id: str,
         profile_id: str | None = None,
     ) -> dict[str, Any]:
-        """Возвращает rule-based предложения stage_ref binding без автосохранения в профиль."""
+        """Возвращает auto-map stage mappings по target_stage без автосохранения в профиль."""
 
         with self._lock:
             data = self._read_store()
@@ -1140,22 +1143,82 @@ class WorkspaceRegistryStore:
             )
             candidate_set_draft = workspace.get("candidate_set_draft") if isinstance(workspace.get("candidate_set_draft"), dict) else None
             studio_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
-            feature_flags = _extract_candidate_feature_flags(candidate_set_draft)
-            suggested_stage_bindings = _build_suggested_stage_bindings(feature_flags=feature_flags)
-            coverage = _build_stage_binding_coverage(
-                stage_bindings=suggested_stage_bindings,
-                candidate_set_draft=candidate_set_draft,
-            )
             target_profile = _find_target_evaluation_profile(
                 studio_state=studio_state,
                 profile_id=profile_id,
             )
+            required_target_stages = _resolve_required_target_stages_for_profile(profile=target_profile)
+            suggested_stage_mappings = _build_auto_stage_mappings(
+                candidate_set_draft=candidate_set_draft,
+                target_stages=required_target_stages,
+            )
+            coverage = _build_stage_mapping_coverage(
+                stage_mappings=suggested_stage_mappings,
+                candidate_set_draft=candidate_set_draft,
+            )
             return {
                 "profile_id": str(target_profile.get("profile_id", "")),
-                "stage_bindings": suggested_stage_bindings,
-                "stage_binding_coverage": coverage,
-                "candidate_features": feature_flags,
+                "stage_mappings": suggested_stage_mappings,
+                "stage_mapping_coverage": coverage,
+                "candidate_features": _extract_candidate_feature_flags(candidate_set_draft),
             }
+
+    def save_arena_evaluation_stage_bindings(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        stage_bindings: list[dict[str, Any]],
+        profile_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Legacy-wrapper: конвертирует stage_bindings в stage_mappings и сохраняет их."""
+
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            candidate_set_draft = workspace.get("candidate_set_draft") if isinstance(workspace.get("candidate_set_draft"), dict) else None
+        legacy_mappings = _convert_stage_bindings_to_stage_mappings(
+            stage_bindings=stage_bindings,
+            candidate_set_draft=candidate_set_draft,
+        )
+        return self.save_arena_evaluation_stage_mappings(
+            tenant_id=tenant_id,
+            owner_user_id=owner_user_id,
+            arena_id=arena_id,
+            stage_mappings=legacy_mappings,
+            profile_id=profile_id,
+        )
+
+    def suggest_arena_evaluation_stage_bindings(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        profile_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Legacy-wrapper: возвращает предложения в старом `stage_bindings` формате."""
+
+        payload = self.auto_map_arena_evaluation_stage_mappings(
+            tenant_id=tenant_id,
+            owner_user_id=owner_user_id,
+            arena_id=arena_id,
+            profile_id=profile_id,
+        )
+        stage_mappings = payload.get("stage_mappings", [])
+        stage_mapping_coverage = payload.get("stage_mapping_coverage", [])
+        return {
+            "profile_id": payload.get("profile_id", ""),
+            "stage_bindings": _convert_stage_mappings_to_stage_bindings(stage_mappings=stage_mappings),
+            "stage_binding_coverage": _convert_stage_mapping_coverage_to_binding_coverage(stage_mapping_coverage=stage_mapping_coverage),
+            "candidate_features": payload.get("candidate_features", {}),
+        }
 
     def save_arena_evaluation_budget(
         self,
@@ -1260,6 +1323,7 @@ class WorkspaceRegistryStore:
                 "diagnostic_signals": [dict(item) for item in target_profile.get("diagnostic_signals", [])],
                 "evaluators": [dict(item) for item in target_profile.get("evaluators", [])],
                 "stage_bindings": [dict(item) for item in target_profile.get("stage_bindings", [])],
+                "stage_mappings": [dict(item) for item in target_profile.get("stage_mappings", [])],
                 "evaluator_metric_links": [dict(item) for item in target_profile.get("evaluator_metric_links", [])],
                 "budget": dict(target_profile.get("budget", {})),
             }
@@ -2130,6 +2194,343 @@ def _build_suggested_stage_bindings(*, feature_flags: dict[str, bool]) -> list[d
     return _normalize_stage_bindings(suggestions)
 
 
+def _resolve_required_target_stages_for_profile(*, profile: dict[str, Any]) -> list[str]:
+    """Возвращает список required target_stage для включенных diagnostic сигналов."""
+
+    diagnostic_signals = profile.get("diagnostic_signals", [])
+    stages: list[str] = []
+    seen: set[str] = set()
+    if not isinstance(diagnostic_signals, list):
+        return stages
+    for item in diagnostic_signals:
+        if not isinstance(item, dict):
+            continue
+        if not bool(item.get("enabled", False)) or str(item.get("availability_status", "available")) == "unavailable":
+            continue
+        signal_id = str(item.get("signal_id", "")).strip()
+        target_stage = _DIAGNOSTIC_SIGNAL_REQUIRED_STAGES.get(signal_id)
+        if not target_stage or target_stage in seen:
+            continue
+        seen.add(target_stage)
+        stages.append(target_stage)
+    return stages
+
+
+def _normalize_stage_mapping_node_ids(raw_value: Any) -> list[str]:
+    """Нормализует выбранные node ids stage mapping в уникальный список строк."""
+
+    if isinstance(raw_value, str):
+        raw_value = [item.strip() for item in raw_value.split(",")]
+    if not isinstance(raw_value, list):
+        return []
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for item in raw_value:
+        value = str(item).strip()
+        if not value or value in seen:
+            continue
+        seen.add(value)
+        normalized.append(value)
+    return normalized
+
+
+def _normalize_stage_mapping_status(raw_status: Any) -> str:
+    """Нормализует статус stage mapping строки."""
+
+    normalized = str(raw_status or "").strip().lower()
+    if normalized in {"bound", "ambiguous", "missing"}:
+        return normalized
+    return "missing"
+
+
+def _normalize_stage_mapping(
+    raw_mapping: Any,
+    *,
+    candidate_set_draft: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Нормализует одну запись stage mapping в контракт хранения."""
+
+    if not isinstance(raw_mapping, dict):
+        raise ValueError("Stage mapping must be an object.")
+    target_stage = _normalize_dataset_target_stage(raw_mapping.get("target_stage", "final"))
+    candidate_id = str(raw_mapping.get("candidate_id", "")).strip()
+    if not candidate_id:
+        raise ValueError("Stage mapping requires `candidate_id`.")
+    candidate_title = str(raw_mapping.get("candidate_title", candidate_id)).strip() or candidate_id
+    mapping_id = str(raw_mapping.get("mapping_id", "")).strip() or f"smap_{uuid4().hex[:10]}"
+    selected_node_ids = _normalize_stage_mapping_node_ids(raw_mapping.get("selected_node_ids", []))
+    suggested_node_ids = _normalize_stage_mapping_node_ids(raw_mapping.get("suggested_node_ids", selected_node_ids))
+    confidence_raw = raw_mapping.get("confidence", 0.0)
+    try:
+        confidence = float(confidence_raw)
+    except (TypeError, ValueError):
+        confidence = 0.0
+    confidence = max(0.0, min(1.0, confidence))
+    normalized_status = _normalize_stage_mapping_status(raw_mapping.get("status", "missing"))
+    if not selected_node_ids:
+        normalized_status = "missing"
+        confidence = 0.0
+    elif len(selected_node_ids) > 1 and normalized_status not in {"bound", "ambiguous"}:
+        normalized_status = "ambiguous"
+    return {
+        "mapping_id": mapping_id,
+        "target_stage": target_stage,
+        "candidate_id": candidate_id,
+        "candidate_title": candidate_title,
+        "selected_node_ids": selected_node_ids,
+        "suggested_node_ids": suggested_node_ids,
+        "status": normalized_status,
+        "confidence": round(confidence, 3),
+        "reason": str(raw_mapping.get("reason", "")).strip(),
+        "enabled": bool(raw_mapping.get("enabled", True)),
+        "notes": str(raw_mapping.get("notes", "")).strip(),
+        "source": str(raw_mapping.get("source", "manual")).strip() or "manual",
+    }
+
+
+def _normalize_stage_mappings(
+    raw_mappings: Any,
+    *,
+    candidate_set_draft: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Нормализует список stage mappings и удаляет дубли по target_stage/candidate_id."""
+
+    if not isinstance(raw_mappings, list):
+        return []
+    normalized: list[dict[str, Any]] = []
+    seen_keys: set[str] = set()
+    for item in raw_mappings:
+        try:
+            mapping = _normalize_stage_mapping(item, candidate_set_draft=candidate_set_draft)
+        except ValueError:
+            continue
+        dedupe_key = f"{mapping.get('target_stage','')}::{mapping.get('candidate_id','')}".strip().lower()
+        if not dedupe_key or dedupe_key in seen_keys:
+            continue
+        seen_keys.add(dedupe_key)
+        normalized.append(mapping)
+    return normalized
+
+
+def _build_auto_stage_mappings(
+    *,
+    candidate_set_draft: dict[str, Any] | None,
+    target_stages: list[str],
+) -> list[dict[str, Any]]:
+    """Строит auto-map stage mappings по выбранным кандидатам и target_stage."""
+
+    candidates = _resolve_candidates_for_feature_scan(candidate_set_draft)
+    normalized_target_stages: list[str] = []
+    seen_stages: set[str] = set()
+    for item in target_stages:
+        stage = _normalize_dataset_target_stage(item)
+        if stage in seen_stages:
+            continue
+        seen_stages.add(stage)
+        normalized_target_stages.append(stage)
+    mappings: list[dict[str, Any]] = []
+    for stage in normalized_target_stages:
+        for candidate in candidates:
+            candidate_id = str(candidate.get("candidate_id", "")).strip()
+            candidate_title = str(candidate.get("title", candidate_id)).strip() or candidate_id
+            suggested_node_ids = _resolve_candidate_node_ids_for_stage(candidate=candidate, target_stage=stage)
+            selected_node_ids = suggested_node_ids[:1]
+            status = "missing"
+            confidence = 0.0
+            reason = f"No `{stage}` node detected in candidate graph."
+            if selected_node_ids and len(suggested_node_ids) == 1:
+                status = "bound"
+                confidence = 0.95
+                reason = f"Single `{stage}` node matched candidate graph."
+            elif selected_node_ids and len(suggested_node_ids) > 1:
+                status = "ambiguous"
+                confidence = 0.55
+                reason = f"Multiple `{stage}` nodes matched; primary node selected automatically."
+            mappings.append(
+                {
+                    "mapping_id": f"smap_{uuid4().hex[:10]}",
+                    "target_stage": stage,
+                    "candidate_id": candidate_id,
+                    "candidate_title": candidate_title,
+                    "selected_node_ids": selected_node_ids,
+                    "suggested_node_ids": suggested_node_ids,
+                    "status": status,
+                    "confidence": confidence,
+                    "reason": reason,
+                    "enabled": True,
+                    "notes": "auto-mapped",
+                    "source": "auto",
+                }
+            )
+    return _normalize_stage_mappings(mappings, candidate_set_draft=candidate_set_draft)
+
+
+def _resolve_candidate_node_ids_for_stage(*, candidate: dict[str, Any], target_stage: str) -> list[str]:
+    """Возвращает список node ids кандидата, соответствующих указанному target_stage."""
+
+    mini_graph = candidate.get("mini_graph", {})
+    nodes = mini_graph.get("nodes", []) if isinstance(mini_graph, dict) else []
+    if not isinstance(nodes, list):
+        return []
+    stage_keywords = _target_stage_keywords(target_stage=target_stage)
+    node_ids: list[str] = []
+    for node in nodes:
+        if not isinstance(node, dict):
+            continue
+        node_id = str(node.get("id", "")).strip()
+        node_label = str(node.get("label", "")).strip().lower()
+        node_kind = str(node.get("kind", "")).strip().lower()
+        tags = node.get("tags", [])
+        tags_text = " ".join(str(item).strip().lower() for item in tags) if isinstance(tags, list) else ""
+        tokens = f"{node_id.lower()} {node_label} {node_kind} {tags_text}".strip()
+        if not stage_keywords or any(keyword in tokens for keyword in stage_keywords):
+            if node_id:
+                node_ids.append(node_id)
+    return _normalize_stage_mapping_node_ids(node_ids)
+
+
+def _build_stage_mapping_coverage(
+    *,
+    stage_mappings: list[dict[str, Any]],
+    candidate_set_draft: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Строит coverage-отчет stage mappings по target_stage/candidate."""
+
+    normalized = _normalize_stage_mappings(stage_mappings, candidate_set_draft=candidate_set_draft)
+    coverage_items: list[dict[str, Any]] = []
+    for mapping in normalized:
+        selected_node_ids = _normalize_stage_mapping_node_ids(mapping.get("selected_node_ids", []))
+        status = _normalize_stage_mapping_status(mapping.get("status", "missing"))
+        if not selected_node_ids:
+            status = "missing"
+        coverage_items.append(
+            {
+                "mapping_id": str(mapping.get("mapping_id", "")).strip(),
+                "target_stage": _normalize_dataset_target_stage(mapping.get("target_stage", "final")),
+                "candidate_id": str(mapping.get("candidate_id", "")).strip(),
+                "candidate_title": str(mapping.get("candidate_title", "")).strip(),
+                "selected_node_ids": selected_node_ids,
+                "selected_nodes_total": len(selected_node_ids),
+                "status": status,
+                "confidence": float(mapping.get("confidence", 0.0) or 0.0),
+                "reason": str(mapping.get("reason", "")).strip(),
+                "enabled": bool(mapping.get("enabled", True)),
+                "source": str(mapping.get("source", "manual")).strip() or "manual",
+            }
+        )
+    return coverage_items
+
+
+def _convert_stage_bindings_to_stage_mappings(
+    *,
+    stage_bindings: Any,
+    candidate_set_draft: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Конвертирует legacy stage_bindings в stage_mappings по кандидатам."""
+
+    bindings = _normalize_stage_bindings(stage_bindings)
+    candidates = _resolve_candidates_for_feature_scan(candidate_set_draft)
+    mappings: list[dict[str, Any]] = []
+    for binding in bindings:
+        target_stage = _normalize_dataset_target_stage(binding.get("target_stage", "final"))
+        match_policy = _normalize_stage_binding_match_policy(binding.get("match_policy", "primary_only"))
+        stage_ref = str(binding.get("stage_ref", "")).strip().lower()
+        for candidate in candidates:
+            verdict = _resolve_stage_binding_for_candidate(
+                binding_id=str(binding.get("binding_id", "")).strip(),
+                stage_ref=stage_ref,
+                target_stage=target_stage,
+                match_policy=match_policy,
+                candidate=candidate,
+            )
+            mappings.append(
+                {
+                    "mapping_id": f"smap_{uuid4().hex[:10]}",
+                    "target_stage": target_stage,
+                    "candidate_id": str(verdict.get("candidate_id", "")).strip(),
+                    "candidate_title": str(verdict.get("candidate_title", "")).strip(),
+                    "selected_node_ids": list(verdict.get("resolved_step_ids", []) if isinstance(verdict.get("resolved_step_ids", []), list) else []),
+                    "suggested_node_ids": list(verdict.get("resolved_step_ids", []) if isinstance(verdict.get("resolved_step_ids", []), list) else []),
+                    "status": str(verdict.get("status", "missing")),
+                    "confidence": float(verdict.get("confidence", 0.0) or 0.0),
+                    "reason": str(verdict.get("reason", "")).strip(),
+                    "enabled": bool(binding.get("enabled", True)),
+                    "notes": str(binding.get("notes", "")).strip(),
+                    "source": "legacy_stage_binding",
+                }
+            )
+    return _normalize_stage_mappings(mappings, candidate_set_draft=candidate_set_draft)
+
+
+def _convert_stage_mappings_to_stage_bindings(*, stage_mappings: Any) -> list[dict[str, Any]]:
+    """Конвертирует stage_mappings в legacy stage_bindings (internal compatibility)."""
+
+    if not isinstance(stage_mappings, list):
+        return []
+    grouped: dict[str, dict[str, Any]] = {}
+    for mapping in stage_mappings:
+        if not isinstance(mapping, dict):
+            continue
+        target_stage = _normalize_dataset_target_stage(mapping.get("target_stage", "final"))
+        key = target_stage
+        if key in grouped:
+            continue
+        grouped[key] = {
+            "binding_id": f"sbind_{uuid4().hex[:10]}",
+            "stage_ref": f"{target_stage}.main",
+            "target_stage": target_stage,
+            "match_policy": "primary_only",
+            "enabled": True,
+            "notes": "Auto-converted from stage_mappings.",
+        }
+    return _normalize_stage_bindings(list(grouped.values()))
+
+
+def _convert_stage_mapping_coverage_to_binding_coverage(*, stage_mapping_coverage: Any) -> list[dict[str, Any]]:
+    """Конвертирует coverage stage_mappings в legacy binding coverage формат."""
+
+    if not isinstance(stage_mapping_coverage, list):
+        return []
+    grouped: dict[str, dict[str, Any]] = {}
+    for item in stage_mapping_coverage:
+        if not isinstance(item, dict):
+            continue
+        target_stage = _normalize_dataset_target_stage(item.get("target_stage", "final"))
+        group = grouped.get(target_stage)
+        if group is None:
+            group = {
+                "binding_id": f"sbind_{uuid4().hex[:10]}",
+                "stage_ref": f"{target_stage}.main",
+                "target_stage": target_stage,
+                "match_policy": "primary_only",
+                "enabled": True,
+                "summary": {"candidates_total": 0, "bound_total": 0, "ambiguous_total": 0, "missing_total": 0},
+                "candidates": [],
+            }
+            grouped[target_stage] = group
+        status = str(item.get("status", "missing")).strip().lower()
+        group["summary"]["candidates_total"] += 1
+        if status == "bound":
+            group["summary"]["bound_total"] += 1
+        elif status == "ambiguous":
+            group["summary"]["ambiguous_total"] += 1
+        else:
+            group["summary"]["missing_total"] += 1
+        group["candidates"].append(
+            {
+                "binding_id": group["binding_id"],
+                "candidate_id": str(item.get("candidate_id", "")).strip(),
+                "candidate_title": str(item.get("candidate_title", "")).strip(),
+                "status": status,
+                "resolved_step_ids": list(item.get("selected_node_ids", []) if isinstance(item.get("selected_node_ids", []), list) else []),
+                "resolved_steps_total": int(item.get("selected_nodes_total", 0) or 0),
+                "confidence": round(float(item.get("confidence", 0.0) or 0.0), 3),
+                "reason": str(item.get("reason", "")).strip(),
+            }
+        )
+    return list(grouped.values())
+
+
 def _build_default_evaluation_studio_state() -> dict[str, Any]:
     """Строит default-состояние C4 Metrics & Evaluators Studio для новой арены."""
 
@@ -2149,6 +2550,8 @@ def _build_default_evaluation_studio_state() -> dict[str, Any]:
         "evaluators": [dict(item) for item in default_profile.get("evaluators", [])],
         "stage_bindings": [dict(item) for item in default_profile.get("stage_bindings", [])],
         "stage_binding_coverage": [dict(item) for item in default_profile.get("stage_binding_coverage", [])],
+        "stage_mappings": [dict(item) for item in default_profile.get("stage_mappings", [])],
+        "stage_mapping_coverage": [dict(item) for item in default_profile.get("stage_mapping_coverage", [])],
         "evaluator_metric_links": [dict(item) for item in default_profile.get("evaluator_metric_links", [])],
         "budget": dict(default_profile.get("budget", {})),
         "versions": [dict(item) for item in default_profile.get("versions", [])],
@@ -2165,6 +2568,7 @@ def _build_default_evaluation_profile(
     diagnostic_signals: list[dict[str, Any]] | None = None,
     evaluators: list[dict[str, Any]] | None = None,
     stage_bindings: list[dict[str, Any]] | None = None,
+    stage_mappings: list[dict[str, Any]] | None = None,
     budget: dict[str, Any] | None = None,
     versions: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
@@ -2238,6 +2642,7 @@ def _build_default_evaluation_profile(
     normalized_diagnostic_signals = _normalize_diagnostic_signals(base_diagnostic_signals)
     normalized_evaluators = _normalize_evaluators(base_evaluators)
     normalized_stage_bindings = _normalize_stage_bindings(stage_bindings if stage_bindings is not None else [])
+    normalized_stage_mappings = _normalize_stage_mappings(stage_mappings if stage_mappings is not None else [], candidate_set_draft=None)
     base_budget = budget if budget is not None else {"max_cases": 20, "max_llm_calls": 100, "max_cost_usd": 5.0}
     base_versions = versions if versions is not None else []
     return {
@@ -2249,6 +2654,8 @@ def _build_default_evaluation_profile(
         "evaluators": normalized_evaluators,
         "stage_bindings": normalized_stage_bindings,
         "stage_binding_coverage": [],
+        "stage_mappings": normalized_stage_mappings,
+        "stage_mapping_coverage": [],
         "evaluator_metric_links": _normalize_evaluator_metric_links(
             raw_links=[],
             comparative_metrics=normalized_comparative_metrics,
@@ -2274,6 +2681,7 @@ def _normalize_evaluation_profile_payload(raw_profile: Any) -> dict[str, Any]:
     diagnostic_raw = raw_profile.get("diagnostic_signals", [])
     evaluators_raw = raw_profile.get("evaluators", [])
     stage_bindings_raw = raw_profile.get("stage_bindings", [])
+    stage_mappings_raw = raw_profile.get("stage_mappings", [])
     evaluator_metric_links_raw = raw_profile.get("evaluator_metric_links", [])
     budget_raw = raw_profile.get("budget", {})
     versions_raw = raw_profile.get("versions", [])
@@ -2288,6 +2696,7 @@ def _normalize_evaluation_profile_payload(raw_profile: Any) -> dict[str, Any]:
     normalized_diagnostic_signals = _normalize_diagnostic_signals(diagnostic_raw)
     normalized_evaluators = _normalize_evaluators(evaluators_raw)
     normalized_stage_bindings = _normalize_stage_bindings(stage_bindings_raw)
+    normalized_stage_mappings = _normalize_stage_mappings(stage_mappings_raw, candidate_set_draft=None)
     return {
         "profile_id": profile_id,
         "name": name,
@@ -2297,6 +2706,8 @@ def _normalize_evaluation_profile_payload(raw_profile: Any) -> dict[str, Any]:
         "evaluators": normalized_evaluators,
         "stage_bindings": normalized_stage_bindings,
         "stage_binding_coverage": [],
+        "stage_mappings": normalized_stage_mappings,
+        "stage_mapping_coverage": [],
         "evaluator_metric_links": _normalize_evaluator_metric_links(
             raw_links=evaluator_metric_links_raw,
             comparative_metrics=normalized_comparative_metrics,
@@ -2339,6 +2750,7 @@ def _normalize_evaluation_studio_state(raw_state: Any) -> dict[str, Any]:
                 diagnostic_signals=raw_state.get("diagnostic_signals", default_state.get("diagnostic_signals", [])),
                 evaluators=raw_state.get("evaluators", default_state.get("evaluators", [])),
                 stage_bindings=raw_state.get("stage_bindings", default_state.get("stage_bindings", [])),
+                stage_mappings=raw_state.get("stage_mappings", default_state.get("stage_mappings", [])),
                 budget=raw_state.get("budget", default_state.get("budget", {})),
                 versions=raw_state.get("versions", []),
             )
@@ -2373,6 +2785,8 @@ def _normalize_evaluation_studio_state(raw_state: Any) -> dict[str, Any]:
         "evaluators": [dict(item) for item in active_profile.get("evaluators", [])],
         "stage_bindings": [dict(item) for item in active_profile.get("stage_bindings", [])],
         "stage_binding_coverage": [dict(item) for item in active_profile.get("stage_binding_coverage", [])],
+        "stage_mappings": [dict(item) for item in active_profile.get("stage_mappings", [])],
+        "stage_mapping_coverage": [dict(item) for item in active_profile.get("stage_mapping_coverage", [])],
         "evaluator_metric_links": [dict(item) for item in active_profile.get("evaluator_metric_links", [])],
         "budget": dict(active_profile.get("budget", {})),
         "versions": [dict(item) for item in active_profile.get("versions", [])],
@@ -2432,6 +2846,8 @@ def _sync_evaluation_studio_legacy_mirror_fields(studio_state: dict[str, Any]) -
     studio_state["evaluators"] = [dict(item) for item in active_profile.get("evaluators", [])]
     studio_state["stage_bindings"] = [dict(item) for item in active_profile.get("stage_bindings", [])]
     studio_state["stage_binding_coverage"] = [dict(item) for item in active_profile.get("stage_binding_coverage", [])]
+    studio_state["stage_mappings"] = [dict(item) for item in active_profile.get("stage_mappings", [])]
+    studio_state["stage_mapping_coverage"] = [dict(item) for item in active_profile.get("stage_mapping_coverage", [])]
     studio_state["evaluator_metric_links"] = [dict(item) for item in active_profile.get("evaluator_metric_links", [])]
     studio_state["budget"] = dict(active_profile.get("budget", {}))
     studio_state["versions"] = [dict(item) for item in active_profile.get("versions", [])]
@@ -2676,6 +3092,7 @@ def _normalize_evaluation_version(raw_version: dict[str, Any]) -> dict[str, Any]
     diagnostic_signals_raw = raw_version.get("diagnostic_signals", [])
     evaluators_raw = raw_version.get("evaluators", [])
     stage_bindings_raw = raw_version.get("stage_bindings", [])
+    stage_mappings_raw = raw_version.get("stage_mappings", [])
     evaluator_metric_links_raw = raw_version.get("evaluator_metric_links", [])
     budget_raw = raw_version.get("budget", {})
     normalized_comparative_metrics = _normalize_comparative_metrics(comparative_metrics_raw)
@@ -2691,6 +3108,8 @@ def _normalize_evaluation_version(raw_version: dict[str, Any]) -> dict[str, Any]
         "evaluators": normalized_evaluators,
         "stage_bindings": _normalize_stage_bindings(stage_bindings_raw),
         "stage_binding_coverage": [],
+        "stage_mappings": _normalize_stage_mappings(stage_mappings_raw, candidate_set_draft=None),
+        "stage_mapping_coverage": [],
         "evaluator_metric_links": _normalize_evaluator_metric_links(
             raw_links=evaluator_metric_links_raw,
             comparative_metrics=normalized_comparative_metrics,
@@ -2707,8 +3126,8 @@ def _build_evaluation_profile_validation_report(*, profile: dict[str, Any]) -> d
     comparative_metrics = profile.get("comparative_metrics", [])
     diagnostic_signals = profile.get("diagnostic_signals", [])
     evaluators = profile.get("evaluators", [])
-    stage_bindings = profile.get("stage_bindings", [])
-    stage_binding_coverage = profile.get("stage_binding_coverage", [])
+    stage_mappings = profile.get("stage_mappings", [])
+    stage_mapping_coverage = profile.get("stage_mapping_coverage", [])
     evaluator_metric_links = profile.get("evaluator_metric_links", [])
     budget = profile.get("budget", {})
     issues: list[dict[str, Any]] = []
@@ -2817,79 +3236,66 @@ def _build_evaluation_profile_validation_report(*, profile: dict[str, Any]) -> d
                 )
             )
 
-    stage_bindings_by_stage: dict[str, list[dict[str, Any]]] = {}
-    for item in stage_bindings:
+    stage_mappings_by_stage: dict[str, list[dict[str, Any]]] = {}
+    for item in stage_mappings:
         if not isinstance(item, dict):
             continue
         if not bool(item.get("enabled", True)):
             continue
         target_stage = _normalize_dataset_target_stage(item.get("target_stage", "final"))
-        stage_bindings_by_stage.setdefault(target_stage, []).append(item)
+        stage_mappings_by_stage.setdefault(target_stage, []).append(item)
 
-    coverage_by_binding_id: dict[str, dict[str, Any]] = {}
-    for item in stage_binding_coverage:
+    coverage_by_mapping_id: dict[str, dict[str, Any]] = {}
+    for item in stage_mapping_coverage:
         if not isinstance(item, dict):
             continue
-        binding_id = str(item.get("binding_id", "")).strip()
-        if binding_id:
-            coverage_by_binding_id[binding_id] = item
+        mapping_id = str(item.get("mapping_id", "")).strip()
+        if mapping_id:
+            coverage_by_mapping_id[mapping_id] = item
 
     for signal_id, target_stage, signal_title in required_stage_targets:
-        stage_rows = stage_bindings_by_stage.get(target_stage, [])
+        stage_rows = stage_mappings_by_stage.get(target_stage, [])
         if not stage_rows:
             issues.append(
                 {
                     "severity": "error",
-                    "code": "stage_ref_missing",
-                    "message": f"Diagnostic `{signal_title}` requires an enabled stage binding for `{target_stage}`.",
+                    "code": "stage_mapping_missing",
+                    "message": f"Diagnostic `{signal_title}` requires enabled stage mapping for `{target_stage}`.",
                 }
             )
             continue
 
-        has_valid_binding = False
-        for binding in stage_rows:
-            binding_id = str(binding.get("binding_id", "")).strip()
-            stage_ref = str(binding.get("stage_ref", "")).strip()
-            match_policy = _normalize_stage_binding_match_policy(binding.get("match_policy", "primary_only"))
-            coverage = coverage_by_binding_id.get(binding_id, {})
-            candidates = coverage.get("candidates", []) if isinstance(coverage, dict) else []
-            if not isinstance(candidates, list):
-                candidates = []
-            missing_candidates = [item for item in candidates if isinstance(item, dict) and str(item.get("status", "")) == "missing"]
-            ambiguous_candidates = [item for item in candidates if isinstance(item, dict) and str(item.get("status", "")) == "ambiguous"]
-            if missing_candidates:
+        has_valid_mapping = False
+        for mapping in stage_rows:
+            mapping_id = str(mapping.get("mapping_id", "")).strip()
+            coverage = coverage_by_mapping_id.get(mapping_id, {})
+            status = str(coverage.get("status", "")).strip().lower() if isinstance(coverage, dict) else ""
+            selected_nodes_total = int(coverage.get("selected_nodes_total", 0) or 0) if isinstance(coverage, dict) else 0
+            if status == "missing" or selected_nodes_total <= 0:
                 issues.append(
                     {
                         "severity": "error",
-                        "code": "stage_ref_unresolved",
-                        "message": f"Stage binding `{stage_ref}` is unresolved for {len(missing_candidates)} candidate(s).",
+                        "code": "stage_mapping_unresolved",
+                        "message": f"Stage mapping for `{target_stage}` is unresolved for candidate `{mapping.get('candidate_title', mapping.get('candidate_id', 'unknown'))}`.",
                     }
                 )
                 continue
-            if ambiguous_candidates and match_policy == "primary_only":
+            if status == "ambiguous":
                 issues.append(
                     {
                         "severity": "error",
-                        "code": "stage_ref_ambiguous",
-                        "message": f"Stage binding `{stage_ref}` has ambiguous matches under `primary_only` policy.",
+                        "code": "stage_mapping_ambiguous",
+                        "message": f"Stage mapping for `{target_stage}` is ambiguous for candidate `{mapping.get('candidate_title', mapping.get('candidate_id', 'unknown'))}`.",
                     }
                 )
                 continue
-            if ambiguous_candidates and match_policy in {"all_must_pass", "best_of"}:
-                issues.append(
-                    {
-                        "severity": "warning",
-                        "code": "stage_ref_multi_match",
-                        "message": f"Stage binding `{stage_ref}` matched multiple candidate steps (policy `{match_policy}`).",
-                    }
-                )
-            has_valid_binding = True
-        if not has_valid_binding:
+            has_valid_mapping = True
+        if not has_valid_mapping:
             issues.append(
                 {
                     "severity": "error",
-                    "code": "stage_ref_policy_violation",
-                    "message": f"Diagnostic `{signal_title}` has no valid stage binding after policy checks.",
+                    "code": "stage_mapping_policy_violation",
+                    "message": f"Diagnostic `{signal_title}` has no valid stage mapping after checks.",
                 }
             )
 
@@ -3193,9 +3599,22 @@ def _sync_evaluation_profile_availability(
         evaluators=target_profile.get("evaluators", []),
     )
     target_profile["stage_bindings"] = _normalize_stage_bindings(target_profile.get("stage_bindings", []))
-    target_profile["stage_binding_coverage"] = _build_stage_binding_coverage(
-        stage_bindings=target_profile.get("stage_bindings", []),
+    normalized_stage_mappings = _normalize_stage_mappings(
+        target_profile.get("stage_mappings", []),
         candidate_set_draft=candidate_set_draft,
+    )
+    if not normalized_stage_mappings and target_profile.get("stage_bindings", []):
+        normalized_stage_mappings = _convert_stage_bindings_to_stage_mappings(
+            stage_bindings=target_profile.get("stage_bindings", []),
+            candidate_set_draft=candidate_set_draft,
+        )
+    target_profile["stage_mappings"] = normalized_stage_mappings
+    target_profile["stage_mapping_coverage"] = _build_stage_mapping_coverage(
+        stage_mappings=target_profile.get("stage_mappings", []),
+        candidate_set_draft=candidate_set_draft,
+    )
+    target_profile["stage_binding_coverage"] = _convert_stage_mapping_coverage_to_binding_coverage(
+        stage_mapping_coverage=target_profile.get("stage_mapping_coverage", []),
     )
     _sync_evaluation_studio_legacy_mirror_fields(studio_state)
     studio_state["candidate_features"] = dict(feature_flags)

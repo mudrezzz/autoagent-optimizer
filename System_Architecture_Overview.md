@@ -198,10 +198,11 @@ Input (Tenant + User + Battle + Task Brief + Constraints + Data + Budget)
    - C4 UX unification layer: candidate-like dataset list, multi-dataset assignment (`/datasets/assign`) and dedicated dataset editor screen with breadcrumbs.
    - C4 metrics & evaluators studio v0 (comparative/diagnostic metrics, evaluator adapters, budget limits, validate/version flow) via `/api/arenas/{id}/evaluation/*`.
    - V2.4.S4 evaluator-matrix layer: explicit `evaluator_metric_links` contract + `POST /api/arenas/{id}/evaluation/matrix/save` + validation guard `evaluator_metric_coverage_gap`.
+   - V2.4.S5b target-stage-first mapping layer: `stage_mappings` contract + `POST /api/arenas/{id}/evaluation/stage-mapping/auto-map` + `POST /api/arenas/{id}/evaluation/stage-mapping/save` + validation guards (`stage_mapping_*`).
    - C4 corrective UX split: explicit `Datasets`/`Metrics` tabs with isolated user flows and regression tests.
    - C5 optimizer setup studio v0 (methods/controls/run-plan/budget, preflight guardrails, profile versioning, launch queue) via `/api/arenas/{id}/optimizer/*`.
 2. Next:
-   - Vertical product delivery track shifts to `V2.4.*`: wizard orchestration + C4/C5/C6 decoupling + dataset v2 schema + contextual chat.
+   - Vertical product delivery track shifts to `V2.4.*`: wizard orchestration + C4/C5/C6 decoupling + dataset v2 schema + target-stage-first mapping + contextual chat.
    - Evaluation Fabric & MetricOps (`I5.*`) including evaluator adapter layer and post-export native evaluation loop.
 
 ## Decision Records

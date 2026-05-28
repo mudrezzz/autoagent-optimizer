@@ -405,6 +405,37 @@ export type C4StageBindingCoverage = {
   candidates: C4StageBindingCandidateCoverage[];
 };
 
+// Русский комментарий: строка пользовательского stage mapping (target_stage -> candidate node ids).
+export type C4StageMapping = {
+  mapping_id: string;
+  target_stage: "retrieval" | "rerank" | "synthesis" | "final" | string;
+  candidate_id: string;
+  candidate_title: string;
+  selected_node_ids: string[];
+  suggested_node_ids: string[];
+  status: "bound" | "ambiguous" | "missing" | string;
+  confidence: number;
+  reason: string;
+  enabled: boolean;
+  notes: string;
+  source: "auto" | "manual" | string;
+};
+
+// Русский комментарий: coverage-вердикт для одной строки stage mapping.
+export type C4StageMappingCoverage = {
+  mapping_id: string;
+  target_stage: "retrieval" | "rerank" | "synthesis" | "final" | string;
+  candidate_id: string;
+  candidate_title: string;
+  selected_node_ids: string[];
+  selected_nodes_total: number;
+  status: "bound" | "ambiguous" | "missing" | string;
+  confidence: number;
+  reason: string;
+  enabled: boolean;
+  source: "auto" | "manual" | string;
+};
+
 // Русский комментарий: бюджет evaluation profile.
 export type C4EvaluationBudget = {
   max_cases: number;
@@ -422,6 +453,7 @@ export type C4EvaluationVersion = {
   enabled_diagnostic_total: number;
   enabled_evaluators_total: number;
   enabled_stage_bindings_total?: number;
+  enabled_stage_mappings_total?: number;
 };
 
 // Русский комментарий: ответ состояния C4 Metrics & Evaluators Studio.
@@ -432,6 +464,8 @@ export type C4EvaluationStateResponse = {
   comparative_metrics: C4ComparativeMetric[];
   diagnostic_signals: C4DiagnosticSignal[];
   evaluators: C4Evaluator[];
+  stage_mappings?: C4StageMapping[];
+  stage_mapping_coverage?: C4StageMappingCoverage[];
   stage_bindings?: C4StageBinding[];
   stage_binding_coverage?: C4StageBindingCoverage[];
   evaluator_metric_links: C4EvaluatorMetricLink[];
@@ -441,6 +475,8 @@ export type C4EvaluationStateResponse = {
   updated_at: string;
   action?: string;
   version?: C4EvaluationVersion;
+  suggested_stage_mappings?: C4StageMapping[];
+  suggested_stage_mapping_coverage?: C4StageMappingCoverage[];
   suggested_stage_bindings?: C4StageBinding[];
   suggested_stage_binding_coverage?: C4StageBindingCoverage[];
   validation_report?: {

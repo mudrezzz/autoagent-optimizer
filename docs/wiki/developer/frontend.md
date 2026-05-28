@@ -48,7 +48,7 @@ In C4 Metrics & Evaluators Studio:
 2. Diagnostic signals are edited via checkboxes and saved with `Save diagnostics`.
 3. Evaluators are edited via checkboxes and saved with `Save evaluators`.
 4. Evaluator x Metric matrix is edited via per-cell checkboxes and saved with `Save matrix`.
-5. `Stage bindings (stage_ref)` card allows manual edit plus auto-suggest (`Suggest stage refs`) and explicit persist (`Save stage bindings`).
+5. `Stage mapping` card allows auto-map (`Auto-map stages`) plus manual override and explicit persist (`Save mapping`).
 6. Budget is edited via numeric fields and saved with `Save budget`.
 7. `Validate profile` returns status + issues.
 8. `Save version` snapshots the evaluation profile.

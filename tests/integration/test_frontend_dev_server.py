@@ -251,6 +251,8 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert len(eval_state_payload["comparative_metrics"]) >= 1
         assert len(eval_state_payload["diagnostic_signals"]) >= 1
         assert len(eval_state_payload["evaluators"]) >= 1
+        assert isinstance(eval_state_payload["stage_mappings"], list)
+        assert isinstance(eval_state_payload["stage_mapping_coverage"], list)
         assert isinstance(eval_state_payload["evaluator_metric_links"], list)
         assert isinstance(eval_state_payload["stage_bindings"], list)
         assert isinstance(eval_state_payload["stage_binding_coverage"], list)
@@ -420,27 +422,27 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert compile_gate_payload["candidate_set_draft"]["compile_gate"]["status"] == compile_gate_payload["compile_gate"]["status"]
         assert compile_gate_payload["messages_total"] >= 3
 
-        status_eval_stage_suggest, eval_stage_suggest_payload = _json_post(
-            f"{base_url}/api/arenas/{arena_id}/evaluation/stage-bindings/suggest",
+        status_eval_stage_auto, eval_stage_auto_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/evaluation/stage-mapping/auto-map",
             {},
         )
-        assert status_eval_stage_suggest == 200
-        assert eval_stage_suggest_payload["status"] == "success"
-        assert eval_stage_suggest_payload["action"] == "suggest_stage_bindings"
-        assert isinstance(eval_stage_suggest_payload["suggested_stage_bindings"], list)
-        assert isinstance(eval_stage_suggest_payload["suggested_stage_binding_coverage"], list)
+        assert status_eval_stage_auto == 200
+        assert eval_stage_auto_payload["status"] == "success"
+        assert eval_stage_auto_payload["action"] == "auto_map_stage_mappings"
+        assert isinstance(eval_stage_auto_payload["suggested_stage_mappings"], list)
+        assert isinstance(eval_stage_auto_payload["suggested_stage_mapping_coverage"], list)
 
         status_eval_stage_save, eval_stage_save_payload = _json_post(
-            f"{base_url}/api/arenas/{arena_id}/evaluation/stage-bindings/save",
+            f"{base_url}/api/arenas/{arena_id}/evaluation/stage-mapping/save",
             {
-                "stage_bindings": eval_stage_suggest_payload["suggested_stage_bindings"],
+                "stage_mappings": eval_stage_auto_payload["suggested_stage_mappings"],
             },
         )
         assert status_eval_stage_save == 200
         assert eval_stage_save_payload["status"] == "success"
-        assert eval_stage_save_payload["action"] == "save_stage_bindings"
-        assert isinstance(eval_stage_save_payload["stage_bindings"], list)
-        assert isinstance(eval_stage_save_payload["stage_binding_coverage"], list)
+        assert eval_stage_save_payload["action"] == "save_stage_mappings"
+        assert isinstance(eval_stage_save_payload["stage_mappings"], list)
+        assert isinstance(eval_stage_save_payload["stage_mapping_coverage"], list)
 
         status_optimizer_validate_after_compile, optimizer_validate_after_compile_payload = _json_post(
             f"{base_url}/api/arenas/{arena_id}/optimizer/validate",

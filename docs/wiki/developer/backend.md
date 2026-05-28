@@ -131,6 +131,10 @@ Validation contract v2:
 
 `POST /api/arenas/{arena_id}/evaluation/stage-bindings/save`
 
+`POST /api/arenas/{arena_id}/evaluation/stage-mapping/auto-map`
+
+`POST /api/arenas/{arena_id}/evaluation/stage-mapping/save`
+
 ```json
 {
   "stage_bindings": [
@@ -178,6 +182,17 @@ Stage binding behavior:
 - `stage_ref_ambiguous`,
 - `stage_ref_multi_match`,
 - `stage_ref_policy_violation`.
+
+Stage mapping behavior (`target_stage-first`):
+
+1. Auto-map endpoint builds per-candidate mappings from required diagnostic stages.
+2. Save endpoint persists manual overrides (`selected_node_ids`, `enabled`, `notes`).
+3. Validation is driven by mapping coverage and may return:
+- `stage_mapping_missing`,
+- `stage_mapping_unresolved`,
+- `stage_mapping_ambiguous`,
+- `stage_mapping_policy_violation`.
+4. Legacy `stage_bindings` API remains available as compatibility wrapper.
 
 Validate report statuses:
 

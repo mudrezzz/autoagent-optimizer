@@ -149,6 +149,8 @@ def _build_c4_evaluation_state_payload(*, arena_id: str, studio_state: dict[str,
         "comparative_metrics": [dict(item) for item in studio_state.get("comparative_metrics", []) if isinstance(item, dict)],
         "diagnostic_signals": [dict(item) for item in studio_state.get("diagnostic_signals", []) if isinstance(item, dict)],
         "evaluators": [dict(item) for item in studio_state.get("evaluators", []) if isinstance(item, dict)],
+        "stage_mappings": [dict(item) for item in studio_state.get("stage_mappings", []) if isinstance(item, dict)],
+        "stage_mapping_coverage": [dict(item) for item in studio_state.get("stage_mapping_coverage", []) if isinstance(item, dict)],
         "stage_bindings": [dict(item) for item in studio_state.get("stage_bindings", []) if isinstance(item, dict)],
         "stage_binding_coverage": [dict(item) for item in studio_state.get("stage_binding_coverage", []) if isinstance(item, dict)],
         "evaluator_metric_links": [dict(item) for item in studio_state.get("evaluator_metric_links", []) if isinstance(item, dict)],
@@ -166,6 +168,7 @@ def _build_c4_evaluation_version(version: dict[str, Any]) -> dict[str, Any]:
     diagnostic_signals = version.get("diagnostic_signals", [])
     evaluators = version.get("evaluators", [])
     stage_bindings = version.get("stage_bindings", [])
+    stage_mappings = version.get("stage_mappings", [])
     return {
         "version_id": str(version.get("version_id", "")),
         "label": str(version.get("label", "")),
@@ -175,6 +178,7 @@ def _build_c4_evaluation_version(version: dict[str, Any]) -> dict[str, Any]:
         "enabled_diagnostic_total": len([item for item in diagnostic_signals if isinstance(item, dict) and bool(item.get("enabled", False))]),
         "enabled_evaluators_total": len([item for item in evaluators if isinstance(item, dict) and bool(item.get("enabled", False))]),
         "enabled_stage_bindings_total": len([item for item in stage_bindings if isinstance(item, dict) and bool(item.get("enabled", True))]),
+        "enabled_stage_mappings_total": len([item for item in stage_mappings if isinstance(item, dict) and bool(item.get("enabled", True))]),
     }
 
 
@@ -303,6 +307,12 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
             if arena_evaluation_state_match is not None:
                 arena_id = arena_evaluation_state_match.group(1)
                 self._handle_get_arena_evaluation_state(tenant_id=tenant_id, user_id=user_id, arena_id=arena_id)
+                return
+
+            arena_stage_mapping_state_match = re.fullmatch(r"/api/arenas/([^/]+)/evaluation/stage-mapping/state", path)
+            if arena_stage_mapping_state_match is not None:
+                arena_id = arena_stage_mapping_state_match.group(1)
+                self._handle_get_arena_evaluation_stage_mapping_state(tenant_id=tenant_id, user_id=user_id, arena_id=arena_id)
                 return
 
             arena_optimizer_state_match = re.fullmatch(r"/api/arenas/([^/]+)/optimizer/state", path)
@@ -504,6 +514,24 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
                     tenant_id=tenant_id,
                     user_id=user_id,
                     arena_id=arena_evaluation_stage_bindings_suggest_match.group(1),
+                )
+                return
+
+            arena_evaluation_stage_mappings_save_match = re.fullmatch(r"/api/arenas/([^/]+)/evaluation/stage-mapping/save", path)
+            if arena_evaluation_stage_mappings_save_match is not None:
+                self._handle_post_arena_evaluation_stage_mappings_save(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    arena_id=arena_evaluation_stage_mappings_save_match.group(1),
+                )
+                return
+
+            arena_evaluation_stage_mappings_auto_match = re.fullmatch(r"/api/arenas/([^/]+)/evaluation/stage-mapping/auto-map", path)
+            if arena_evaluation_stage_mappings_auto_match is not None:
+                self._handle_post_arena_evaluation_stage_mappings_auto_map(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    arena_id=arena_evaluation_stage_mappings_auto_match.group(1),
                 )
                 return
 
@@ -1530,6 +1558,35 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
 
             self._send_json(_build_c4_evaluation_state_payload(arena_id=arena_id, studio_state=studio_state))
 
+        def _handle_get_arena_evaluation_stage_mapping_state(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Возвращает только stage mapping часть состояния C4 evaluation."""
+
+            try:
+                studio_state = registry_store.get_arena_evaluation_studio_state(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                )
+            except KeyError as exc:
+                self._send_json(
+                    {"status": "error", "code": "arena_not_found", "message": str(exc)},
+                    status=HTTPStatus.NOT_FOUND,
+                )
+                return
+
+            self._send_json(
+                {
+                    "status": "success",
+                    "capability_id": "c4",
+                    "arena_id": arena_id,
+                    "stage_mappings": [dict(item) for item in studio_state.get("stage_mappings", []) if isinstance(item, dict)],
+                    "stage_mapping_coverage": [
+                        dict(item) for item in studio_state.get("stage_mapping_coverage", []) if isinstance(item, dict)
+                    ],
+                    "updated_at": str(studio_state.get("updated_at", "")),
+                }
+            )
+
         def _handle_post_arena_evaluation_metrics_save(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
             """Сохраняет comparative/diagnostic метрики evaluation profile."""
 
@@ -1727,6 +1784,73 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
             response_payload["suggested_stage_bindings"] = [dict(item) for item in suggestion_payload.get("stage_bindings", []) if isinstance(item, dict)]
             response_payload["suggested_stage_binding_coverage"] = [
                 dict(item) for item in suggestion_payload.get("stage_binding_coverage", []) if isinstance(item, dict)
+            ]
+            self._send_json(response_payload)
+
+        def _handle_post_arena_evaluation_stage_mappings_save(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Сохраняет stage mappings (target_stage -> candidate nodes) для non-final оценки."""
+
+            try:
+                payload = self._read_json_body()
+            except ValueError as exc:
+                self._send_json({"status": "error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            stage_mappings = payload.get("stage_mappings", [])
+            if not isinstance(stage_mappings, list):
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Field `stage_mappings` must be an array."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            if any(not isinstance(item, dict) for item in stage_mappings):
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Field `stage_mappings` must contain objects only."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            try:
+                studio_state = registry_store.save_arena_evaluation_stage_mappings(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                    stage_mappings=[dict(item) for item in stage_mappings],
+                )
+            except KeyError as exc:
+                self._send_json({"status": "error", "code": "arena_not_found", "message": str(exc)}, status=HTTPStatus.NOT_FOUND)
+                return
+            except ValueError as exc:
+                self._send_json({"status": "error", "code": "validation_error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            response_payload = _build_c4_evaluation_state_payload(arena_id=arena_id, studio_state=studio_state)
+            response_payload["action"] = "save_stage_mappings"
+            self._send_json(response_payload)
+
+        def _handle_post_arena_evaluation_stage_mappings_auto_map(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Возвращает auto-map stage mappings без сохранения в профиль."""
+
+            try:
+                suggestion_payload = registry_store.auto_map_arena_evaluation_stage_mappings(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                )
+                studio_state = registry_store.get_arena_evaluation_studio_state(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                )
+            except KeyError as exc:
+                self._send_json({"status": "error", "code": "arena_not_found", "message": str(exc)}, status=HTTPStatus.NOT_FOUND)
+                return
+
+            response_payload = _build_c4_evaluation_state_payload(arena_id=arena_id, studio_state=studio_state)
+            response_payload["action"] = "auto_map_stage_mappings"
+            response_payload["suggested_stage_mappings"] = [dict(item) for item in suggestion_payload.get("stage_mappings", []) if isinstance(item, dict)]
+            response_payload["suggested_stage_mapping_coverage"] = [
+                dict(item) for item in suggestion_payload.get("stage_mapping_coverage", []) if isinstance(item, dict)
             ]
             self._send_json(response_payload)
 

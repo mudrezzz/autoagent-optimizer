@@ -19,10 +19,10 @@ This prevents invalid evaluation profiles where metrics are enabled but no evalu
 - rows are comparative metrics and diagnostic signals,
 - columns are enabled/available evaluators.
 5. Click `Save matrix`.
-6. In `Stage bindings (stage_ref)`, define stage mappings for non-final diagnostics:
-- click `Suggest stage refs` to auto-fill rule-based bindings,
-- adjust `stage_ref`, `target_stage`, and `match_policy` if needed,
-- click `Save stage bindings`.
+6. In `Stage mapping`, define non-final mapping from `target_stage` to candidate nodes:
+- click `Auto-map stages` to generate mapping rows automatically,
+- review per-candidate selected node ids and adjust manually if needed,
+- click `Save mapping`.
 7. Click `Validate profile`:
 - `ready`: matrix and stage bindings are valid,
 - `invalid`: missing evaluator links or invalid stage binding coverage.
@@ -31,4 +31,4 @@ This prevents invalid evaluation profiles where metrics are enabled but no evalu
 
  For each enabled metric/signal, at least one enabled evaluator must have an enabled matrix link.
 
-For enabled non-final diagnostics, at least one valid stage binding must exist for the required target stage.
+For enabled non-final diagnostics, valid stage mapping rows must exist for required target stages and selected candidates.

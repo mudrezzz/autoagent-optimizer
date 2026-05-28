@@ -8,6 +8,7 @@
   C5OptimizerStateResponse,
   C4EvaluationStateResponse,
   C4StageBinding,
+  C4StageMapping,
   C4DatasetRow,
   C4DatasetStateResponse,
   C2SelectForTestsResponse,
@@ -432,6 +433,39 @@ export async function suggestArenaEvaluationStageBindings(
   if (!response.ok) {
     const payload = await parseJsonOrThrow<ErrorPayload>(response);
     throw new Error(payload.message || `Failed to suggest C4 stage bindings: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C4EvaluationStateResponse>(response);
+}
+
+// Русский комментарий: сохраняет stage mappings (target_stage -> candidate node ids) для non-final оценки.
+export async function saveArenaEvaluationStageMappings(
+  arenaId: string,
+  stageMappings: C4StageMapping[],
+): Promise<C4EvaluationStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/evaluation/stage-mapping/save`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ stage_mappings: stageMappings }),
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to save C4 stage mappings: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C4EvaluationStateResponse>(response);
+}
+
+// Русский комментарий: запускает auto-map stage mappings по target_stage и выбранным кандидатам.
+export async function autoMapArenaEvaluationStageMappings(
+  arenaId: string,
+): Promise<C4EvaluationStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/evaluation/stage-mapping/auto-map`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to auto-map C4 stage mappings: HTTP ${response.status}`);
   }
   return parseJsonOrThrow<C4EvaluationStateResponse>(response);
 }

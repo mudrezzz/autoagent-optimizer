@@ -27,6 +27,8 @@ vi.mock("../api", () => ({
   saveArenaEvaluationBudget: vi.fn(),
   saveArenaEvaluationEvaluators: vi.fn(),
   saveArenaEvaluationMatrix: vi.fn(),
+  saveArenaEvaluationStageMappings: vi.fn(),
+  autoMapArenaEvaluationStageMappings: vi.fn(),
   saveArenaEvaluationStageBindings: vi.fn(),
   suggestArenaEvaluationStageBindings: vi.fn(),
   saveArenaEvaluationMetrics: vi.fn(),
@@ -65,6 +67,8 @@ import {
   saveArenaEvaluationBudget,
   saveArenaEvaluationEvaluators,
   saveArenaEvaluationMatrix,
+  saveArenaEvaluationStageMappings,
+  autoMapArenaEvaluationStageMappings,
   saveArenaEvaluationStageBindings,
   suggestArenaEvaluationStageBindings,
   saveArenaEvaluationMetrics,
@@ -389,6 +393,8 @@ describe("Battle workspace candidates", () => {
     vi.mocked(saveArenaEvaluationMetrics).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(saveArenaEvaluationEvaluators).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(saveArenaEvaluationMatrix).mockRejectedValue(new Error("not used in this test"));
+    vi.mocked(saveArenaEvaluationStageMappings).mockRejectedValue(new Error("not used in this test"));
+    vi.mocked(autoMapArenaEvaluationStageMappings).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(saveArenaEvaluationBudget).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(saveArenaEvaluationStageBindings).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(suggestArenaEvaluationStageBindings).mockRejectedValue(new Error("not used in this test"));
@@ -954,38 +960,48 @@ describe("Battle workspace candidates", () => {
     });
   });
 
-  it("suggests and saves stage bindings from C6 screen", async () => {
+  it("auto-maps and saves stage mappings from C6 screen", async () => {
     const user = userEvent.setup();
-    vi.mocked(suggestArenaEvaluationStageBindings).mockResolvedValue({
+    vi.mocked(autoMapArenaEvaluationStageMappings).mockResolvedValue({
       status: "success",
       capability_id: "c4",
       arena_id: ARENA.workspace_id,
-      action: "suggest_stage_bindings",
+      action: "auto_map_stage_mappings",
       comparative_metrics: [{ metric_id: "quality_f1", title: "Quality F1@K", description: "quality", enabled: true, weight: 0.6 }],
       diagnostic_signals: [{ signal_id: "retrieval_coverage", title: "Retrieval coverage", description: "retrieval", enabled: true }],
       evaluators: [{ evaluator_id: "golden_oracle", title: "Golden dataset oracle", description: "deterministic", enabled: true }],
       evaluator_metric_links: [{ evaluator_id: "golden_oracle", metric_kind: "diagnostic", metric_id: "retrieval_coverage", enabled: true }],
-      stage_bindings: [],
-      stage_binding_coverage: [],
-      suggested_stage_bindings: [
+      stage_mappings: [],
+      stage_mapping_coverage: [],
+      suggested_stage_mappings: [
         {
-          binding_id: "sbind_1",
-          stage_ref: "retrieval.main",
+          mapping_id: "smap_1",
           target_stage: "retrieval",
-          match_policy: "primary_only",
+          candidate_id: "cand_direct",
+          candidate_title: "Direct LLM Rewriter",
+          selected_node_ids: ["retrieve_main"],
+          suggested_node_ids: ["retrieve_main"],
+          status: "bound",
+          confidence: 0.95,
+          reason: "single stage node",
           enabled: true,
           notes: "auto",
+          source: "auto",
         },
       ],
-      suggested_stage_binding_coverage: [
+      suggested_stage_mapping_coverage: [
         {
-          binding_id: "sbind_1",
-          stage_ref: "retrieval.main",
+          mapping_id: "smap_1",
           target_stage: "retrieval",
-          match_policy: "primary_only",
+          candidate_id: "cand_direct",
+          candidate_title: "Direct LLM Rewriter",
+          selected_node_ids: ["retrieve_main"],
+          selected_nodes_total: 1,
+          status: "bound",
+          confidence: 0.95,
+          reason: "single stage node",
           enabled: true,
-          summary: { candidates_total: 1, bound_total: 1, ambiguous_total: 0, missing_total: 0 },
-          candidates: [],
+          source: "auto",
         },
       ],
       candidate_features: { core: true, llm: true, retrieval: true, rerank: false, tool: true, hitl: false },
@@ -993,34 +1009,44 @@ describe("Battle workspace candidates", () => {
       versions: [],
       updated_at: "2026-05-28T00:00:00+00:00",
     });
-    vi.mocked(saveArenaEvaluationStageBindings).mockResolvedValue({
+    vi.mocked(saveArenaEvaluationStageMappings).mockResolvedValue({
       status: "success",
       capability_id: "c4",
       arena_id: ARENA.workspace_id,
-      action: "save_stage_bindings",
+      action: "save_stage_mappings",
       comparative_metrics: [{ metric_id: "quality_f1", title: "Quality F1@K", description: "quality", enabled: true, weight: 0.6 }],
       diagnostic_signals: [{ signal_id: "retrieval_coverage", title: "Retrieval coverage", description: "retrieval", enabled: true }],
       evaluators: [{ evaluator_id: "golden_oracle", title: "Golden dataset oracle", description: "deterministic", enabled: true }],
       evaluator_metric_links: [{ evaluator_id: "golden_oracle", metric_kind: "diagnostic", metric_id: "retrieval_coverage", enabled: true }],
-      stage_bindings: [
+      stage_mappings: [
         {
-          binding_id: "sbind_1",
-          stage_ref: "retrieval.main",
+          mapping_id: "smap_1",
           target_stage: "retrieval",
-          match_policy: "primary_only",
+          candidate_id: "cand_direct",
+          candidate_title: "Direct LLM Rewriter",
+          selected_node_ids: ["retrieve_main"],
+          suggested_node_ids: ["retrieve_main"],
+          status: "bound",
+          confidence: 0.95,
+          reason: "single stage node",
           enabled: true,
           notes: "auto",
+          source: "auto",
         },
       ],
-      stage_binding_coverage: [
+      stage_mapping_coverage: [
         {
-          binding_id: "sbind_1",
-          stage_ref: "retrieval.main",
+          mapping_id: "smap_1",
           target_stage: "retrieval",
-          match_policy: "primary_only",
+          candidate_id: "cand_direct",
+          candidate_title: "Direct LLM Rewriter",
+          selected_node_ids: ["retrieve_main"],
+          selected_nodes_total: 1,
+          status: "bound",
+          confidence: 0.95,
+          reason: "single stage node",
           enabled: true,
-          summary: { candidates_total: 1, bound_total: 1, ambiguous_total: 0, missing_total: 0 },
-          candidates: [],
+          source: "auto",
         },
       ],
       candidate_features: { core: true, llm: true, retrieval: true, rerank: false, tool: true, hitl: false },
@@ -1033,12 +1059,12 @@ describe("Battle workspace candidates", () => {
     const c6Button = await screen.findByRole("button", { name: /Evaluators/i });
     await user.click(c6Button);
 
-    await user.click(await screen.findByRole("button", { name: "Suggest stage refs" }));
-    expect(vi.mocked(suggestArenaEvaluationStageBindings)).toHaveBeenCalledWith(ARENA.workspace_id);
-    expect(await screen.findByDisplayValue("retrieval.main")).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Auto-map stages" }));
+    expect(vi.mocked(autoMapArenaEvaluationStageMappings)).toHaveBeenCalledWith(ARENA.workspace_id);
+    expect(await screen.findByDisplayValue("retrieve_main")).toBeInTheDocument();
 
-    await user.click(await screen.findByRole("button", { name: "Save stage bindings" }));
-    expect(vi.mocked(saveArenaEvaluationStageBindings)).toHaveBeenCalled();
+    await user.click(await screen.findByRole("button", { name: "Save mapping" }));
+    expect(vi.mocked(saveArenaEvaluationStageMappings)).toHaveBeenCalled();
   });
 
   it("locks unavailable diagnostics based on candidate features", async () => {
