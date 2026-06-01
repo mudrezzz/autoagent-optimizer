@@ -48,9 +48,17 @@ CAPABILITY_CATALOG: tuple[dict[str, str | int], ...] = (
         "badge_count": 1,
     },
     {
+        "id": "c5s",
+        "name": "Stage Mapping",
+        "description": "Сопоставление target_stage с runtime-node кандидатных архитектур.",
+        "status": "enabled",
+        "route": "/stage-mapping",
+        "badge_count": 1,
+    },
+    {
         "id": "c6",
         "name": "Evaluators",
-        "description": "Настройка evaluator-профиля и бюджетных лимитов оценки.",
+        "description": "Настройка evaluator-профиля и матрицы покрытия метрик.",
         "status": "enabled",
         "route": "/evaluators",
         "badge_count": 1,

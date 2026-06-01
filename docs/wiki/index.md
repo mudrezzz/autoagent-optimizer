@@ -18,8 +18,9 @@ This wiki site is published from the current repository through GitHub Pages.
 2. [User Guides / C2 Candidate Selection](user_guides/c2-select-for-tests.md)
 3. [User Guides / C3 Pattern Selection](user_guides/c3-pattern-selection.md)
 4. [User Guides / C4 Dataset Studio](user_guides/c4-dataset-studio.md)
-5. [User Guides / C5 Optimizer Setup](user_guides/c5-optimizer-setup.md)
-6. [User Guides / C6 Evaluators Matrix](user_guides/c6-evaluators-matrix.md)
+5. [User Guides / C5s Stage Mapping](user_guides/c5s-stage-mapping.md)
+6. [User Guides / C5 Optimizer Setup](user_guides/c5-optimizer-setup.md)
+7. [User Guides / C6 Evaluators Matrix](user_guides/c6-evaluators-matrix.md)
 7. [Developer / Backend](developer/backend.md)
 8. [Developer / Frontend](developer/frontend.md)
 9. [Releases / V2.3.S4](releases/v2.3.s4.md)
@@ -34,5 +35,6 @@ This wiki site is published from the current repository through GitHub Pages.
 18. [Releases / V2.4.S5](releases/v2.4.s5.md)
 19. [Releases / V2.4.S5a](releases/v2.4.s5a.md)
 20. [Releases / V2.4.S5b](releases/v2.4.s5b.md)
+21. [Releases / V2.4.S5c](releases/v2.4.s5c.md)
 
 _Deployment trigger: 2026-05-26._

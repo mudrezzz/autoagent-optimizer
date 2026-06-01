@@ -118,7 +118,7 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
             payload = json.loads(response.read().decode("utf-8"))
             assert payload["version"] == "capability_catalog_v1"
             assert payload["ux_reference"] == "design_system/screenshots/app-v3.png"
-            assert len(payload["capabilities"]) == 8
+            assert len(payload["capabilities"]) == 9
             assert payload["capabilities"][0]["id"] == "c1"
             assert payload["capabilities"][0]["name"] == "Battle Registry"
             assert payload["capabilities"][0]["status"] == "enabled"
@@ -130,6 +130,8 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
             assert c4["status"] == "enabled"
             c5 = next(item for item in payload["capabilities"] if item["id"] == "c5")
             assert c5["status"] == "enabled"
+            c5s = next(item for item in payload["capabilities"] if item["id"] == "c5s")
+            assert c5s["status"] == "enabled"
 
         status_arenas, arenas_payload = _json_get(f"{base_url}/api/arenas")
         assert status_arenas == 200

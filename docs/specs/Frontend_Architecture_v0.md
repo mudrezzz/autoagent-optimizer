@@ -92,10 +92,11 @@ Browser (React/TS SPA)
 2. `Candidates`
 3. `Datasets`
 4. `Metrics`
-5. `Evaluators`
-6. `Optimizer Runs`
-7. `Reports`
-8. `Champion`
+5. `Stage Mapping`
+6. `Evaluators`
+7. `Optimizer Runs`
+8. `Reports`
+9. `Champion`
 
 Каждый раздел имеет:
 
@@ -122,12 +123,13 @@ Browser (React/TS SPA)
 7. Система внутренне валидирует/компилирует кандидатов (без ручной DSL-работы).
 8. Пользователь формирует dataset (ручной ввод/загрузка/-синтез/очистка).
 9. Пользователь задает comparative/diagnostic метрики (отдельный шаг).
-10. Пользователь настраивает evaluators и матрицу `Evaluator x Metric` (отдельный шаг).
-11. Пользователь задает optimizer policy и budget.
-12. Запускает оптимизацию, наблюдает прогресс/логи/метрики в глубину.
-13. Получает аналитический отчет, выбирает winner.
-14. Экспортирует champion в native.
-15. Опционально импортирует измененный native agent обратно и повторяет цикл оценки.
+10. Пользователь проходит отдельный шаг `Stage Mapping` для non-final метрик (`retrieval/rerank/synthesis`): проверяет авто-сопоставление и при необходимости правит вручную.
+11. Пользователь настраивает evaluators и матрицу `Evaluator x Metric` (отдельный шаг без budget controls).
+12. Пользователь задает optimizer policy и budget только в `Optimizer Runs`.
+13. Запускает оптимизацию, наблюдает прогресс/логи/метрики в глубину.
+14. Получает аналитический отчет, выбирает winner.
+15. Экспортирует champion в native.
+16. Опционально импортирует измененный native agent обратно и повторяет цикл оценки.
 
 ## Layout Rules (SaaS)
 
@@ -171,6 +173,10 @@ Product capability map (новая целевая модель):
 
 Frontend не "угадывает" готовность, а читает capability-манифест от backend.
 Переходный режим допускает совместимость с legacy-ярлыками capability на период миграции.
+
+Wizard note:
+1. `Stage Mapping` - отдельный wizard-step внутри evaluation-контура между `C5 Metrics` и `C6 Evaluators`.
+2. Это не отдельная capability в capability-map, а обязательный продуктовый шаг при наличии non-final метрик.
 
 ## Frontend Module Boundaries
 
@@ -232,9 +238,10 @@ Frontend не "угадывает" готовность, а читает capabil
 1. `C3` доступен после выбора/открытия battle и входа в task-chat контур.
 2. `C4` доступен после того, как сформирован candidate set (минимум 1 кандидат).
 3. `C5` (Metrics) доступен после выбора кандидатов на тесты.
-4. `C6` (Evaluators) доступен после определения хотя бы одного comparative metric.
-5. `C7` (Optimizer) доступен после валидного `dataset + metrics + evaluators + budget` preflight.
-6. `C8` (Report/Champion) доступен после завершенного optimizer run.
+4. `Stage Mapping` доступен после определения набора метрик; становится `blocked`, если включены non-final диагностические метрики и нет готового mapping-покрытия.
+5. `C6` (Evaluators) доступен после готового `Stage Mapping` (когда он обязателен) и определения хотя бы одного comparative metric.
+6. `C7` (Optimizer) доступен после валидного `dataset + metrics + stage_mapping + evaluators + budget` preflight.
+7. `C8` (Report/Champion) доступен после завершенного optimizer run.
 
 ## API Contract Strategy
 
@@ -300,6 +307,20 @@ UI отображает два разных слоя:
 2. Если у candidate-set нет retrieval-stage, retrieval comparative метрики недоступны.
 3. Такие метрики могут оставаться diagnostic для отдельных кандидатов с соответствующим stage.
 
+## Stage Mapping (Wizard Step)
+
+`Stage Mapping` - отдельный продуктовый шаг, не смешанный с `Evaluators`:
+
+1. шаг следует сразу после `Metrics`;
+2. шаг активирует авто-инициализацию mapping при входе;
+3. пользователь может вручную добавлять/удалять строки mapping и править node-mapping override;
+4. `Auto-map` - опциональное действие re-sync, а не обязательный gate.
+
+Правило обязательности:
+
+1. если в профиле включены non-final метрики (`retrieval/rerank/synthesis`), шаг обязателен;
+2. без готового mapping-покрытия переход к `Evaluators` блокируется.
+
 ## Evaluator x Metric Matrix
 
 `Evaluators` задаются отдельно от `Metrics` и связываются через матрицу:
@@ -351,6 +372,12 @@ UI должен явно показывать:
 1. `llm_calls_total` (шт.);
 2. `cost_usd_total` (USD);
 3. `latency_ms_p50/p95` (мс).
+
+Граница ответственности:
+
+1. бюджетные контролы находятся только в `C7 Optimizer Runs`;
+2. `C6 Evaluators` не содержит budget controls;
+3. если есть отдельный evaluation-budget, он допускается только как advanced/backend-параметр, не в основном пользовательском UX.
 
 ## Design System Compliance
 

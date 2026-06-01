@@ -33,6 +33,7 @@ Input (Tenant + User + Battle + Task Brief + Constraints + Data + Budget)
   -> White-box Trace + Metrics
   -> Dataset Fabric (task/stage-aware datasets)
   -> Metrics Fabric (comparative + diagnostic)
+  -> Stage Mapping Fabric (target_stage -> candidate node mapping)
   -> Evaluator Fabric (evaluator x metric matrix)
   -> Tournament + Optimization
   -> Evidence Pack + Champion Export/Import
@@ -69,6 +70,7 @@ Input (Tenant + User + Battle + Task Brief + Constraints + Data + Budget)
      - executable validator (tests/code/run),
      - render validator.
    - Metric-Crafting Agent loop with HITL approval for metric/profile evolution.
+   - stage-mapping step as explicit preflight layer between metrics and evaluators for non-final metrics.
 9. `Optimization Layer`
    - equal-budget baseline tournament.
    - dual-metrics model:
@@ -84,6 +86,9 @@ Input (Tenant + User + Battle + Task Brief + Constraints + Data + Budget)
 11. `Product Experience Layer`
    - capability-oriented frontend surfaces (`battles-hub` + `battle-workspace`).
    - stateful wizard behavior in left navigation (next steps unlock only after prerequisites).
+   - wizard order in evaluation loop: `Candidates -> Datasets -> Metrics -> Stage Mapping -> Evaluators -> Optimizer Run`.
+   - `Stage Mapping` is mandatory when non-final diagnostic metrics are enabled.
+   - `C6 Evaluators` contains only evaluator selection and evaluator x metric matrix; budget controls are isolated to `C7 Optimizer Run`.
    - unified scenario runner for demo/validation.
    - explicit mapping `backend capability -> user-visible control -> e2e assertion`.
    - risk-based QA gates for delivery speed (`fast` / `targeted` / `full`) with full regression reserved for high-risk slices.

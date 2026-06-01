@@ -103,6 +103,7 @@ const CAPABILITIES: Capability[] = [
   { id: "c2", name: "Task Chat + Candidates", description: "Generate candidates from chat.", status: "enabled", badge_count: 1 },
   { id: "c4", name: "Datasets", description: "Dataset controls", status: "enabled", badge_count: 1 },
   { id: "c5", name: "Metrics", description: "Metrics controls", status: "enabled", badge_count: 1 },
+  { id: "c5s", name: "Stage Mapping", description: "Stage mapping controls", status: "enabled", badge_count: 1 },
   { id: "c6", name: "Evaluators", description: "Evaluators controls", status: "enabled", badge_count: 1 },
   { id: "c7", name: "Optimizer Run Monitor", description: "Optimizer setup", status: "enabled", badge_count: 1 },
   { id: "c8", name: "Report + Champion Export/Import", description: "planned", status: "planned", badge_count: 0 },
@@ -887,6 +888,25 @@ describe("Battle workspace candidates", () => {
 
   it("saves evaluator-metric matrix from C6 screen", async () => {
     const user = userEvent.setup();
+    vi.mocked(fetchArenaEvaluationState).mockResolvedValue({
+      status: "success",
+      capability_id: "c4",
+      arena_id: ARENA.workspace_id,
+      comparative_metrics: [
+        { metric_id: "quality_f1", title: "Quality F1@K", description: "quality", enabled: true, weight: 0.6 },
+      ],
+      diagnostic_signals: [],
+      evaluators: [
+        { evaluator_id: "golden_oracle", title: "Golden dataset oracle", description: "deterministic", enabled: true },
+      ],
+      evaluator_metric_links: [
+        { evaluator_id: "golden_oracle", metric_kind: "comparative", metric_id: "quality_f1", enabled: true },
+      ],
+      candidate_features: { core: true, llm: true, retrieval: false, rerank: false, tool: true, hitl: false },
+      budget: { max_cases: 20, max_llm_calls: 100, max_cost_usd: 5.0 },
+      versions: [],
+      updated_at: "2026-05-26T00:00:00+00:00",
+    });
     vi.mocked(saveArenaEvaluationMatrix).mockResolvedValue({
       status: "success",
       capability_id: "c4",
@@ -960,7 +980,7 @@ describe("Battle workspace candidates", () => {
     });
   });
 
-  it("auto-maps and saves stage mappings from C6 screen", async () => {
+  it("auto-maps and saves stage mappings from Stage Mapping screen", async () => {
     const user = userEvent.setup();
     vi.mocked(autoMapArenaEvaluationStageMappings).mockResolvedValue({
       status: "success",
@@ -1056,10 +1076,10 @@ describe("Battle workspace candidates", () => {
     });
 
     renderWorkspace();
-    const c6Button = await screen.findByRole("button", { name: /Evaluators/i });
-    await user.click(c6Button);
+    const stageMappingButton = await screen.findByRole("button", { name: /Stage Mapping/i });
+    await user.click(stageMappingButton);
 
-    await user.click(await screen.findByRole("button", { name: "Auto-map stages" }));
+    await user.click(await screen.findByRole("button", { name: "Refresh auto-map" }));
     expect(vi.mocked(autoMapArenaEvaluationStageMappings)).toHaveBeenCalledWith(ARENA.workspace_id);
     expect(await screen.findByDisplayValue("retrieve_main")).toBeInTheDocument();
 
@@ -1123,6 +1143,25 @@ describe("Battle workspace candidates", () => {
 
   it("saves and validates C5 optimizer setup, then launches queued run", async () => {
     const user = userEvent.setup();
+    vi.mocked(fetchArenaEvaluationState).mockResolvedValue({
+      status: "success",
+      capability_id: "c4",
+      arena_id: ARENA.workspace_id,
+      comparative_metrics: [
+        { metric_id: "quality_f1", title: "Quality F1@K", description: "quality", enabled: true, weight: 0.6 },
+      ],
+      diagnostic_signals: [],
+      evaluators: [
+        { evaluator_id: "golden_oracle", title: "Golden dataset oracle", description: "deterministic", enabled: true },
+      ],
+      evaluator_metric_links: [
+        { evaluator_id: "golden_oracle", metric_kind: "comparative", metric_id: "quality_f1", enabled: true },
+      ],
+      candidate_features: { core: true, llm: true, retrieval: false, rerank: false, tool: true, hitl: false },
+      budget: { max_cases: 20, max_llm_calls: 100, max_cost_usd: 5.0 },
+      versions: [],
+      updated_at: "2026-05-26T00:00:00+00:00",
+    });
     vi.mocked(getArenaChatState).mockResolvedValue({
       status: "success",
       capability_id: "c2",

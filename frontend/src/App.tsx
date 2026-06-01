@@ -22,7 +22,6 @@ import {
   saveArenaDatasetVersion,
   saveArenaOptimizerSetup,
   saveArenaOptimizerVersion,
-  saveArenaEvaluationBudget,
   saveArenaEvaluationEvaluators,
   saveArenaEvaluationMatrix,
   saveArenaEvaluationStageMappings,
@@ -90,7 +89,8 @@ const FALLBACK_CAPABILITIES: Capability[] = [
   },
   { id: "c4", name: "Datasets", description: "Manage dataset lifecycle for benchmark runs.", status: "enabled", badge_count: 1 },
   { id: "c5", name: "Metrics", description: "Define comparative and diagnostic metrics.", status: "enabled", badge_count: 1 },
-  { id: "c6", name: "Evaluators", description: "Configure evaluators and evaluation budget.", status: "enabled", badge_count: 1 },
+  { id: "c5s", name: "Stage Mapping", description: "Map target stages to candidate runtime nodes.", status: "enabled", badge_count: 1 },
+  { id: "c6", name: "Evaluators", description: "Configure evaluator adapters and matrix coverage.", status: "enabled", badge_count: 1 },
   { id: "c7", name: "Optimizer Run Monitor", description: "Optimizer setup, launch guardrails and run queue.", status: "enabled", badge_count: 1 },
   { id: "c8", name: "Report + Champion Export/Import", description: "Planned slice for reports and native loop.", status: "planned", badge_count: 0 },
 ];
@@ -102,6 +102,7 @@ const CAPABILITY_ICONS: Record<string, string> = {
   c3: "library",
   c4: "database",
   c5: "line-chart",
+  c5s: "waypoints",
   c6: "shield-check",
   c7: "activity",
   c8: "package-check",
@@ -262,6 +263,7 @@ export function App(): JSX.Element {
   const [arenaDialogDescription, setArenaDialogDescription] = useState<string>("");
   const [arenaMenuOpenId, setArenaMenuOpenId] = useState<string | null>(null);
   const chatMessagesRef = useRef<HTMLDivElement | null>(null);
+  const c4StageMappingAutoInitRef = useRef<Record<string, boolean>>({});
 
   // Русский комментарий: активная capability для контентной панели.
   const activeCapability = useMemo(
@@ -304,7 +306,7 @@ export function App(): JSX.Element {
     void (async () => {
       try {
         const catalog = await fetchCapabilityCatalog();
-        setState((prev) => ({ ...prev, capabilities: catalog.capabilities }));
+        setState((prev) => ({ ...prev, capabilities: ensureStageMappingCapability(catalog.capabilities) }));
       } catch {
         // Русский комментарий: fallback остается активным.
       }
@@ -371,6 +373,23 @@ export function App(): JSX.Element {
     }
     chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
   }, [state.c2Messages]);
+
+  // Русский комментарий: при входе в Stage Mapping шаг автоматически инициализирует mapping, если строк еще нет.
+  useEffect(() => {
+    if (state.activeCapabilityId !== "c5s" || !state.activeArenaId) {
+      return;
+    }
+    if (state.c4StageMappings.length > 0) {
+      c4StageMappingAutoInitRef.current[state.activeArenaId] = true;
+      return;
+    }
+    if (c4StageMappingAutoInitRef.current[state.activeArenaId]) {
+      return;
+    }
+    c4StageMappingAutoInitRef.current[state.activeArenaId] = true;
+    void handleAutoInitC4StageMappings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.activeCapabilityId, state.activeArenaId, state.c4StageMappings.length]);
 
   // Русский комментарий: переход на hub.
   function navigateToBattlesHub(): void {
@@ -1270,19 +1289,6 @@ export function App(): JSX.Element {
     });
   }
 
-  // Русский комментарий: обновляет одно поле бюджетных ограничений evaluation profile.
-  function handleChangeC4EvaluationBudgetField(field: "max_cases" | "max_llm_calls" | "max_cost_usd", value: string): void {
-    const parsedValue = field === "max_cost_usd" ? Number.parseFloat(value) : Number.parseInt(value, 10);
-    const nextValue = Number.isFinite(parsedValue) ? parsedValue : 0;
-    setState((prev) => ({
-      ...prev,
-      c4EvaluationBudget: {
-        ...prev.c4EvaluationBudget,
-        [field]: nextValue,
-      },
-    }));
-  }
-
   // Русский комментарий: сохраняет блок метрик evaluation profile в backend.
   async function handleSaveC4EvaluationMetrics(): Promise<void> {
     if (!state.activeArenaId) {
@@ -1398,10 +1404,43 @@ export function App(): JSX.Element {
     }
   }
 
-  // Русский комментарий: обновляет значения строки stage mapping в C6.
+  // Русский комментарий: добавляет вручную новую строку stage mapping (human-first path).
+  function handleAddC4StageMappingRow(): void {
+    const firstCandidate = state.c2CandidateSetDraft?.candidates?.[0];
+    const mappingId = `map_manual_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    const nextRow: C4StageMapping = {
+      mapping_id: mappingId,
+      target_stage: "retrieval",
+      candidate_id: firstCandidate?.candidate_id ?? "",
+      candidate_title: firstCandidate?.title ?? "Select candidate",
+      selected_node_ids: [],
+      suggested_node_ids: [],
+      status: "missing",
+      confidence: 0,
+      reason: "manual_row_created",
+      enabled: true,
+      notes: "",
+      source: "manual",
+    };
+    setState((prev) => ({
+      ...prev,
+      c4StageMappings: [...prev.c4StageMappings, nextRow],
+    }));
+  }
+
+  // Русский комментарий: удаляет одну строку stage mapping из локального списка.
+  function handleDeleteC4StageMappingRow(mappingId: string): void {
+    setState((prev) => ({
+      ...prev,
+      c4StageMappings: prev.c4StageMappings.filter((item) => item.mapping_id !== mappingId),
+      c4StageMappingCoverage: prev.c4StageMappingCoverage.filter((item) => item.mapping_id !== mappingId),
+    }));
+  }
+
+  // Русский комментарий: обновляет значения строки stage mapping в отдельном wizard-шаге.
   function handleUpdateC4StageMappingField(
     mappingId: string,
-    field: "selected_node_ids" | "enabled" | "notes",
+    field: "selected_node_ids" | "enabled" | "notes" | "target_stage" | "candidate_id",
     value: string | boolean,
   ): void {
     setState((prev) => ({
@@ -1426,6 +1465,23 @@ export function App(): JSX.Element {
             source: "manual",
           };
         }
+        if (field === "target_stage") {
+          return {
+            ...item,
+            target_stage: String(value),
+            source: "manual",
+          };
+        }
+        if (field === "candidate_id") {
+          const nextCandidateId = String(value);
+          const candidate = prev.c2CandidateSetDraft?.candidates?.find((candidateItem) => candidateItem.candidate_id === nextCandidateId);
+          return {
+            ...item,
+            candidate_id: nextCandidateId,
+            candidate_title: (candidate?.title ?? nextCandidateId) || "Unknown candidate",
+            source: "manual",
+          };
+        }
         return { ...item, notes: String(value) };
       }),
     }));
@@ -1441,7 +1497,7 @@ export function App(): JSX.Element {
       const response = await saveArenaEvaluationStageMappings(state.activeArenaId, state.c4StageMappings);
       const snapshot = {
         status: "success",
-        capability_id: "c6",
+        capability_id: "c5s",
         action: response.action ?? "save_stage_mappings",
         arena_id: state.activeArenaId,
         stage_mappings_total: (response.stage_mappings ?? []).length,
@@ -1481,7 +1537,7 @@ export function App(): JSX.Element {
       const suggestedCoverage = response.suggested_stage_mapping_coverage ?? [];
       const snapshot = {
         status: "success",
-        capability_id: "c6",
+        capability_id: "c5s",
         action: response.action ?? "auto_map_stage_mappings",
         arena_id: state.activeArenaId,
         suggested_total: suggestedMappings.length,
@@ -1509,19 +1565,44 @@ export function App(): JSX.Element {
     }
   }
 
-  // Русский комментарий: сохраняет блок budget evaluation profile в backend.
-  async function handleSaveC4EvaluationBudget(): Promise<void> {
+  // Русский комментарий: авто-инициализирует mapping при входе в шаг без обязательного ручного клика.
+  async function handleAutoInitC4StageMappings(): Promise<void> {
     if (!state.activeArenaId) {
       return;
     }
-    setState((prev) => ({ ...prev, budgetStage: "saving evaluation budget", budgetPercent: 60 }));
+    setState((prev) => ({ ...prev, budgetStage: "initializing stage mappings", budgetPercent: 55 }));
     try {
-      const response = await saveArenaEvaluationBudget(state.activeArenaId, state.c4EvaluationBudget);
+      const autoPayload = await autoMapArenaEvaluationStageMappings(state.activeArenaId);
+      const suggestedMappings = autoPayload.suggested_stage_mappings ?? [];
+      if (suggestedMappings.length <= 0) {
+        setState((prev) => ({
+          ...prev,
+          budgetPercent: 100,
+          budgetStage: "stage mapping initialized (manual mode)",
+          jsonText: prettyJson({
+            status: "success",
+            capability_id: "c5s",
+            action: "auto_init_stage_mappings",
+            arena_id: state.activeArenaId,
+            message: "No auto suggestions found. Use manual rows.",
+          }),
+          lastPayload: {
+            status: "success",
+            capability_id: "c5s",
+            action: "auto_init_stage_mappings",
+            arena_id: state.activeArenaId,
+            suggested_total: 0,
+          },
+        }));
+        return;
+      }
+      const response = await saveArenaEvaluationStageMappings(state.activeArenaId, suggestedMappings);
       const snapshot = {
         status: "success",
-        capability_id: "c4",
-        action: response.action ?? "save_evaluation_budget",
+        capability_id: "c5s",
+        action: "auto_init_stage_mappings",
         arena_id: state.activeArenaId,
+        stage_mappings_total: (response.stage_mappings ?? []).length,
       };
       setState((prev) => ({
         ...prev,
@@ -1534,10 +1615,9 @@ export function App(): JSX.Element {
         c4StageBindingCoverage: response.stage_binding_coverage ?? prev.c4StageBindingCoverage,
         c4EvaluatorMetricLinks: response.evaluator_metric_links,
         c4CandidateFeatures: response.candidate_features ?? prev.c4CandidateFeatures,
-        c4EvaluationBudget: response.budget,
         c4EvaluationVersions: response.versions,
         budgetPercent: 100,
-        budgetStage: "evaluation budget saved",
+        budgetStage: "stage mapping initialized",
         jsonText: prettyJson(snapshot),
         lastPayload: snapshot,
       }));
@@ -1870,7 +1950,7 @@ export function App(): JSX.Element {
       }
       return;
     }
-    if (capabilityId === "c5" || capabilityId === "c6") {
+    if (capabilityId === "c5" || capabilityId === "c5s" || capabilityId === "c6") {
       if (!state.activeArenaId) {
         setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "notice", message: "Select battle first, then configure evaluation profile." }) }));
         return;
@@ -2316,6 +2396,7 @@ export function App(): JSX.Element {
   const canUseC2Chat = isC2Enabled && !c2PatternGateLocked;
   const isDatasetCapability = activeCapability.id === "c4";
   const isMetricsCapability = activeCapability.id === "c5";
+  const isStageMappingCapability = activeCapability.id === "c5s";
   const isEvaluatorsCapability = activeCapability.id === "c6";
   const isOptimizerCapability = activeCapability.id === "c7";
 
@@ -2654,13 +2735,13 @@ export function App(): JSX.Element {
                       </section>
                     </div>
                   </section>
-                ) : (isDatasetCapability || isMetricsCapability || isEvaluatorsCapability) ? (
+                ) : (isDatasetCapability || isMetricsCapability || isStageMappingCapability || isEvaluatorsCapability) ? (
                   <section className="trace-view trace-view--workspace">
                     <header className="tv-head">
                       <div className="tv-title">
-                        <i data-lucide={isDatasetCapability ? "database" : isMetricsCapability ? "line-chart" : "shield-check"} />
-                        <span>{isDatasetCapability ? "Datasets studio" : isMetricsCapability ? "Metrics studio" : "Evaluators studio"}</span>
-                        <span className="tv-arch">{isDatasetCapability ? `${state.c4Datasets.length} datasets` : isMetricsCapability ? `${state.c4ComparativeMetrics.length} metrics` : `${state.c4Evaluators.length} evaluators`}</span>
+                        <i data-lucide={isDatasetCapability ? "database" : isMetricsCapability ? "line-chart" : isStageMappingCapability ? "waypoints" : "shield-check"} />
+                        <span>{isDatasetCapability ? "Datasets studio" : isMetricsCapability ? "Metrics studio" : isStageMappingCapability ? "Stage Mapping studio" : "Evaluators studio"}</span>
+                        <span className="tv-arch">{isDatasetCapability ? `${state.c4Datasets.length} datasets` : isMetricsCapability ? `${state.c4ComparativeMetrics.length} metrics` : isStageMappingCapability ? `${state.c4StageMappings.length} mappings` : `${state.c4Evaluators.length} evaluators`}</span>
                       </div>
                     </header>
                     <div className="tv-body tv-body--workspace">
@@ -2920,9 +3001,9 @@ export function App(): JSX.Element {
                         {!isDatasetCapability ? (
                           <div className="c4-eval-panel">
                           <div className="candidate-list-head">
-                            <span>{isMetricsCapability ? "Metrics profile" : "Evaluators profile"}</span>
+                            <span>{isMetricsCapability ? "Metrics profile" : isStageMappingCapability ? "Stage mapping profile" : "Evaluators profile"}</span>
                             <div className="candidate-list-head-right">
-                              <span className="muted">{isMetricsCapability ? `comparative ${state.c4ComparativeMetrics.length}` : `evaluators ${state.c4Evaluators.length}`}</span>
+                              <span className="muted">{isMetricsCapability ? `comparative ${state.c4ComparativeMetrics.length}` : isStageMappingCapability ? `rows ${state.c4StageMappings.length}` : `evaluators ${state.c4Evaluators.length}`}</span>
                               <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleValidateC4EvaluationProfile(); }} disabled={!state.activeArenaId}>
                                 Validate profile
                               </button>
@@ -3009,6 +3090,103 @@ export function App(): JSX.Element {
                                 </section>
                               </>
                             ) : null}
+                            {isStageMappingCapability ? (
+                              <section className="c4-eval-card c4-eval-card--full">
+                                <div className="c4-eval-card-title">Stage mapping (target_stage {"->"} candidate nodes)</div>
+                                <div className="c4-stage-binding-grid">
+                                  <div className="c4-stage-binding-head">
+                                    <span>Enabled</span>
+                                    <span>Stage</span>
+                                    <span>Candidate</span>
+                                    <span>Node ids</span>
+                                    <span>Status</span>
+                                    <span>Notes</span>
+                                    <span>Row</span>
+                                  </div>
+                                  {state.c4StageMappings.length <= 0 ? (
+                                    <div className="issue-row info">No stage mapping rows yet. Add one manually or use auto-init suggestions.</div>
+                                  ) : state.c4StageMappings.map((mapping) => {
+                                    const coverage = c4StageCoverageByMappingId.get(mapping.mapping_id);
+                                    const status = coverage?.status ?? mapping.status;
+                                    const confidence = coverage?.confidence ?? mapping.confidence;
+                                    const statusLabel = `${status} · conf ${Number(confidence || 0).toFixed(2)}`;
+                                    return (
+                                      <div key={mapping.mapping_id} className="c4-stage-binding-row">
+                                        <input
+                                          type="checkbox"
+                                          checked={mapping.enabled}
+                                          onChange={(event) => {
+                                            handleUpdateC4StageMappingField(mapping.mapping_id, "enabled", event.target.checked);
+                                          }}
+                                          aria-label={`toggle-stage-mapping-${mapping.mapping_id}`}
+                                        />
+                                        <select
+                                          value={mapping.target_stage}
+                                          onChange={(event) => {
+                                            handleUpdateC4StageMappingField(mapping.mapping_id, "target_stage", event.target.value);
+                                          }}
+                                          aria-label={`stage-mapping-target-${mapping.mapping_id}`}
+                                        >
+                                          <option value="retrieval">retrieval</option>
+                                          <option value="rerank">rerank</option>
+                                          <option value="synthesis">synthesis</option>
+                                          <option value="final">final</option>
+                                        </select>
+                                        <select
+                                          value={mapping.candidate_id}
+                                          onChange={(event) => {
+                                            handleUpdateC4StageMappingField(mapping.mapping_id, "candidate_id", event.target.value);
+                                          }}
+                                          aria-label={`stage-mapping-candidate-${mapping.mapping_id}`}
+                                        >
+                                          <option value="">Select candidate</option>
+                                          {(state.c2CandidateSetDraft?.candidates ?? []).map((candidate) => (
+                                            <option key={`stage-map-candidate:${mapping.mapping_id}:${candidate.candidate_id}`} value={candidate.candidate_id}>
+                                              {candidate.title}
+                                            </option>
+                                          ))}
+                                        </select>
+                                        <input
+                                          value={mapping.selected_node_ids.join(", ")}
+                                          onChange={(event) => {
+                                            handleUpdateC4StageMappingField(mapping.mapping_id, "selected_node_ids", event.target.value);
+                                          }}
+                                          placeholder="node_a, node_b"
+                                        />
+                                        <div className="c4-stage-coverage-label">{statusLabel}</div>
+                                        <input
+                                          value={mapping.notes}
+                                          onChange={(event) => {
+                                            handleUpdateC4StageMappingField(mapping.mapping_id, "notes", event.target.value);
+                                          }}
+                                          placeholder="optional notes"
+                                        />
+                                        <button
+                                          type="button"
+                                          className="candidate-details-toggle"
+                                          onClick={() => {
+                                            handleDeleteC4StageMappingRow(mapping.mapping_id);
+                                          }}
+                                        >
+                                          Delete
+                                        </button>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                                <div className="c4-stage-binding-actions">
+                                  <button type="button" className="tb-btn tb-btn-ghost" onClick={handleAddC4StageMappingRow} disabled={!state.activeArenaId}>
+                                    Add row
+                                  </button>
+                                  <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleAutoMapC4StageMappings(); }} disabled={!state.activeArenaId}>
+                                    Refresh auto-map
+                                  </button>
+                                  <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4StageMappings(); }} disabled={!state.activeArenaId}>
+                                    Save mapping
+                                  </button>
+                                </div>
+                              </section>
+                            ) : null}
                             {isEvaluatorsCapability ? (
                               <>
                                 <section className="c4-eval-card">
@@ -3034,64 +3212,6 @@ export function App(): JSX.Element {
                                   <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EvaluationEvaluators(); }} disabled={!state.activeArenaId}>
                                     Save evaluators
                                   </button>
-                                </section>
-                                <section className="c4-eval-card">
-                                  <div className="c4-eval-card-title">Stage mapping (target_stage {"->"} candidate nodes)</div>
-                                  <div className="c4-stage-binding-grid">
-                                    <div className="c4-stage-binding-head">
-                                      <span>Enabled</span>
-                                      <span>Stage</span>
-                                      <span>Candidate</span>
-                                      <span>Node ids</span>
-                                      <span>Status</span>
-                                      <span>Notes</span>
-                                    </div>
-                                    {state.c4StageMappings.length <= 0 ? (
-                                      <div className="issue-row info">No stage mapping rows yet. Click `Auto-map stages`.</div>
-                                    ) : state.c4StageMappings.map((mapping) => {
-                                      const coverage = c4StageCoverageByMappingId.get(mapping.mapping_id);
-                                      const status = coverage?.status ?? mapping.status;
-                                      const confidence = coverage?.confidence ?? mapping.confidence;
-                                      const statusLabel = `${status} · conf ${Number(confidence || 0).toFixed(2)}`;
-                                      return (
-                                        <div key={mapping.mapping_id} className="c4-stage-binding-row">
-                                          <input
-                                            type="checkbox"
-                                            checked={mapping.enabled}
-                                            onChange={(event) => {
-                                              handleUpdateC4StageMappingField(mapping.mapping_id, "enabled", event.target.checked);
-                                            }}
-                                            aria-label={`toggle-stage-mapping-${mapping.mapping_id}`}
-                                          />
-                                          <div className="c4-stage-coverage-label">{mapping.target_stage}</div>
-                                          <div className="c4-stage-coverage-label">{mapping.candidate_title}</div>
-                                          <input
-                                            value={mapping.selected_node_ids.join(", ")}
-                                            onChange={(event) => {
-                                              handleUpdateC4StageMappingField(mapping.mapping_id, "selected_node_ids", event.target.value);
-                                            }}
-                                            placeholder="node_a, node_b"
-                                          />
-                                          <div className="c4-stage-coverage-label">{statusLabel}</div>
-                                          <input
-                                            value={mapping.notes}
-                                            onChange={(event) => {
-                                              handleUpdateC4StageMappingField(mapping.mapping_id, "notes", event.target.value);
-                                            }}
-                                            placeholder="optional notes"
-                                          />
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                  <div className="c4-stage-binding-actions">
-                                    <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleAutoMapC4StageMappings(); }} disabled={!state.activeArenaId}>
-                                      Auto-map stages
-                                    </button>
-                                    <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4StageMappings(); }} disabled={!state.activeArenaId}>
-                                      Save mapping
-                                    </button>
-                                  </div>
                                 </section>
                                 <section className="c4-eval-card">
                                   <div className="c4-eval-card-title">Evaluator x Metric matrix</div>
@@ -3168,45 +3288,6 @@ export function App(): JSX.Element {
                                   </div>
                                   <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EvaluationMatrix(); }} disabled={!state.activeArenaId}>
                                     Save matrix
-                                  </button>
-                                </section>
-                                <section className="c4-eval-card">
-                                  <div className="c4-eval-card-title">Budget limits</div>
-                                  <div className="c4-budget-fields">
-                                    <label>
-                                      <span>max cases</span>
-                                      <input
-                                        type="number"
-                                        value={state.c4EvaluationBudget.max_cases}
-                                        onChange={(event) => {
-                                          handleChangeC4EvaluationBudgetField("max_cases", event.target.value);
-                                        }}
-                                      />
-                                    </label>
-                                    <label>
-                                      <span>max llm calls</span>
-                                      <input
-                                        type="number"
-                                        value={state.c4EvaluationBudget.max_llm_calls}
-                                        onChange={(event) => {
-                                          handleChangeC4EvaluationBudgetField("max_llm_calls", event.target.value);
-                                        }}
-                                      />
-                                    </label>
-                                    <label>
-                                      <span>max cost usd</span>
-                                      <input
-                                        type="number"
-                                        step="0.1"
-                                        value={state.c4EvaluationBudget.max_cost_usd}
-                                        onChange={(event) => {
-                                          handleChangeC4EvaluationBudgetField("max_cost_usd", event.target.value);
-                                        }}
-                                      />
-                                    </label>
-                                  </div>
-                                  <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EvaluationBudget(); }} disabled={!state.activeArenaId}>
-                                    Save budget
                                   </button>
                                 </section>
                               </>
@@ -3771,6 +3852,20 @@ function buildCapabilityWizardItems(capabilities: Capability[], state: UiState, 
   const hasEnabledComparativeMetrics = state.c4ComparativeMetrics.some(
     (item) => item.enabled && isAvailabilityEnabled(item.availability_status)
   );
+  const enabledNonFinalDiagnosticStages = state.c4DiagnosticSignals
+    .filter((item) => item.enabled && isAvailabilityEnabled(item.availability_status))
+    .map((item) => mapDiagnosticSignalToStage(item.signal_id))
+    .filter((stage): stage is "retrieval" | "rerank" | "synthesis" => stage !== null);
+  const requiredStageTargets = Array.from(new Set(enabledNonFinalDiagnosticStages));
+  const stageMappingRequired = requiredStageTargets.length > 0;
+  const hasReadyStageMappingCoverage = requiredStageTargets.every((targetStage) =>
+    state.c4StageMappingCoverage.some(
+      (row) =>
+        row.enabled &&
+        row.target_stage === targetStage &&
+        (row.status === "bound" || row.status === "ambiguous")
+    )
+  );
   const hasEnabledEvaluators = state.c4Evaluators.some((item) => item.enabled);
   const hasOptimizerRuns = state.c5LaunchHistory.length > 0;
   const optimizerPreflightBlocked = state.c5ValidationStatus === "invalid";
@@ -3904,12 +3999,53 @@ function buildCapabilityWizardItems(capabilities: Capability[], state: UiState, 
       };
     }
 
+    if (capability.id === "c5s") {
+      if (!hasEnabledComparativeMetrics) {
+        return {
+          ...capability,
+          wizardStatus: "locked",
+          wizardReason: "Configure metrics in C5 first.",
+          isInteractive: false,
+        };
+      }
+      if (!stageMappingRequired) {
+        return {
+          ...capability,
+          wizardStatus: "completed",
+          wizardReason: "No non-final diagnostics enabled. Stage mapping is optional.",
+          isInteractive: true,
+        };
+      }
+      if (hasReadyStageMappingCoverage) {
+        return {
+          ...capability,
+          wizardStatus: "completed",
+          wizardReason: "Stage mapping coverage is ready for enabled non-final diagnostics.",
+          isInteractive: true,
+        };
+      }
+      return {
+        ...capability,
+        wizardStatus: state.activeCapabilityId === "c5s" ? "in_progress" : "blocked",
+        wizardReason: "Complete stage mapping coverage before opening Evaluators.",
+        isInteractive: true,
+      };
+    }
+
     if (capability.id === "c6") {
       if (!hasEnabledComparativeMetrics) {
         return {
           ...capability,
           wizardStatus: "locked",
           wizardReason: "Configure metrics in C5 first.",
+          isInteractive: false,
+        };
+      }
+      if (stageMappingRequired && !hasReadyStageMappingCoverage) {
+        return {
+          ...capability,
+          wizardStatus: "locked",
+          wizardReason: "Complete Stage Mapping step first.",
           isInteractive: false,
         };
       }
@@ -3924,17 +4060,17 @@ function buildCapabilityWizardItems(capabilities: Capability[], state: UiState, 
       return {
         ...capability,
         wizardStatus: state.activeCapabilityId === "c6" ? "in_progress" : "available",
-        wizardReason: "Configure evaluator adapters and evaluation budget.",
+        wizardReason: "Configure evaluator adapters and matrix coverage.",
         isInteractive: true,
       };
     }
 
     if (capability.id === "c7") {
-      if (!hasAssignedDatasets || !hasEnabledComparativeMetrics || !hasEnabledEvaluators) {
+      if (!hasAssignedDatasets || !hasEnabledComparativeMetrics || !hasEnabledEvaluators || (stageMappingRequired && !hasReadyStageMappingCoverage)) {
         return {
           ...capability,
           wizardStatus: "locked",
-          wizardReason: "Complete C4/C5/C6 setup before optimizer launch.",
+          wizardReason: "Complete C4/C5/Stage Mapping/C6 setup before optimizer launch.",
           isInteractive: false,
         };
       }
@@ -4004,6 +4140,44 @@ function formatCandidateFeatureSummary(featureFlags: Record<string, boolean>): s
   ];
   const present = labels.filter(([key]) => Boolean(featureFlags[key])).map(([, label]) => label);
   return present.length > 0 ? present.join(", ") : "No candidate features detected yet";
+}
+
+// Русский комментарий: маппит diagnostic signal id к non-final target stage для wizard-gating.
+function mapDiagnosticSignalToStage(signalId: string): "retrieval" | "rerank" | "synthesis" | null {
+  if (signalId === "retrieval_coverage") {
+    return "retrieval";
+  }
+  if (signalId === "rerank_gain") {
+    return "rerank";
+  }
+  if (signalId === "synthesis_drift") {
+    return "synthesis";
+  }
+  return null;
+}
+
+// Русский комментарий: гарантирует присутствие Stage Mapping шага в capability-меню даже при старом backend-каталоге.
+function ensureStageMappingCapability(capabilities: Capability[]): Capability[] {
+  const hasStageMapping = capabilities.some((item) => item.id === "c5s");
+  if (hasStageMapping) {
+    return capabilities;
+  }
+  const metricsIndex = capabilities.findIndex((item) => item.id === "c5");
+  const stageMappingCapability: Capability = {
+    id: "c5s",
+    name: "Stage Mapping",
+    description: "Map target stages to candidate runtime nodes.",
+    status: "enabled",
+    badge_count: 1,
+  };
+  if (metricsIndex < 0) {
+    return [...capabilities, stageMappingCapability];
+  }
+  return [
+    ...capabilities.slice(0, metricsIndex + 1),
+    stageMappingCapability,
+    ...capabilities.slice(metricsIndex + 1),
+  ];
 }
 
 // Русский комментарий: нормализует stage-id dataset строки для editor/API payload.

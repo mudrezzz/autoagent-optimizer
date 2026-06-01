@@ -1474,7 +1474,7 @@ code { font-family: var(--font-mono); }
 .c4-stage-binding-head,
 .c4-stage-binding-row {
   display: grid;
-  grid-template-columns: 64px 0.8fr 1fr 1.3fr 1fr 1fr;
+  grid-template-columns: 64px 0.8fr 1fr 1.3fr 1fr 1fr 84px;
   gap: 8px;
   align-items: center;
 }
@@ -1512,6 +1512,10 @@ code { font-family: var(--font-mono); }
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.c4-eval-card--full {
+  grid-column: 1 / -1;
 }
 
 .c4-budget-fields,

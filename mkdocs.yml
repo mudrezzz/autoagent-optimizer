@@ -32,6 +32,7 @@ nav:
       - C2 Candidate Selection: user_guides/c2-select-for-tests.md
       - C3 Pattern Selection: user_guides/c3-pattern-selection.md
       - C4 Dataset Studio: user_guides/c4-dataset-studio.md
+      - C5s Stage Mapping: user_guides/c5s-stage-mapping.md
       - C5 Optimizer Setup: user_guides/c5-optimizer-setup.md
       - C6 Evaluators Matrix: user_guides/c6-evaluators-matrix.md
   - Developer Guides:
@@ -50,5 +51,6 @@ nav:
       - V2.4.S5: releases/v2.4.s5.md
       - V2.4.S5a: releases/v2.4.s5a.md
       - V2.4.S5b: releases/v2.4.s5b.md
+      - V2.4.S5c: releases/v2.4.s5c.md
   - Governance:
       - ADR to Wiki Policy: governance/adr-to-wiki-policy.md

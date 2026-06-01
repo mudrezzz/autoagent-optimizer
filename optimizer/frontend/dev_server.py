@@ -259,7 +259,7 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
                 self._send_json(build_capability_catalog_payload())
                 return
 
-            if path in {"/api/c2/sample", "/api/c3/sample", "/api/c4/sample", "/api/c5/sample", "/api/c6/sample", "/api/c7/sample", "/api/c8/sample"}:
+            if path in {"/api/c2/sample", "/api/c3/sample", "/api/c4/sample", "/api/c5/sample", "/api/c5s/sample", "/api/c6/sample", "/api/c7/sample", "/api/c8/sample"}:
                 capability_id = path.split("/")[2]
                 self._send_json(build_stub_capability_payload(capability_id))
                 return
