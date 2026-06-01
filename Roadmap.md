@@ -163,7 +163,7 @@ Note: после `V2.3.S1` добавлен corrective slice `V2.3.S1a`, что�
 | V2.4.S5a | Stage-ref-first non-final binding (trace-aware) | Done | пользовательский `stage_ref` (редактируемый), AI suggest + manual override, coverage summary по кандидатам, policy multi-match (`primary/all/best`), preflight-валидация stage binding |
 | V2.4.S5b | Target-stage-first mapping UX correction | Done | `target_stage` как единственный пользовательский stage-контракт; AI auto-mapping `target_stage -> candidate node(s)`; manual override per candidate; `stage_ref` уходит во внутренний technical layer |
 | V2.4.S5c | Stage Mapping wizard step + de-blocking UX | Done | `Stage Mapping` вынесен в отдельный шаг между `C5 Metrics` и `C6 Evaluators`; шаг делает auto-init mapping при входе, поддерживает manual add/delete rows, `Auto-map` работает как optional re-sync; `C6` оставляет только evaluators/matrix, budget остается только в `C7 Optimizer Run` |
-| V2.4.S6 | Contextual right chat (tab-scoped copilot) | Planned | чат адаптируется к активной capability и выбранной сущности |
+| V2.4.S6 | Contextual right chat (tab-scoped copilot) | Done | right chat routes actions by active step (`C2/C4/C5/C5s/C6/C7`), returns contextual summary/allowed actions, and refreshes step state after action |
 | V2.4.S7 | Runtime snapshot UX cleanup | Planned | перенос snapshot в debug drawer/dev-tools, без перекрытия основного контента |
 
 ### Iteration I5 - Evaluation Fabric & MetricOps

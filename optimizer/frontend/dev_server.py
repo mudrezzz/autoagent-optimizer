@@ -12,6 +12,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
+from uuid import uuid4
 
 from optimizer.c2 import build_candidate_draft_from_brief, select_candidates_for_tests_and_prepare
 from optimizer.c3 import search_pattern_library
@@ -946,6 +947,8 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
 
             generate_candidates = bool(payload.get("generate_candidates", False))
             max_candidates_raw = payload.get("max_candidates", 3)
+            capability_id_raw = str(payload.get("capability_id", "c2")).strip().lower() or "c2"
+            context_action_raw = str(payload.get("context_action", "")).strip().lower()
             if not isinstance(max_candidates_raw, int):
                 self._send_json(
                     {"status": "error", "code": "validation_error", "message": "Field `max_candidates` must be an integer."},
@@ -958,6 +961,16 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
                         "status": "error",
                         "code": "validation_error",
                         "message": "Field `max_candidates` must be between 1 and 5.",
+                    },
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            if capability_id_raw not in {"c2", "c4", "c5", "c5s", "c6", "c7"}:
+                self._send_json(
+                    {
+                        "status": "error",
+                        "code": "validation_error",
+                        "message": "Field `capability_id` must be one of: c2, c4, c5, c5s, c6, c7.",
                     },
                     status=HTTPStatus.BAD_REQUEST,
                 )
@@ -981,6 +994,47 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
                 self._send_json(
                     {"status": "error", "code": "validation_error", "message": str(exc)},
                     status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            if capability_id_raw != "c2":
+                contextual_payload = self._run_contextual_copilot_action(
+                    registry_store=registry_store,
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    arena_id=arena_id,
+                    capability_id=capability_id_raw,
+                    user_message=message_raw,
+                    context_action=context_action_raw,
+                )
+                assistant_message = registry_store.append_arena_chat_message(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                    role="assistant",
+                    content=str(contextual_payload.get("assistant_text", "Context action completed.")),
+                )
+                messages = registry_store.list_arena_chat_messages(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                )
+                self._send_json(
+                    {
+                        "status": "success",
+                        "capability_id": capability_id_raw,
+                        "arena_id": arena_id,
+                        "message": chat_message,
+                        "assistant_message": assistant_message,
+                        "messages": messages,
+                        "messages_total": len(messages),
+                        "copilot_context": {
+                            "resolved_action": str(contextual_payload.get("resolved_action", "none")),
+                            "allowed_actions": list(contextual_payload.get("allowed_actions", [])),
+                            "summary": str(contextual_payload.get("summary", "")),
+                        },
+                    },
+                    status=HTTPStatus.CREATED,
                 )
                 return
 
@@ -1044,6 +1098,306 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
                 },
                 status=HTTPStatus.CREATED,
             )
+
+        def _run_contextual_copilot_action(
+            self,
+            *,
+            registry_store: WorkspaceRegistryStore,
+            tenant_id: str,
+            user_id: str,
+            arena_id: str,
+            capability_id: str,
+            user_message: str,
+            context_action: str,
+        ) -> dict[str, Any]:
+            """Выполняет tab-scoped copilot действие для выбранной capability."""
+
+            normalized_message = user_message.strip().lower()
+            if capability_id == "c4":
+                allowed_actions = ["add_dataset_row"]
+                resolved_action = context_action if context_action in allowed_actions else ""
+                if not resolved_action and ("add row" in normalized_message or "добав" in normalized_message):
+                    resolved_action = "add_dataset_row"
+                if resolved_action == "add_dataset_row":
+                    dataset_state = registry_store.get_arena_dataset_studio_state(
+                        tenant_id=tenant_id,
+                        owner_user_id=user_id,
+                        arena_id=arena_id,
+                    )
+                    active_dataset_id = str(dataset_state.get("active_dataset_id", ""))
+                    if not active_dataset_id:
+                        return {
+                            "assistant_text": "No active dataset. Open Datasets and select one dataset first.",
+                            "resolved_action": "add_dataset_row",
+                            "allowed_actions": allowed_actions,
+                            "summary": "Dataset row was not added.",
+                        }
+                    case_id = f"case_{uuid4().hex[:8]}"
+                    registry_store.append_arena_dataset_row(
+                        tenant_id=tenant_id,
+                        owner_user_id=user_id,
+                        arena_id=arena_id,
+                        dataset_id=active_dataset_id,
+                        row={
+                            "case_id": case_id,
+                            "input": "Synthetic input draft from copilot.",
+                            "target_stage": "final",
+                            "expected_payload": {"answer": "Synthetic expected answer draft."},
+                            "expected": "Synthetic expected answer draft.",
+                            "notes": "copilot:add_dataset_row",
+                        },
+                    )
+                    return {
+                        "assistant_text": f"Added dataset row `{case_id}` to active dataset `{active_dataset_id}`.",
+                        "resolved_action": "add_dataset_row",
+                        "allowed_actions": allowed_actions,
+                        "summary": "Dataset row added.",
+                    }
+                return {
+                    "assistant_text": "Datasets copilot is active. Try: 'add row'.",
+                    "resolved_action": "none",
+                    "allowed_actions": allowed_actions,
+                    "summary": "No dataset action executed.",
+                }
+
+            if capability_id == "c5":
+                allowed_actions = ["enable_default_metrics"]
+                resolved_action = context_action if context_action in allowed_actions else ""
+                if not resolved_action and ("enable metrics" in normalized_message or "включи метрики" in normalized_message):
+                    resolved_action = "enable_default_metrics"
+                if resolved_action == "enable_default_metrics":
+                    evaluation_state = registry_store.get_arena_evaluation_studio_state(
+                        tenant_id=tenant_id,
+                        owner_user_id=user_id,
+                        arena_id=arena_id,
+                    )
+                    comparative: list[dict[str, Any]] = []
+                    for item in evaluation_state.get("comparative_metrics", []):
+                        if not isinstance(item, dict):
+                            continue
+                        metric = dict(item)
+                        if str(metric.get("availability_status", "available")) != "unavailable":
+                            metric["enabled"] = True
+                        comparative.append(metric)
+                    diagnostic: list[dict[str, Any]] = []
+                    for item in evaluation_state.get("diagnostic_signals", []):
+                        if not isinstance(item, dict):
+                            continue
+                        signal = dict(item)
+                        if str(signal.get("availability_status", "available")) != "unavailable":
+                            signal["enabled"] = True
+                        diagnostic.append(signal)
+                    registry_store.save_arena_evaluation_metrics(
+                        tenant_id=tenant_id,
+                        owner_user_id=user_id,
+                        arena_id=arena_id,
+                        comparative_metrics=comparative,
+                        diagnostic_signals=diagnostic,
+                    )
+                    return {
+                        "assistant_text": "Enabled available metrics/signals. Review weights in Metrics.",
+                        "resolved_action": "enable_default_metrics",
+                        "allowed_actions": allowed_actions,
+                        "summary": "Metrics were updated.",
+                    }
+                return {
+                    "assistant_text": "Metrics copilot is active. Try: 'enable metrics'.",
+                    "resolved_action": "none",
+                    "allowed_actions": allowed_actions,
+                    "summary": "No metrics action executed.",
+                }
+
+            if capability_id == "c5s":
+                allowed_actions = ["auto_map_stage_mappings", "add_mapping_row"]
+                resolved_action = context_action if context_action in allowed_actions else ""
+                if not resolved_action and ("auto map" in normalized_message or "automap" in normalized_message):
+                    resolved_action = "auto_map_stage_mappings"
+                if not resolved_action and ("add mapping" in normalized_message or "add row" in normalized_message or "добав" in normalized_message):
+                    resolved_action = "add_mapping_row"
+                if resolved_action == "auto_map_stage_mappings":
+                    payload = registry_store.auto_map_arena_evaluation_stage_mappings(
+                        tenant_id=tenant_id,
+                        owner_user_id=user_id,
+                        arena_id=arena_id,
+                    )
+                    stage_mappings = payload.get("stage_mappings", [])
+                    if isinstance(stage_mappings, list) and stage_mappings:
+                        registry_store.save_arena_evaluation_stage_mappings(
+                            tenant_id=tenant_id,
+                            owner_user_id=user_id,
+                            arena_id=arena_id,
+                            stage_mappings=[dict(item) for item in stage_mappings if isinstance(item, dict)],
+                        )
+                        return {
+                            "assistant_text": f"Auto-mapped and saved {len(stage_mappings)} stage mapping row(s).",
+                            "resolved_action": "auto_map_stage_mappings",
+                            "allowed_actions": allowed_actions,
+                            "summary": "Stage mappings auto-initialized.",
+                        }
+                    return {
+                        "assistant_text": "Auto-map found no rows. Add mapping row manually.",
+                        "resolved_action": "auto_map_stage_mappings",
+                        "allowed_actions": allowed_actions,
+                        "summary": "No stage mapping suggestions.",
+                    }
+                if resolved_action == "add_mapping_row":
+                    candidate_set = registry_store.get_arena_candidate_set_draft(
+                        tenant_id=tenant_id,
+                        owner_user_id=user_id,
+                        arena_id=arena_id,
+                    )
+                    first_candidate: dict[str, Any] | None = None
+                    if isinstance(candidate_set, dict):
+                        candidates = candidate_set.get("candidates", [])
+                        if isinstance(candidates, list):
+                            first_candidate = next((item for item in candidates if isinstance(item, dict)), None)
+                    candidate_id = str((first_candidate or {}).get("candidate_id", ""))
+                    candidate_title = str((first_candidate or {}).get("title", "Select candidate"))
+                    evaluation_state = registry_store.get_arena_evaluation_studio_state(
+                        tenant_id=tenant_id,
+                        owner_user_id=user_id,
+                        arena_id=arena_id,
+                    )
+                    stage_mappings = [dict(item) for item in evaluation_state.get("stage_mappings", []) if isinstance(item, dict)]
+                    stage_mappings.append(
+                        {
+                            "mapping_id": f"map_manual_{uuid4().hex[:8]}",
+                            "target_stage": "retrieval",
+                            "candidate_id": candidate_id,
+                            "candidate_title": candidate_title,
+                            "selected_node_ids": [],
+                            "suggested_node_ids": [],
+                            "status": "missing",
+                            "confidence": 0.0,
+                            "reason": "manual_row_created",
+                            "enabled": True,
+                            "notes": "copilot:add_mapping_row",
+                            "source": "manual",
+                        }
+                    )
+                    registry_store.save_arena_evaluation_stage_mappings(
+                        tenant_id=tenant_id,
+                        owner_user_id=user_id,
+                        arena_id=arena_id,
+                        stage_mappings=stage_mappings,
+                    )
+                    return {
+                        "assistant_text": "Added one manual stage mapping row. Fill candidate and node ids.",
+                        "resolved_action": "add_mapping_row",
+                        "allowed_actions": allowed_actions,
+                        "summary": "Manual stage mapping row added.",
+                    }
+                return {
+                    "assistant_text": "Stage Mapping copilot is active. Try: 'auto map' or 'add mapping row'.",
+                    "resolved_action": "none",
+                    "allowed_actions": allowed_actions,
+                    "summary": "No stage mapping action executed.",
+                }
+
+            if capability_id == "c6":
+                allowed_actions = ["autofill_matrix_links"]
+                resolved_action = context_action if context_action in allowed_actions else ""
+                if not resolved_action and ("autofill" in normalized_message or "fill matrix" in normalized_message or "заполни матрицу" in normalized_message):
+                    resolved_action = "autofill_matrix_links"
+                if resolved_action == "autofill_matrix_links":
+                    evaluation_state = registry_store.get_arena_evaluation_studio_state(
+                        tenant_id=tenant_id,
+                        owner_user_id=user_id,
+                        arena_id=arena_id,
+                    )
+                    enabled_evaluators = [item for item in evaluation_state.get("evaluators", []) if isinstance(item, dict) and bool(item.get("enabled", False))]
+                    links: list[dict[str, Any]] = []
+                    for metric in evaluation_state.get("comparative_metrics", []):
+                        if not isinstance(metric, dict):
+                            continue
+                        if not bool(metric.get("enabled", False)) or str(metric.get("availability_status", "available")) == "unavailable":
+                            continue
+                        metric_id = str(metric.get("metric_id", ""))
+                        for evaluator in enabled_evaluators:
+                            links.append(
+                                {
+                                    "evaluator_id": str(evaluator.get("evaluator_id", "")),
+                                    "metric_kind": "comparative",
+                                    "metric_id": metric_id,
+                                    "enabled": True,
+                                }
+                            )
+                    for signal in evaluation_state.get("diagnostic_signals", []):
+                        if not isinstance(signal, dict):
+                            continue
+                        if not bool(signal.get("enabled", False)) or str(signal.get("availability_status", "available")) == "unavailable":
+                            continue
+                        signal_id = str(signal.get("signal_id", ""))
+                        for evaluator in enabled_evaluators:
+                            links.append(
+                                {
+                                    "evaluator_id": str(evaluator.get("evaluator_id", "")),
+                                    "metric_kind": "diagnostic",
+                                    "metric_id": signal_id,
+                                    "enabled": True,
+                                }
+                            )
+                    registry_store.save_arena_evaluation_evaluator_metric_links(
+                        tenant_id=tenant_id,
+                        owner_user_id=user_id,
+                        arena_id=arena_id,
+                        evaluator_metric_links=links,
+                    )
+                    return {
+                        "assistant_text": f"Filled matrix links: {len(links)} link(s).",
+                        "resolved_action": "autofill_matrix_links",
+                        "allowed_actions": allowed_actions,
+                        "summary": "Evaluator matrix links updated.",
+                    }
+                return {
+                    "assistant_text": "Evaluators copilot is active. Try: 'autofill matrix'.",
+                    "resolved_action": "none",
+                    "allowed_actions": allowed_actions,
+                    "summary": "No evaluator action executed.",
+                }
+
+            if capability_id == "c7":
+                allowed_actions = ["validate_optimizer_setup"]
+                resolved_action = context_action if context_action in allowed_actions else ""
+                if not resolved_action and ("validate" in normalized_message or "проверь" in normalized_message):
+                    resolved_action = "validate_optimizer_setup"
+                if resolved_action == "validate_optimizer_setup":
+                    report = registry_store.validate_arena_optimizer_setup(
+                        tenant_id=tenant_id,
+                        owner_user_id=user_id,
+                        arena_id=arena_id,
+                    )
+                    issues = report.get("issues", [])
+                    if not isinstance(issues, list):
+                        issues = []
+                    if issues:
+                        top_issue = issues[0] if isinstance(issues[0], dict) else {}
+                        top_message = str(top_issue.get("message", "unknown issue"))
+                        return {
+                            "assistant_text": f"Optimizer preflight: {report.get('status', 'unknown')}. Top issue: {top_message}",
+                            "resolved_action": "validate_optimizer_setup",
+                            "allowed_actions": allowed_actions,
+                            "summary": f"Validation returned {len(issues)} issue(s).",
+                        }
+                    return {
+                        "assistant_text": "Optimizer preflight is ready.",
+                        "resolved_action": "validate_optimizer_setup",
+                        "allowed_actions": allowed_actions,
+                        "summary": "Optimizer validation passed.",
+                    }
+                return {
+                    "assistant_text": "Optimizer copilot is active. Try: 'validate optimizer'.",
+                    "resolved_action": "none",
+                    "allowed_actions": allowed_actions,
+                    "summary": "No optimizer action executed.",
+                }
+
+            return {
+                "assistant_text": "Context action is not available for this capability.",
+                "resolved_action": "none",
+                "allowed_actions": [],
+                "summary": "No contextual action executed.",
+            }
 
         def _handle_post_arena_candidates_select_for_tests(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
             """Отмечает выбранных кандидатов и внутренне готовит их к тестам (compile gate без ручного шага)."""

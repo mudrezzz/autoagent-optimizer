@@ -57,8 +57,8 @@ try {
 
   Write-Host "[SMOKE] verify capability catalog"
   $capabilities = Invoke-RestMethod -Uri "$baseUrl/api/capabilities" -Method Get -TimeoutSec 4
-  if ($capabilities.capabilities.Count -ne 6) {
-    throw "Capability catalog must contain 6 items."
+  if ($capabilities.capabilities.Count -lt 8) {
+    throw "Capability catalog must contain at least 8 items (C1..C8 model)."
   }
 
   $c1 = $capabilities.capabilities | Where-Object { $_.id -eq "c1" }
@@ -83,6 +83,18 @@ try {
   $c5 = $capabilities.capabilities | Where-Object { $_.id -eq "c5" }
   if ($null -eq $c5 -or $c5.status -ne "enabled") {
     throw "C5 capability must be enabled in V2.3.S7."
+  }
+  $c5s = $capabilities.capabilities | Where-Object { $_.id -eq "c5s" }
+  if ($null -eq $c5s -or $c5s.status -ne "enabled") {
+    throw "C5s capability must be enabled."
+  }
+  $c6 = $capabilities.capabilities | Where-Object { $_.id -eq "c6" }
+  if ($null -eq $c6 -or $c6.status -ne "enabled") {
+    throw "C6 capability must be enabled."
+  }
+  $c7 = $capabilities.capabilities | Where-Object { $_.id -eq "c7" }
+  if ($null -eq $c7 -or $c7.status -ne "enabled") {
+    throw "C7 capability must be enabled."
   }
 
   Write-Host "[SMOKE] run C1 battle flow"

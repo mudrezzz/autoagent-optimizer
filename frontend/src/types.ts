@@ -171,19 +171,24 @@ export type C2ChatStateResponse = {
   arena_name: string;
   messages: C2ChatMessage[];
   messages_total: number;
-  candidate_set_draft: C2CandidateSetDraft | null;
+  candidate_set_draft?: C2CandidateSetDraft | null;
 };
 
 // Русский комментарий: ответ отправки сообщения в C2 чат.
 export type C2ChatPostMessageResponse = {
   status: "success";
-  capability_id: "c2";
+  capability_id: string;
   arena_id: string;
   message: C2ChatMessage;
   assistant_message: C2ChatMessage | null;
   messages: C2ChatMessage[];
   messages_total: number;
   candidate_set_draft: C2CandidateSetDraft | null;
+  copilot_context?: {
+    resolved_action: string;
+    allowed_actions: string[];
+    summary: string;
+  };
 };
 
 // Русский комментарий: ответ C2 endpoint выбора кандидатов и внутренней подготовки к тестам.

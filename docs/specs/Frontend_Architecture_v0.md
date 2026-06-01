@@ -348,8 +348,19 @@ Dataset v2 не ограничивается только `input + final output`
 
 1. на вкладке `Datasets` чат помогает с генерацией/чисткой/редактированием dataset;
 2. на вкладке `Metrics` чат предлагает и объясняет метрики;
-3. на вкладке `Evaluators` чат помогает собирать evaluator x metric matrix;
-4. при смене capability меняется контекст ассистента и допустимые действия.
+3. на вкладке `Stage Mapping` чат запускает auto-map и добавляет ручные строки;
+4. на вкладке `Evaluators` чат помогает собирать evaluator x metric matrix;
+5. на вкладке `Optimizer Run` чат запускает preflight validate;
+6. при смене capability меняется контекст ассистента и допустимые действия.
+
+V2.4.S6 (v0) фиксирует tab-scoped контракт:
+
+1. запросы идут в единый endpoint `POST /api/arenas/{id}/chat/messages` с полями:
+2. `capability_id` (`c2|c4|c5|c5s|c6|c7`);
+3. `context_action` (optional, для кнопки `Run action`).
+4. response дополняется `copilot_context`:
+5. `resolved_action`, `allowed_actions[]`, `summary`.
+6. после non-C2 action frontend делает targeted refresh активного шага (`C4/C5/C5s/C6/C7`), не перезагружая весь workspace.
 
 ## Runtime Snapshot UX Policy
 

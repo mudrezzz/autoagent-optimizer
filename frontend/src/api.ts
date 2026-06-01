@@ -126,13 +126,15 @@ export async function getArenaChatState(arenaId: string): Promise<C2ChatStateRes
   return parseJsonOrThrow<C2ChatStateResponse>(response);
 }
 
-// Русский комментарий: отправляет сообщение в C2 чат и опционально запускает генерацию candidate draft.
+// Русский комментарий: отправляет сообщение в battle-чат с учетом активной capability-контекста.
 export async function postArenaChatMessage(
   arenaId: string,
   message: string,
   options: {
     generateCandidates: boolean;
     maxCandidates?: number;
+    capabilityId?: string;
+    contextAction?: string;
   },
 ): Promise<C2ChatPostMessageResponse> {
   const maxCandidates = options.maxCandidates ?? 3;
@@ -143,6 +145,8 @@ export async function postArenaChatMessage(
       message,
       generate_candidates: options.generateCandidates,
       max_candidates: maxCandidates,
+      capability_id: options.capabilityId ?? "c2",
+      context_action: options.contextAction ?? "",
     }),
   });
   if (!response.ok) {

@@ -548,6 +548,70 @@ describe("Battle workspace candidates", () => {
     expect(await screen.findByText("Pattern Cleaner")).toBeInTheDocument();
   });
 
+  it("keeps chat disabled on unsupported capability and enables contextual action on C4", async () => {
+    const user = userEvent.setup();
+    vi.mocked(postArenaChatMessage).mockResolvedValue({
+      status: "success",
+      capability_id: "c4",
+      arena_id: ARENA.workspace_id,
+      message: {
+        message_id: "msg_user_1",
+        role: "user",
+        content: "add row",
+        created_at: "2026-06-01T10:00:00+00:00",
+      },
+      assistant_message: {
+        message_id: "msg_assistant_1",
+        role: "assistant",
+        content: "Added dataset row `case_auto_1`.",
+        created_at: "2026-06-01T10:00:01+00:00",
+      },
+      messages: [
+        {
+          message_id: "msg_user_1",
+          role: "user",
+          content: "add row",
+          created_at: "2026-06-01T10:00:00+00:00",
+        },
+        {
+          message_id: "msg_assistant_1",
+          role: "assistant",
+          content: "Added dataset row `case_auto_1`.",
+          created_at: "2026-06-01T10:00:01+00:00",
+        },
+      ],
+      messages_total: 2,
+      candidate_set_draft: CANDIDATE_SET,
+      copilot_context: {
+        resolved_action: "add_dataset_row",
+        allowed_actions: ["add_dataset_row"],
+        summary: "Dataset row added.",
+      },
+    });
+
+    renderWorkspace();
+
+    const sendButtonInC3 = await screen.findByRole("button", { name: "Send" });
+    expect(sendButtonInC3).toBeDisabled();
+    expect(await screen.findByText(/Contextual chat is available in C2\/C4\/C5\/Stage Mapping\/C6\/C7/i)).toBeInTheDocument();
+
+    const c4Button = await screen.findByRole("button", { name: /Datasets/i });
+    await user.click(c4Button);
+    await user.type(await screen.findByLabelText(/Message \(/i), "add row");
+    await user.click(await screen.findByRole("button", { name: "Run action" }));
+
+    expect(vi.mocked(postArenaChatMessage)).toHaveBeenCalledWith(
+      ARENA.workspace_id,
+      "add row",
+      expect.objectContaining({
+        generateCandidates: false,
+        capabilityId: "c4",
+        contextAction: "add_dataset_row",
+      }),
+    );
+    expect(await screen.findByText(/Dataset row added/i)).toBeInTheDocument();
+  });
+
   it("locks C4 wizard step when candidate draft is not generated yet", async () => {
     vi.mocked(getArenaChatState).mockResolvedValue({
       status: "success",

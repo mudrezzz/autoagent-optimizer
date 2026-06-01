@@ -42,20 +42,36 @@ In C4 Dataset Studio:
 - `target_stage` selector (`retrieval | rerank | synthesis | final`),
 - `expected` text input (auto-mapped into `expected_payload` per stage).
 
-In C4 Metrics & Evaluators Studio:
+Evaluation steps (`C5/C5s/C6`) use a split contract:
 
-1. Comparative metrics are edited via checkboxes + weights and saved with `Save metrics`.
-2. Diagnostic signals are edited via checkboxes and saved with `Save diagnostics`.
-3. Evaluators are edited via checkboxes and saved with `Save evaluators`.
-4. Evaluator x Metric matrix is edited via per-cell checkboxes and saved with `Save matrix`.
-5. `Stage mapping` card allows auto-map (`Auto-map stages`) plus manual override and explicit persist (`Save mapping`).
-6. Budget is edited via numeric fields and saved with `Save budget`.
-7. `Validate profile` returns status + issues.
-8. `Save version` snapshots the evaluation profile.
-9. Unavailable metrics/signals (based on candidate features) are rendered as disabled controls with reason text.
-10. Candidate feature summary is displayed at the top of C5 Metrics screen.
+1. C5 (`Metrics`) edits comparative metrics + diagnostic signals + weights.
+2. C5s (`Stage Mapping`) handles auto-map, manual rows, and mapping coverage.
+3. C6 (`Evaluators`) edits evaluator list + matrix links only.
+4. `Validate profile` and `Save version` are executed from C6.
+5. Unavailable metrics/signals (based on selected candidates) stay disabled with reason text.
+6. Candidate feature summary is shown at the top of C5.
 
 State is loaded through `fetchArenaDatasetState` + `fetchArenaEvaluationState` and refreshed after each C4 action.
+
+## C5 / C5s / C6 Evaluation Contract
+
+1. C5 (`Metrics`) owns only comparative + diagnostic metric setup.
+2. C5s (`Stage Mapping`) is a dedicated wizard step between C5 and C6.
+3. C6 (`Evaluators`) owns evaluator list + evaluator x metric matrix.
+4. Budget controls are not shown in C6; budget lives in C7.
+5. If non-final diagnostics are enabled (`retrieval/rerank/synthesis`), C5s coverage must be ready before C6 is unlocked.
+
+## Contextual Chat Contract (V2.4.S6)
+
+1. Frontend always posts to `postArenaChatMessage` with:
+2. `capabilityId` from active wizard step,
+3. optional `contextAction` for `Run action`.
+4. Supported contextual chat capabilities: `c2`, `c4`, `c5`, `c5s`, `c6`, `c7`.
+5. Backend returns `copilot_context` (`resolved_action`, `allowed_actions`, `summary`).
+6. For non-C2 actions frontend performs targeted refresh:
+7. C4 -> `loadC4DatasetState`,
+8. C5/C5s/C6 -> `loadC4EvaluationState`,
+9. C7 -> `loadC5OptimizerState`.
 
 ## C5 UI Contract
 

@@ -108,6 +108,18 @@ const CAPABILITY_ICONS: Record<string, string> = {
   c8: "package-check",
 };
 
+// Русский комментарий: список capability, для которых battle-чат поддерживает контекстные действия в v0.
+const CHAT_SUPPORTED_CAPABILITY_IDS = new Set(["c2", "c4", "c5", "c5s", "c6", "c7"]);
+
+// Русский комментарий: дефолтные contextual action для non-C2 шагов wizard.
+const CHAT_DEFAULT_CONTEXT_ACTION_BY_CAPABILITY: Record<string, string> = {
+  c4: "add_dataset_row",
+  c5: "enable_default_metrics",
+  c5s: "auto_map_stage_mappings",
+  c6: "autofill_matrix_links",
+  c7: "validate_optimizer_setup",
+};
+
 // Русский комментарий: маршруты двух экранов - hub и workspace.
 type ScreenRoute = { name: "battles_hub" } | { name: "battle_workspace"; arenaId: string };
 
@@ -122,6 +134,9 @@ type UiState = {
   activeArenaId: string;
   c2ChatInput: string;
   c2Messages: C2ChatMessage[];
+  c2CopilotResolvedAction: string;
+  c2CopilotAllowedActions: string[];
+  c2CopilotSummary: string;
   c2CandidateSetDraft: C2CandidateSetDraft | null;
   c2SelectedCandidateId: string;
   c2SelectedForTestsIds: string[];
@@ -200,6 +215,9 @@ export function App(): JSX.Element {
     activeArenaId: "",
     c2ChatInput: "",
     c2Messages: [],
+    c2CopilotResolvedAction: "",
+    c2CopilotAllowedActions: [],
+    c2CopilotSummary: "",
     c2CandidateSetDraft: null,
     c2SelectedCandidateId: "",
     c2SelectedForTestsIds: [],
@@ -401,6 +419,9 @@ export function App(): JSX.Element {
       activeArenaId: "",
       c2ChatInput: "",
       c2Messages: [],
+      c2CopilotResolvedAction: "",
+      c2CopilotAllowedActions: [],
+      c2CopilotSummary: "",
       c2CandidateSetDraft: null,
       c2SelectedCandidateId: "",
       c2SelectedForTestsIds: [],
@@ -509,6 +530,9 @@ export function App(): JSX.Element {
         ...prev,
         activeArenaId: arenaId,
         c2Messages: chatResponse.messages,
+        c2CopilotResolvedAction: "",
+        c2CopilotAllowedActions: [],
+        c2CopilotSummary: "",
         c2CandidateSetDraft: chatResponse.candidate_set_draft,
         c2SelectedCandidateId: chatResponse.candidate_set_draft?.candidates[0]?.candidate_id ?? "",
         c2SelectedForTestsIds:
@@ -530,6 +554,9 @@ export function App(): JSX.Element {
       setState((prev) => ({
         ...prev,
         c2Messages: [],
+        c2CopilotResolvedAction: "",
+        c2CopilotAllowedActions: [],
+        c2CopilotSummary: "",
         c2CandidateSetDraft: null,
         c2SelectedCandidateId: "",
         c2ExpandedCandidateId: "",
@@ -1982,38 +2009,63 @@ export function App(): JSX.Element {
     }
   }
 
-  // Русский комментарий: отправка сообщения в C2 чат.
+  // Русский комментарий: отправка сообщения в battle-чат с учетом активной capability-вкладки.
   async function handleSendC2Message(generateCandidates: boolean): Promise<void> {
     const arenaId = state.activeArenaId;
     if (!arenaId) {
       setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "error", message: "Open battle before using C2 chat." }) }));
       return;
     }
-    if (state.activeCapabilityId !== "c2") {
-      setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "notice", message: "Switch to C2 before sending chat messages." }) }));
+    const capabilityId = state.activeCapabilityId;
+    if (!CHAT_SUPPORTED_CAPABILITY_IDS.has(capabilityId)) {
+      setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "notice", message: "Battle chat actions are not available for this step yet." }) }));
       return;
     }
     const message = state.c2ChatInput.trim();
     if (!message) {
-      setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "error", message: "C2 brief message is required." }) }));
+      setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "error", message: "Message is required." }) }));
+      return;
+    }
+    if (capabilityId === "c2" && generateCandidates && state.c3SelectedPatternIds.length === 0) {
+      setState((prev) => ({ ...prev, jsonText: prettyJson({ status: "error", message: "Select at least one pattern in C3 before generation." }) }));
       return;
     }
 
-    setState((prev) => ({ ...prev, budgetStage: generateCandidates ? "generating candidates" : "sending message", budgetPercent: 60 }));
+    const contextAction = capabilityId === "c2" ? "" : (generateCandidates ? (CHAT_DEFAULT_CONTEXT_ACTION_BY_CAPABILITY[capabilityId] ?? "") : "");
+    setState((prev) => ({
+      ...prev,
+      budgetStage: generateCandidates
+        ? capabilityId === "c2"
+          ? "generating candidates"
+          : "running contextual action"
+        : "sending message",
+      budgetPercent: 60,
+    }));
     try {
-      const response = await postArenaChatMessage(arenaId, message, { generateCandidates, maxCandidates: 3 });
+      const response = await postArenaChatMessage(arenaId, message, {
+        generateCandidates: capabilityId === "c2" ? generateCandidates : false,
+        maxCandidates: 3,
+        capabilityId,
+        contextAction,
+      });
+      const isC2Chat = capabilityId === "c2";
+      const resolvedAction = response.copilot_context?.resolved_action ?? (isC2Chat ? (generateCandidates ? "generate_candidates" : "append_message") : "append_message");
       const snapshot = {
         status: "success",
-        capability_id: "c2",
-        action: generateCandidates ? "generate_candidates" : "append_message",
+        capability_id: capabilityId,
+        action: resolvedAction,
         arena_id: arenaId,
         messages_total: response.messages_total,
-        candidate_set_id: response.candidate_set_draft?.candidate_set_id ?? null,
+        candidate_set_id: response.candidate_set_draft?.candidate_set_id ?? state.c2CandidateSetDraft?.candidate_set_id ?? null,
+        copilot_context: response.copilot_context ?? null,
       };
       setState((prev) => ({
-        // Русский комментарий: сохраняем выбранного кандидата, если он остался в новом draft, иначе выбираем первый.
         ...prev,
         ...(() => {
+          if (!isC2Chat) {
+            return {};
+          }
+          // Русский комментарий: сохраняем выбранного кандидата, если он остался в новом draft, иначе выбираем первый.
           const nextDraft = response.candidate_set_draft ?? prev.c2CandidateSetDraft;
           const canKeepSelected = nextDraft?.candidates.some((candidate) => candidate.candidate_id === prev.c2SelectedCandidateId) ?? false;
           const nextSelectedCandidateId = canKeepSelected ? prev.c2SelectedCandidateId : (nextDraft?.candidates[0]?.candidate_id ?? "");
@@ -2032,11 +2084,23 @@ export function App(): JSX.Element {
         })(),
         c2ChatInput: "",
         c2Messages: response.messages,
-        budgetStage: "c2 updated",
+        c2CopilotResolvedAction: response.copilot_context?.resolved_action ?? "",
+        c2CopilotAllowedActions: response.copilot_context?.allowed_actions ?? [],
+        c2CopilotSummary: response.copilot_context?.summary ?? "",
+        budgetStage: isC2Chat ? "c2 updated" : "contextual action applied",
         budgetPercent: 100,
         jsonText: prettyJson(snapshot),
         lastPayload: snapshot,
       }));
+      if (!isC2Chat) {
+        if (capabilityId === "c4") {
+          await loadC4DatasetState(arenaId, false);
+        } else if (capabilityId === "c5" || capabilityId === "c5s" || capabilityId === "c6") {
+          await loadC4EvaluationState(arenaId, false);
+        } else if (capabilityId === "c7") {
+          await loadC5OptimizerState(arenaId, false);
+        }
+      }
     } catch (error) {
       setState((prev) => ({ ...prev, budgetStage: "failed", budgetPercent: 100, jsonText: prettyJson({ status: "error", message: String(error) }) }));
     }
@@ -2122,13 +2186,13 @@ export function App(): JSX.Element {
     setState((prev) => ({ ...prev, c2JsonCollapsed: !prev.c2JsonCollapsed }));
   }
 
-  // Русский комментарий: отправляет C2-сообщение по Enter, сохраняя перенос строки через Shift+Enter.
+  // Русский комментарий: отправляет сообщение по Enter (Shift+Enter оставляет перенос строки).
   function handleC2ChatKeyDown(event: ReactKeyboardEvent<HTMLTextAreaElement>): void {
     if (event.key !== "Enter" || event.shiftKey) {
       return;
     }
     event.preventDefault();
-    void handleSendC2Message(true);
+    void handleSendC2Message(false);
   }
 
   // Русский комментарий: открывает модалку создания арены.
@@ -2392,8 +2456,37 @@ export function App(): JSX.Element {
 
   const isBattleRoute = route.name === "battle_workspace";
   const isC2Enabled = activeCapability.id === "c2";
+  const isChatCapabilitySupported = CHAT_SUPPORTED_CAPABILITY_IDS.has(activeCapability.id);
   const c2PatternGateLocked = state.c3SelectedPatternIds.length === 0;
-  const canUseC2Chat = isC2Enabled && !c2PatternGateLocked;
+  const isC2ChatBlocked = isC2Enabled && c2PatternGateLocked;
+  const canUseBattleChat = Boolean(state.activeArenaId) && isChatCapabilitySupported && !isC2ChatBlocked;
+  const chatActionLabel = isC2Enabled ? "Generate" : "Run action";
+  const chatActionHint = (() => {
+    if (isC2Enabled) {
+      return "Generate candidates from selected patterns.";
+    }
+    if (activeCapability.id === "c4") {
+      return "Default action: add dataset row.";
+    }
+    if (activeCapability.id === "c5") {
+      return "Default action: enable available metrics.";
+    }
+    if (activeCapability.id === "c5s") {
+      return "Default action: auto-map stage mappings.";
+    }
+    if (activeCapability.id === "c6") {
+      return "Default action: autofill evaluator matrix links.";
+    }
+    if (activeCapability.id === "c7") {
+      return "Default action: validate optimizer setup.";
+    }
+    return "Context actions are unavailable for this step.";
+  })();
+  const chatPlaceholder = isC2ChatBlocked
+    ? "First select pattern(s) in C3 to unlock C2 generation..."
+    : isChatCapabilitySupported
+      ? `Ask copilot about ${activeCapability.name.toLowerCase()}...`
+      : "Open C2, C4, C5, Stage Mapping, C6 or C7 to use contextual chat...";
   const isDatasetCapability = activeCapability.id === "c4";
   const isMetricsCapability = activeCapability.id === "c5";
   const isStageMappingCapability = activeCapability.id === "c5s";
@@ -3762,8 +3855,20 @@ export function App(): JSX.Element {
                 </div>
                 <div className="chat-composer">
                   <label className="c1-field-label" htmlFor="c2-chat-input">Message ({state.activeArenaId || "no battle selected"})</label>
-                  {isC2Enabled && c2PatternGateLocked ? (
+                  {isC2ChatBlocked ? (
                     <div className="issue-row info">Before chat generation, select at least one architecture pattern in C3.</div>
+                  ) : null}
+                  {!isChatCapabilitySupported ? (
+                    <div className="issue-row info">Contextual chat is available in C2/C4/C5/Stage Mapping/C6/C7.</div>
+                  ) : null}
+                  {state.c2CopilotSummary ? (
+                    <div className="issue-row info">
+                      {state.c2CopilotSummary}
+                      {state.c2CopilotResolvedAction ? ` · action: ${state.c2CopilotResolvedAction}` : ""}
+                    </div>
+                  ) : null}
+                  {isChatCapabilitySupported && !isC2Enabled ? (
+                    <div className="issue-row info">{chatActionHint}</div>
                   ) : null}
                   <textarea
                     id="c2-chat-input"
@@ -3772,8 +3877,8 @@ export function App(): JSX.Element {
                       handleC2ChatInputChange(event.target.value);
                     }}
                     onKeyDown={handleC2ChatKeyDown}
-                    placeholder={isC2Enabled && c2PatternGateLocked ? "First select pattern(s) in C3 to unlock C2 generation..." : "Describe the optimization task in plain language..."}
-                    disabled={!state.activeArenaId || !canUseC2Chat}
+                    placeholder={chatPlaceholder}
+                    disabled={!canUseBattleChat}
                   />
                   <div className="c2-chat-actions">
                     <button
@@ -3782,7 +3887,7 @@ export function App(): JSX.Element {
                       onClick={() => {
                         void handleSendC2Message(false);
                       }}
-                      disabled={!state.activeArenaId || !canUseC2Chat}
+                      disabled={!canUseBattleChat}
                     >
                       Send
                     </button>
@@ -3792,9 +3897,9 @@ export function App(): JSX.Element {
                       onClick={() => {
                         void handleSendC2Message(true);
                       }}
-                      disabled={!state.activeArenaId || !canUseC2Chat}
+                      disabled={!canUseBattleChat}
                     >
-                      Generate
+                      {chatActionLabel}
                     </button>
                   </div>
                 </div>
