@@ -206,6 +206,7 @@ Input (Tenant + User + Battle + Task Brief + Constraints + Data + Budget)
    - V2.4.S5b target-stage-first mapping layer: `stage_mappings` contract + `POST /api/arenas/{id}/evaluation/stage-mapping/auto-map` + `POST /api/arenas/{id}/evaluation/stage-mapping/save` + validation guards (`stage_mapping_*`).
    - V2.4.S6 contextual right-chat router: single chat endpoint with `capability_id/context_action`, tab-scoped copilot actions (`C2/C4/C5/C5s/C6/C7`) and `copilot_context` response contract.
    - V2.4.S7 debug drawer UX: runtime snapshot stays available through workspace `Debug`, but raw JSON is no longer rendered inside capability content panels.
+   - I5.S2 evaluator adapter layer: `optimizer.evaluation.evaluator_adapters` catalog enriches C6 evaluators with adapter kind, requirements, supported metric refs and compatibility reasons; `/api/evaluation/evaluator-adapters` exposes the catalog.
    - C4 corrective UX split: explicit `Datasets`/`Metrics` tabs with isolated user flows and regression tests.
    - C5 optimizer setup studio v0 (methods/controls/run-plan/budget, preflight guardrails, profile versioning, launch queue) via `/api/arenas/{id}/optimizer/*`.
 2. Next:

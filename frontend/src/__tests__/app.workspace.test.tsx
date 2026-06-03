@@ -1009,6 +1009,68 @@ describe("Battle workspace candidates", () => {
     expect(vi.mocked(saveArenaEvaluationMatrix)).toHaveBeenCalled();
   });
 
+  it("shows evaluator adapter metadata and disables incompatible matrix cells", async () => {
+    const user = userEvent.setup();
+    vi.mocked(fetchArenaEvaluationState).mockResolvedValue({
+      status: "success",
+      capability_id: "c4",
+      arena_id: ARENA.workspace_id,
+      comparative_metrics: [
+        { metric_id: "quality_f1", title: "Quality F1@K", description: "quality", enabled: true, weight: 0.6 },
+        { metric_id: "latency_p95", title: "Latency P95", description: "runtime", enabled: true, weight: 0.2 },
+      ],
+      diagnostic_signals: [],
+      evaluators: [
+        {
+          evaluator_id: "golden_oracle",
+          adapter_kind: "golden_dataset",
+          title: "Golden dataset oracle",
+          description: "deterministic",
+          enabled: true,
+          requires_dataset: true,
+          requires_llm: false,
+          requires_stage_mapping: false,
+          supported_metric_refs: ["comparative:quality_f1"],
+          supported_metric_kinds: ["comparative"],
+          budget_cost_model: "cases",
+          adapter_status: "available",
+          adapter_status_reason: "",
+        },
+      ],
+      evaluator_metric_links: [
+        {
+          evaluator_id: "golden_oracle",
+          metric_kind: "comparative",
+          metric_id: "quality_f1",
+          enabled: true,
+          compatibility_status: "compatible",
+          compatibility_reason: "",
+        },
+        {
+          evaluator_id: "golden_oracle",
+          metric_kind: "comparative",
+          metric_id: "latency_p95",
+          enabled: false,
+          compatibility_status: "incompatible",
+          compatibility_reason: "Golden dataset oracle does not support comparative:latency_p95.",
+        },
+      ],
+      candidate_features: { core: true, llm: true, retrieval: false, rerank: false, tool: true, hitl: false },
+      budget: { max_cases: 20, max_llm_calls: 100, max_cost_usd: 5.0 },
+      versions: [],
+      updated_at: "2026-05-26T00:00:00+00:00",
+    });
+
+    renderWorkspace();
+    await user.click(await screen.findByRole("button", { name: /Evaluators/i }));
+
+    expect((await screen.findAllByText("golden_dataset")).length).toBeGreaterThanOrEqual(1);
+    expect(await screen.findByText("dataset")).toBeInTheDocument();
+    expect(await screen.findByText("budget: cases")).toBeInTheDocument();
+    expect(await screen.findByText("not supported")).toBeInTheDocument();
+    expect(await screen.findByLabelText("toggle-matrix-golden_oracle-comparative-latency_p95")).toBeDisabled();
+  });
+
   it("updates matrix columns immediately when evaluator is toggled", async () => {
     const user = userEvent.setup();
     vi.mocked(fetchArenaEvaluationState).mockResolvedValue({

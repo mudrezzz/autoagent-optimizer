@@ -1287,6 +1287,8 @@ export function App(): JSX.Element {
   // Русский комментарий: локально переключает связь evaluator x metric в матрице покрытия.
   function handleToggleC4EvaluatorMetricLink(evaluatorId: string, metricKind: "comparative" | "diagnostic", metricId: string): void {
     setState((prev) => {
+      const evaluator = prev.c4Evaluators.find((item) => item.evaluator_id === evaluatorId);
+      const fallbackCompatibility = resolveEvaluatorMetricCompatibility(evaluator, metricKind, metricId);
       const index = prev.c4EvaluatorMetricLinks.findIndex(
         (link) =>
           link.evaluator_id === evaluatorId &&
@@ -1294,6 +1296,9 @@ export function App(): JSX.Element {
           link.metric_id === metricId
       );
       if (index < 0) {
+        if (fallbackCompatibility.status === "incompatible") {
+          return prev;
+        }
         return {
           ...prev,
           c4EvaluatorMetricLinks: [
@@ -1303,9 +1308,15 @@ export function App(): JSX.Element {
               metric_kind: metricKind,
               metric_id: metricId,
               enabled: true,
+              compatibility_status: "compatible",
+              compatibility_reason: "",
             },
           ],
         };
+      }
+      const currentLink = prev.c4EvaluatorMetricLinks[index];
+      if (!currentLink.enabled && fallbackCompatibility.status === "incompatible") {
+        return prev;
       }
       return {
         ...prev,
@@ -3283,7 +3294,7 @@ export function App(): JSX.Element {
                                   <div className="c4-eval-card-title">Evaluators</div>
                                   <div className="c4-eval-list">
                                     {state.c4Evaluators.map((evaluator) => (
-                                      <label key={evaluator.evaluator_id} className="c4-eval-item">
+                                      <label key={evaluator.evaluator_id} className={`c4-eval-item${evaluator.adapter_status === "planned" ? " c4-eval-item--disabled" : ""}`}>
                                         <input
                                           type="checkbox"
                                           checked={evaluator.enabled}
@@ -3293,8 +3304,19 @@ export function App(): JSX.Element {
                                           aria-label={`toggle-evaluator-${evaluator.evaluator_id}`}
                                         />
                                         <div className="c4-eval-item-body">
-                                          <div className="c4-eval-item-title">{evaluator.title}</div>
+                                          <div className="c4-eval-item-title">
+                                            {evaluator.title}
+                                            <span className="c4-eval-kind-chip">{evaluator.adapter_kind ?? "custom"}</span>
+                                          </div>
                                           <div className="c4-eval-item-sub">{evaluator.description}</div>
+                                          <div className="c4-eval-requirements">
+                                            {buildEvaluatorRequirementLabels(evaluator).map((label) => (
+                                              <span key={`${evaluator.evaluator_id}:${label}`} className="candidate-step-chip">{label}</span>
+                                            ))}
+                                          </div>
+                                          {evaluator.adapter_status && evaluator.adapter_status !== "available" ? (
+                                            <div className="c4-eval-item-hint">{evaluator.adapter_status}: {evaluator.adapter_status_reason}</div>
+                                          ) : null}
                                         </div>
                                       </label>
                                     ))}
@@ -3311,7 +3333,10 @@ export function App(): JSX.Element {
                                         <tr>
                                           <th>Metric</th>
                                           {enabledC4Evaluators.map((evaluator) => (
-                                            <th key={`matrix-head:${evaluator.evaluator_id}`}>{evaluator.title}</th>
+                                            <th key={`matrix-head:${evaluator.evaluator_id}`}>
+                                              {evaluator.title}
+                                              <span className="c4-matrix-row-meta">{evaluator.adapter_kind ?? "custom"}</span>
+                                            </th>
                                           ))}
                                         </tr>
                                       </thead>
@@ -3347,8 +3372,19 @@ export function App(): JSX.Element {
                                                     item.metric_kind === metricTarget.metric_kind &&
                                                     item.metric_id === metricTarget.metric_id
                                                 );
+                                                const compatibility = resolveEvaluatorMetricCompatibility(
+                                                  evaluator,
+                                                  metricTarget.metric_kind,
+                                                  metricTarget.metric_id,
+                                                  link
+                                                );
+                                                const compatibilityBlocked = compatibility.status === "incompatible";
+                                                const cellDisabled = !metricAvailable || (compatibilityBlocked && !link?.enabled);
                                                 return (
-                                                  <td key={`matrix-cell:${evaluator.evaluator_id}:${metricTarget.metric_kind}:${metricTarget.metric_id}`}>
+                                                  <td
+                                                    key={`matrix-cell:${evaluator.evaluator_id}:${metricTarget.metric_kind}:${metricTarget.metric_id}`}
+                                                    title={compatibility.reason}
+                                                  >
                                                     <input
                                                       type="checkbox"
                                                       checked={Boolean(link?.enabled)}
@@ -3360,8 +3396,9 @@ export function App(): JSX.Element {
                                                         );
                                                       }}
                                                       aria-label={`toggle-matrix-${evaluator.evaluator_id}-${metricTarget.metric_kind}-${metricTarget.metric_id}`}
-                                                      disabled={!metricAvailable}
+                                                      disabled={cellDisabled}
                                                     />
+                                                    {compatibilityBlocked ? <span className="c4-matrix-cell-hint">not supported</span> : null}
                                                   </td>
                                                 );
                                               })}
@@ -4204,6 +4241,54 @@ function buildCapabilityWizardItems(capabilities: Capability[], state: UiState, 
 // Русский комментарий: проверяет, доступен ли metric/signal для текущей структуры кандидатов.
 function isAvailabilityEnabled(availabilityStatus: string | undefined): boolean {
   return availabilityStatus !== "unavailable";
+}
+
+// Русский комментарий: строит читабельные requirement chips для карточки evaluator adapter.
+function buildEvaluatorRequirementLabels(evaluator: C4Evaluator): string[] {
+  const labels: string[] = [];
+  if (evaluator.requires_dataset) {
+    labels.push("dataset");
+  }
+  if (evaluator.requires_llm) {
+    labels.push("llm");
+  }
+  if (evaluator.requires_stage_mapping) {
+    labels.push("stage mapping");
+  }
+  if (labels.length === 0) {
+    labels.push("no extra requirements");
+  }
+  if (evaluator.budget_cost_model) {
+    labels.push(`budget: ${evaluator.budget_cost_model}`);
+  }
+  return labels;
+}
+
+// Русский комментарий: вычисляет compatibility fallback для UI, если backend link еще не пришел.
+function resolveEvaluatorMetricCompatibility(
+  evaluator: C4Evaluator | undefined,
+  metricKind: "comparative" | "diagnostic" | string,
+  metricId: string,
+  link?: C4EvaluatorMetricLink,
+): { status: "compatible" | "incompatible"; reason: string } {
+  if (link?.compatibility_status === "incompatible") {
+    return { status: "incompatible", reason: link.compatibility_reason ?? "This evaluator cannot evaluate this metric." };
+  }
+  if (link?.compatibility_status === "compatible") {
+    return { status: "compatible", reason: "" };
+  }
+  const supportedMetricRefs = evaluator?.supported_metric_refs ?? [];
+  if (supportedMetricRefs.length === 0) {
+    return { status: "compatible", reason: "" };
+  }
+  const metricRef = `${String(metricKind).toLowerCase()}:${metricId}`.toLowerCase();
+  if (!supportedMetricRefs.map((item) => item.toLowerCase()).includes(metricRef)) {
+    return {
+      status: "incompatible",
+      reason: `${evaluator?.title ?? "Evaluator"} does not support ${metricRef}.`,
+    };
+  }
+  return { status: "compatible", reason: "" };
 }
 
 // Русский комментарий: строит компактную строку фичей для панели Metrics.

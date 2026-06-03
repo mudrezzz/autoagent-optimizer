@@ -11,6 +11,8 @@
   C4StageMapping,
   C4DatasetRow,
   C4DatasetStateResponse,
+  C4Evaluator,
+  C4EvaluatorMetricLink,
   C2SelectForTestsResponse,
   C2ChatPostMessageResponse,
   C2ChatStateResponse,
@@ -377,7 +379,7 @@ export async function saveArenaEvaluationMetrics(
 // Русский комментарий: сохраняет evaluator-адаптеры evaluation profile.
 export async function saveArenaEvaluationEvaluators(
   arenaId: string,
-  evaluators: Array<{ evaluator_id: string; title: string; description: string; enabled: boolean }>,
+  evaluators: C4Evaluator[],
 ): Promise<C4EvaluationStateResponse> {
   const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/evaluation/evaluators/save`, {
     method: "POST",
@@ -394,7 +396,7 @@ export async function saveArenaEvaluationEvaluators(
 // Русский комментарий: сохраняет матрицу связей evaluator x metric в evaluation profile.
 export async function saveArenaEvaluationMatrix(
   arenaId: string,
-  evaluatorMetricLinks: Array<{ evaluator_id: string; metric_kind: string; metric_id: string; enabled: boolean }>,
+  evaluatorMetricLinks: C4EvaluatorMetricLink[],
 ): Promise<C4EvaluationStateResponse> {
   const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/evaluation/matrix/save`, {
     method: "POST",

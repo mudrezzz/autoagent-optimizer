@@ -359,9 +359,18 @@ export type C4DiagnosticSignal = {
 // Русский комментарий: evaluator adapter для evaluation profile.
 export type C4Evaluator = {
   evaluator_id: string;
+  adapter_kind?: string;
   title: string;
   description: string;
   enabled: boolean;
+  requires_dataset?: boolean;
+  requires_llm?: boolean;
+  requires_stage_mapping?: boolean;
+  supported_metric_refs?: string[];
+  supported_metric_kinds?: string[];
+  budget_cost_model?: string;
+  adapter_status?: "available" | "planned" | "needs_config" | string;
+  adapter_status_reason?: string;
 };
 
 // Русский комментарий: связь покрытия между evaluator и метрикой/сигналом.
@@ -370,6 +379,8 @@ export type C4EvaluatorMetricLink = {
   metric_kind: "comparative" | "diagnostic" | string;
   metric_id: string;
   enabled: boolean;
+  compatibility_status?: "compatible" | "incompatible" | string;
+  compatibility_reason?: string;
 };
 
 // Русский комментарий: пользовательская запись stage_ref binding для non-final оценки.

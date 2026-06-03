@@ -164,12 +164,25 @@ Feature-aware behavior:
 - `availability_status` (`available` / `unavailable`),
 - `availability_reason`.
 3. Unavailable metrics/signals are auto-disabled on backend before validation.
-4. Response includes `evaluator_metric_links` matrix (`evaluator_id`, `metric_kind`, `metric_id`, `enabled`).
+4. Response includes `evaluator_metric_links` matrix (`evaluator_id`, `metric_kind`, `metric_id`, `enabled`, `compatibility_status`, `compatibility_reason`).
 
 Evaluator coverage behavior:
 
 1. `evaluator_metric_links` stores explicit mapping for comparative and diagnostic targets.
-2. Validation returns `evaluator_metric_coverage_gap` when enabled metric/signal has no enabled evaluator link.
+2. `optimizer.evaluation.evaluator_adapters` is the source of truth for adapter metadata.
+3. `GET /api/evaluation/evaluator-adapters` returns the adapter catalog.
+4. Evaluation state enriches each evaluator with:
+- `adapter_kind`,
+- `requires_dataset`,
+- `requires_llm`,
+- `requires_stage_mapping`,
+- `supported_metric_refs`,
+- `budget_cost_model`,
+- `adapter_status`,
+- `adapter_status_reason`.
+5. Validation returns `evaluator_metric_coverage_gap` when enabled metric/signal has no enabled compatible evaluator link.
+6. Validation returns `evaluator_metric_incompatible` when an enabled link points to an unsupported evaluator x metric pair.
+7. Validation returns `evaluator_requires_dataset` / `evaluator_requires_llm` when enabled evaluators miss required resources/config.
 
 Stage binding behavior:
 

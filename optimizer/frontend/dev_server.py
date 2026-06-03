@@ -260,6 +260,10 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
                 self._send_json(build_capability_catalog_payload())
                 return
 
+            if path == "/api/evaluation/evaluator-adapters":
+                self._handle_get_evaluator_adapter_catalog()
+                return
+
             if path in {"/api/c2/sample", "/api/c3/sample", "/api/c4/sample", "/api/c5/sample", "/api/c5s/sample", "/api/c6/sample", "/api/c7/sample", "/api/c8/sample"}:
                 capability_id = path.split("/")[2]
                 self._send_json(build_stub_capability_payload(capability_id))
@@ -1911,6 +1915,17 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
                 return
 
             self._send_json(_build_c4_evaluation_state_payload(arena_id=arena_id, studio_state=studio_state))
+
+        def _handle_get_evaluator_adapter_catalog(self) -> None:
+            """Возвращает catalog evaluator-adapters для C6 и developer docs."""
+
+            self._send_json(
+                {
+                    "status": "success",
+                    "capability_id": "c6",
+                    "adapters": registry_store.get_evaluator_adapter_catalog(),
+                }
+            )
 
         def _handle_get_arena_evaluation_stage_mapping_state(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
             """Возвращает только stage mapping часть состояния C4 evaluation."""

@@ -70,6 +70,7 @@
 41. [ADR-0041-evaluator-metric-matrix-coverage-gate.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0041-evaluator-metric-matrix-coverage-gate.md) - Accepted
 42. [ADR-0042-dataset-v2-stage-aware-target-schema.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0042-dataset-v2-stage-aware-target-schema.md) - Accepted
 43. [ADR-0043-target-stage-first-mapping-and-stage-ref-demotion.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0043-target-stage-first-mapping-and-stage-ref-demotion.md) - Accepted
+44. [ADR-0044-evaluator-adapter-layer-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0044-evaluator-adapter-layer-v0.md) - Accepted
 
 ## Template
 

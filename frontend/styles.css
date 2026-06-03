@@ -1398,6 +1398,10 @@ code { font-family: var(--font-mono); }
   font-size: 12px;
   font-weight: 600;
   color: var(--gray-900);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .c4-eval-item-sub,
@@ -1415,6 +1419,24 @@ code { font-family: var(--font-mono); }
   font-size: 11px;
   color: var(--amber-500);
   line-height: 1.3;
+}
+
+.c4-eval-kind-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--accent-bg);
+  color: var(--indigo-700);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+}
+
+.c4-eval-requirements {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
 }
 
 .c4-feature-summary {
@@ -1463,6 +1485,13 @@ code { font-family: var(--font-mono); }
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.c4-matrix-cell-hint {
+  display: block;
+  margin-top: 3px;
+  font-size: 10px;
+  color: var(--gray-500);
 }
 
 .c4-stage-binding-grid {

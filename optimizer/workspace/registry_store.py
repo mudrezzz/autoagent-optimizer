@@ -10,6 +10,12 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from optimizer.evaluation.evaluator_adapters import (
+    build_evaluator_adapter_catalog,
+    enrich_evaluator_adapter,
+    evaluate_evaluator_metric_compatibility,
+)
+
 
 @dataclass(frozen=True)
 class WorkspaceRecord:
@@ -965,6 +971,11 @@ class WorkspaceRegistryStore:
             self._write_store(data)
             return dict(normalized_state)
 
+    def get_evaluator_adapter_catalog(self) -> list[dict[str, Any]]:
+        """Возвращает каталог evaluator-adapters без чтения workspace-состояния."""
+
+        return build_evaluator_adapter_catalog()
+
     def save_arena_evaluation_metrics(
         self,
         *,
@@ -1285,7 +1296,8 @@ class WorkspaceRegistryStore:
                 studio_state=studio_state,
                 profile_id=profile_id,
             )
-            return _build_evaluation_profile_validation_report(profile=target_profile)
+            dataset_state = _normalize_dataset_studio_state(workspace.get("dataset_studio"))
+            return _build_evaluation_profile_validation_report(profile=target_profile, dataset_state=dataset_state)
 
     def save_arena_evaluation_version(
         self,
@@ -2956,14 +2968,7 @@ def _normalize_evaluators(raw_evaluators: Any) -> list[dict[str, Any]]:
         if not evaluator_id or evaluator_id in seen:
             continue
         seen.add(evaluator_id)
-        normalized.append(
-            {
-                "evaluator_id": evaluator_id,
-                "title": str(item.get("title", evaluator_id)).strip() or evaluator_id,
-                "description": str(item.get("description", "")).strip(),
-                "enabled": bool(item.get("enabled", False)),
-            }
-        )
+        normalized.append(enrich_evaluator_adapter(item))
     if not normalized:
         raise ValueError("Evaluators list must contain at least one evaluator.")
     return normalized
@@ -2982,7 +2987,12 @@ def _normalize_evaluator_metric_links(
         comparative_metrics=comparative_metrics,
         diagnostic_signals=diagnostic_signals,
     )
-    evaluator_ids = {str(item.get("evaluator_id", "")).strip() for item in evaluators}
+    evaluator_by_id = {
+        str(item.get("evaluator_id", "")).strip(): item
+        for item in evaluators
+        if isinstance(item, dict) and str(item.get("evaluator_id", "")).strip()
+    }
+    evaluator_ids = set(evaluator_by_id)
     evaluator_ids = {item for item in evaluator_ids if item}
     normalized: list[dict[str, Any]] = []
     seen: set[tuple[str, str, str]] = set()
@@ -3000,12 +3010,19 @@ def _normalize_evaluator_metric_links(
         if dedupe_key in seen:
             continue
         seen.add(dedupe_key)
+        compatibility = evaluate_evaluator_metric_compatibility(
+            evaluator=evaluator_by_id.get(evaluator_id, {}),
+            metric_kind=metric_kind,
+            metric_id=metric_id,
+        )
         normalized.append(
             {
                 "evaluator_id": evaluator_id,
                 "metric_kind": metric_kind,
                 "metric_id": metric_id,
                 "enabled": bool(item.get("enabled", False)),
+                "compatibility_status": compatibility["compatibility_status"],
+                "compatibility_reason": compatibility["compatibility_reason"],
             }
         )
 
@@ -3021,12 +3038,20 @@ def _normalize_evaluator_metric_links(
             if dedupe_key in seen:
                 continue
             seen.add(dedupe_key)
+            compatibility = evaluate_evaluator_metric_compatibility(
+                evaluator=evaluator_by_id.get(evaluator_id, {}),
+                metric_kind=metric_kind,
+                metric_id=metric_id,
+            )
             normalized.append(
                 {
                     "evaluator_id": evaluator_id,
                     "metric_kind": metric_kind,
                     "metric_id": metric_id,
-                    "enabled": bool(evaluator_enabled_map.get(evaluator_id, False)),
+                    "enabled": bool(evaluator_enabled_map.get(evaluator_id, False))
+                    and compatibility["compatibility_status"] == "compatible",
+                    "compatibility_status": compatibility["compatibility_status"],
+                    "compatibility_reason": compatibility["compatibility_reason"],
                 }
             )
     return normalized
@@ -3120,7 +3145,11 @@ def _normalize_evaluation_version(raw_version: dict[str, Any]) -> dict[str, Any]
     }
 
 
-def _build_evaluation_profile_validation_report(*, profile: dict[str, Any]) -> dict[str, Any]:
+def _build_evaluation_profile_validation_report(
+    *,
+    profile: dict[str, Any],
+    dataset_state: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Строит валидированный отчет C4 evaluation profile без повторного чтения store."""
 
     comparative_metrics = profile.get("comparative_metrics", [])
@@ -3131,6 +3160,8 @@ def _build_evaluation_profile_validation_report(*, profile: dict[str, Any]) -> d
     evaluator_metric_links = profile.get("evaluator_metric_links", [])
     budget = profile.get("budget", {})
     issues: list[dict[str, Any]] = []
+    assigned_dataset_ids = dataset_state.get("assigned_dataset_ids", []) if isinstance(dataset_state, dict) else []
+    has_assigned_dataset = isinstance(assigned_dataset_ids, list) and len(assigned_dataset_ids) > 0
 
     enabled_comparative_metrics = [
         item
@@ -3174,11 +3205,62 @@ def _build_evaluation_profile_validation_report(*, profile: dict[str, Any]) -> d
             }
         )
     else:
-        enabled_evaluator_ids = {
-            str(item.get("evaluator_id", "")).strip()
+        enabled_evaluators = [
+            item
             for item in evaluators
             if isinstance(item, dict) and bool(item.get("enabled", False))
+        ]
+        for evaluator in enabled_evaluators:
+            evaluator_title = str(evaluator.get("title", evaluator.get("evaluator_id", "Evaluator"))).strip()
+            adapter_status = str(evaluator.get("adapter_status", "available")).strip() or "available"
+            if adapter_status in {"planned", "needs_config"}:
+                issues.append(
+                    {
+                        "severity": "error" if adapter_status == "planned" else "warning",
+                        "code": "evaluator_adapter_not_ready",
+                        "message": f"Evaluator `{evaluator_title}` is `{adapter_status}`: {evaluator.get('adapter_status_reason', '')}",
+                    }
+                )
+            if bool(evaluator.get("requires_dataset", False)) and not has_assigned_dataset:
+                issues.append(
+                    {
+                        "severity": "error",
+                        "code": "evaluator_requires_dataset",
+                        "message": f"Evaluator `{evaluator_title}` requires at least one assigned dataset.",
+                    }
+                )
+            if bool(evaluator.get("requires_llm", False)) and adapter_status == "needs_config":
+                issues.append(
+                    {
+                        "severity": "warning",
+                        "code": "evaluator_requires_llm",
+                        "message": f"Evaluator `{evaluator_title}` requires configured OpenRouter credentials.",
+                    }
+                )
+        enabled_evaluator_ids = {
+            str(item.get("evaluator_id", "")).strip()
+            for item in enabled_evaluators
         }
+        incompatible_enabled_links: list[dict[str, Any]] = []
+        for item in evaluator_metric_links:
+            if not isinstance(item, dict) or not bool(item.get("enabled", False)):
+                continue
+            if str(item.get("evaluator_id", "")).strip() not in enabled_evaluator_ids:
+                continue
+            if str(item.get("compatibility_status", "compatible")).strip() == "incompatible":
+                incompatible_enabled_links.append(item)
+        for item in incompatible_enabled_links:
+            issues.append(
+                {
+                    "severity": "error",
+                    "code": "evaluator_metric_incompatible",
+                    "message": (
+                        f"Evaluator `{item.get('evaluator_id', '')}` cannot evaluate "
+                        f"`{item.get('metric_kind', '')}:{item.get('metric_id', '')}`. "
+                        f"{item.get('compatibility_reason', '')}"
+                    ).strip(),
+                }
+            )
         link_coverage = {
             (
                 str(item.get("metric_kind", "")).strip().lower(),
@@ -3187,6 +3269,7 @@ def _build_evaluation_profile_validation_report(*, profile: dict[str, Any]) -> d
             for item in evaluator_metric_links
             if isinstance(item, dict)
             and bool(item.get("enabled", False))
+            and str(item.get("compatibility_status", "compatible")).strip() != "incompatible"
             and str(item.get("evaluator_id", "")).strip() in enabled_evaluator_ids
         }
         enabled_metric_refs: list[tuple[str, str, str]] = []
@@ -3955,7 +4038,7 @@ def _build_optimizer_setup_issues(
         issues.append({"severity": "error", "code": "missing_assigned_dataset", "message": "Assign at least one dataset in C4 before optimizer launch."})
 
     evaluation_profile = _find_target_evaluation_profile(studio_state=evaluation_state, profile_id=None)
-    evaluation_report = _build_evaluation_profile_validation_report(profile=evaluation_profile)
+    evaluation_report = _build_evaluation_profile_validation_report(profile=evaluation_profile, dataset_state=dataset_state)
     if str(evaluation_report.get("status", "")) == "invalid":
         issues.append({"severity": "error", "code": "evaluation_profile_invalid", "message": "C4 evaluation profile is invalid. Fix C4 issues first."})
     elif str(evaluation_report.get("status", "")) == "warnings":

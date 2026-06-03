@@ -253,11 +253,18 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert len(eval_state_payload["comparative_metrics"]) >= 1
         assert len(eval_state_payload["diagnostic_signals"]) >= 1
         assert len(eval_state_payload["evaluators"]) >= 1
+        assert "adapter_kind" in eval_state_payload["evaluators"][0]
         assert isinstance(eval_state_payload["stage_mappings"], list)
         assert isinstance(eval_state_payload["stage_mapping_coverage"], list)
         assert isinstance(eval_state_payload["evaluator_metric_links"], list)
+        assert "compatibility_status" in eval_state_payload["evaluator_metric_links"][0]
         assert isinstance(eval_state_payload["stage_bindings"], list)
         assert isinstance(eval_state_payload["stage_binding_coverage"], list)
+
+        status_adapter_catalog, adapter_catalog_payload = _json_get(f"{base_url}/api/evaluation/evaluator-adapters")
+        assert status_adapter_catalog == 200
+        assert adapter_catalog_payload["status"] == "success"
+        assert any(item["adapter_kind"] == "golden_dataset" for item in adapter_catalog_payload["adapters"])
         assert isinstance(eval_state_payload["candidate_features"], dict)
         assert eval_state_payload["candidate_features"]["llm"] is False
         assert eval_state_payload["candidate_features"]["retrieval"] is False
@@ -286,12 +293,13 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
                 "evaluators": [
                     {"evaluator_id": "golden_oracle", "title": "Golden dataset oracle", "description": "deterministic", "enabled": True},
                     {"evaluator_id": "llm_judge", "title": "LLM as a judge", "description": "semantic", "enabled": True},
+                    {"evaluator_id": "executable_validator", "title": "Executable validator", "description": "runtime", "enabled": True},
                 ]
             },
         )
         assert status_eval_evaluators_save == 200
         assert eval_evaluators_save_payload["status"] == "success"
-        assert len(eval_evaluators_save_payload["evaluators"]) == 2
+        assert len(eval_evaluators_save_payload["evaluators"]) == 3
 
         status_eval_matrix_save, eval_matrix_save_payload = _json_post(
             f"{base_url}/api/arenas/{arena_id}/evaluation/matrix/save",
@@ -300,6 +308,7 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
                     {"evaluator_id": "golden_oracle", "metric_kind": "comparative", "metric_id": "quality_f1", "enabled": True},
                     {"evaluator_id": "golden_oracle", "metric_kind": "diagnostic", "metric_id": "synthesis_drift", "enabled": True},
                     {"evaluator_id": "llm_judge", "metric_kind": "comparative", "metric_id": "quality_f1", "enabled": False},
+                    {"evaluator_id": "executable_validator", "metric_kind": "comparative", "metric_id": "cost_per_case", "enabled": True},
                 ]
             },
         )

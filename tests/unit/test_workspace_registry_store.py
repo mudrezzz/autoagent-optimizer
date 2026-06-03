@@ -420,6 +420,57 @@ def test_evaluator_metric_matrix_is_present_in_evaluation_state(tmp_path: Path) 
     assert isinstance(links, list)
     assert len(links) > 0
     assert any(item["metric_kind"] == "comparative" and item["metric_id"] == "quality_f1" for item in links)
+    evaluators = evaluation_state.get("evaluators", [])
+    assert any(item["evaluator_id"] == "golden_oracle" and item["adapter_kind"] == "golden_dataset" for item in evaluators)
+    assert all("compatibility_status" in item for item in links)
+
+
+def test_evaluation_profile_validation_reports_incompatible_evaluator_metric_link(tmp_path: Path) -> None:
+    """Проверяет, что validate ловит включенную несовместимую связь evaluator x metric."""
+
+    store = WorkspaceRegistryStore(store_file=tmp_path / "registry.json")
+    arena = store.create_arena(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        name="matrix-incompatible",
+        description="",
+    )
+    state = store.get_arena_evaluation_studio_state(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+    )
+    links = [
+        {
+            "evaluator_id": str(item.get("evaluator_id", "")),
+            "metric_kind": str(item.get("metric_kind", "")),
+            "metric_id": str(item.get("metric_id", "")),
+            "enabled": True
+            if str(item.get("evaluator_id", "")) == "golden_oracle"
+            and str(item.get("metric_kind", "")) == "comparative"
+            and str(item.get("metric_id", "")) == "latency_p95"
+            else bool(item.get("enabled", False)),
+        }
+        for item in state.get("evaluator_metric_links", [])
+        if isinstance(item, dict)
+    ]
+    store.save_arena_evaluation_evaluator_metric_links(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+        evaluator_metric_links=links,
+    )
+
+    report = store.validate_arena_evaluation_profile(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+    )
+
+    assert report["status"] == "invalid"
+    issue_codes = {item["code"] for item in report["issues"]}
+    assert "evaluator_metric_incompatible" in issue_codes
+    assert "evaluator_requires_dataset" in issue_codes
 
 
 def test_evaluation_profile_validation_requires_matrix_coverage(tmp_path: Path) -> None:
