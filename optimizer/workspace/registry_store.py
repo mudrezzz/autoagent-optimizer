@@ -3020,7 +3020,8 @@ def _normalize_evaluator_metric_links(
                 "evaluator_id": evaluator_id,
                 "metric_kind": metric_kind,
                 "metric_id": metric_id,
-                "enabled": bool(item.get("enabled", False)),
+                # Русский комментарий: unsupported-связи никогда не сохраняются включенными, даже если пришли из legacy/API payload.
+                "enabled": bool(item.get("enabled", False)) and compatibility["compatibility_status"] == "compatible",
                 "compatibility_status": compatibility["compatibility_status"],
                 "compatibility_reason": compatibility["compatibility_reason"],
             }

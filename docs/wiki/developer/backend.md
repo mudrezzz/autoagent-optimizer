@@ -181,8 +181,9 @@ Evaluator coverage behavior:
 - `adapter_status`,
 - `adapter_status_reason`.
 5. Validation returns `evaluator_metric_coverage_gap` when enabled metric/signal has no enabled compatible evaluator link.
-6. Validation returns `evaluator_metric_incompatible` when an enabled link points to an unsupported evaluator x metric pair.
-7. Validation returns `evaluator_requires_dataset` / `evaluator_requires_llm` when enabled evaluators miss required resources/config.
+6. Normalization forces unsupported evaluator x metric pairs to `enabled=false`, even when API payload sends `enabled=true`.
+7. Validation may still return `evaluator_metric_incompatible` for non-normalized in-memory data, but persisted API state should not reach that condition.
+8. Validation returns `evaluator_requires_dataset` / `evaluator_requires_llm` when enabled evaluators miss required resources/config.
 
 Stage binding behavior:
 

@@ -3387,7 +3387,7 @@ export function App(): JSX.Element {
                                                   >
                                                     <input
                                                       type="checkbox"
-                                                      checked={Boolean(link?.enabled)}
+                                                      checked={Boolean(link?.enabled) && !compatibilityBlocked}
                                                       onChange={() => {
                                                         handleToggleC4EvaluatorMetricLink(
                                                           evaluator.evaluator_id,
@@ -3396,7 +3396,7 @@ export function App(): JSX.Element {
                                                         );
                                                       }}
                                                       aria-label={`toggle-matrix-${evaluator.evaluator_id}-${metricTarget.metric_kind}-${metricTarget.metric_id}`}
-                                                      disabled={cellDisabled}
+                                                      disabled={cellDisabled || compatibilityBlocked}
                                                     />
                                                     {compatibilityBlocked ? <span className="c4-matrix-cell-hint">not supported</span> : null}
                                                   </td>

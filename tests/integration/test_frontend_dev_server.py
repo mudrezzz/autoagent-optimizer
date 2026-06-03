@@ -315,6 +315,31 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert status_eval_matrix_save == 200
         assert eval_matrix_save_payload["status"] == "success"
         assert isinstance(eval_matrix_save_payload["evaluator_metric_links"], list)
+        assert all(
+            not bool(item.get("enabled", False))
+            for item in eval_matrix_save_payload["evaluator_metric_links"]
+            if item.get("evaluator_id") == "golden_oracle"
+            and item.get("metric_kind") == "comparative"
+            and item.get("metric_id") == "cost_per_case"
+        )
+
+        status_eval_autofill, eval_autofill_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/chat/messages",
+            {
+                "message": "autofill evaluator matrix links",
+                "capability_id": "c6",
+                "context_action": "autofill_matrix_links",
+            },
+        )
+        assert status_eval_autofill == 201
+        assert eval_autofill_payload["status"] == "success"
+        assert "skipped" in eval_autofill_payload["assistant_message"]["content"]
+        _, eval_state_after_autofill = _json_get(f"{base_url}/api/arenas/{arena_id}/evaluation/state")
+        assert all(
+            not bool(item.get("enabled", False))
+            for item in eval_state_after_autofill["evaluator_metric_links"]
+            if item.get("compatibility_status") == "incompatible"
+        )
 
         status_eval_budget_save, eval_budget_save_payload = _json_post(
             f"{base_url}/api/arenas/{arena_id}/evaluation/budget/save",

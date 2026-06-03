@@ -38,7 +38,8 @@ Each `evaluator_metric_link` is enriched with:
 1. `compatibility_status`,
 2. `compatibility_reason`.
 
-Backend validation must reject enabled incompatible evaluator x metric links and report evaluator requirement gaps.
+Backend normalization must sanitize incompatible evaluator x metric links to `enabled=false`.
+Validation still reports evaluator requirement gaps and uncovered enabled metrics.
 
 The frontend must render adapter metadata and prevent users from enabling unsupported matrix cells.
 
@@ -49,10 +50,23 @@ The frontend must render adapter metadata and prevent users from enabling unsupp
 3. Old stored profiles are normalized through the adapter catalog during state loading.
 4. `GET /api/evaluation/evaluator-adapters` exposes the adapter catalog for future UI/API expansion.
 5. Future evaluator execution code must bind to this adapter catalog instead of inventing ad-hoc evaluator semantics.
+6. Autofill actions must only enable compatible links and must leave unsupported links unchecked.
 
 ## Test Requirements
 
-1. Unit tests must verify adapter enrichment and incompatible-link validation.
+1. Unit tests must verify adapter enrichment and incompatible-link sanitization.
 2. Integration tests must verify API payloads include adapter metadata and compatibility fields.
 3. Frontend tests must verify adapter metadata is visible and unsupported matrix cells are disabled.
 4. UI screenshot docs must be updated when C6 rendering changes.
+
+## Amendment: I5.S2b Safe Autofill
+
+Unsupported matrix cells are not a user-level validation problem.
+They are an impossible state.
+
+Therefore:
+
+1. unsupported links are always persisted as `enabled=false`,
+2. `autofill_matrix_links` enables only compatible links,
+3. UI renders unsupported cells as unchecked and disabled,
+4. `Validate profile` focuses on real coverage gaps instead of obvious unsupported checkboxes.

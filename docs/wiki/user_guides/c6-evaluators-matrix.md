@@ -23,7 +23,7 @@ It also prevents assigning a metric to an evaluator that cannot produce that kin
 5. In `Evaluator x Metric matrix`, check cells to assign evaluator coverage:
 - rows are comparative metrics and diagnostic signals,
 - columns are enabled/available evaluators.
-6. If a cell shows `not supported`, that evaluator cannot score that metric.
+6. If a cell shows `not supported`, that evaluator cannot score that metric; the cell stays unchecked and disabled.
 7. Click `Save matrix`.
 8. Click `Validate profile`:
 - `ready`: matrix and stage bindings are valid,
@@ -40,4 +40,5 @@ For enabled non-final diagnostics, valid stage mappings must exist in the dedica
 1. `Golden dataset oracle` requires assigned datasets and supports expected-output style checks.
 2. `LLM as a judge` requires configured LLM credentials and consumes LLM-call budget.
 3. `Executable validator` is used for deterministic runtime/test/render-like checks.
-4. Unsupported matrix cells are disabled by UI and rejected by backend validation if forced through API.
+4. Unsupported matrix cells are disabled by UI and sanitized to `enabled=false` by backend if forced through API.
+5. Chat action `autofill evaluator matrix links` only enables compatible links and reports how many unsupported links were skipped.

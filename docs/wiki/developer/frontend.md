@@ -63,7 +63,8 @@ State is loaded through `fetchArenaDatasetState` + `fetchArenaEvaluationState` a
 6. C6 evaluator rows must render adapter kind, requirements and budget cost model.
 7. C6 matrix cells use backend `compatibility_status` / `compatibility_reason`.
 8. Incompatible disabled cells must show `not supported` and must not be toggleable into enabled state.
-9. If a legacy incompatible cell is already enabled, UI must allow the user to uncheck it.
+9. If a legacy incompatible cell is already enabled, UI must render it as unchecked; backend save will sanitize persisted state.
+10. C6 contextual action `autofill_matrix_links` must be followed by `loadC4EvaluationState` so sanitized matrix state is visible immediately.
 
 ## Contextual Chat Contract (V2.4.S6)
 

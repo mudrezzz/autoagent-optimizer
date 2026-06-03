@@ -1341,17 +1341,29 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
                                     "enabled": True,
                                 }
                             )
-                    registry_store.save_arena_evaluation_evaluator_metric_links(
+                    saved_state = registry_store.save_arena_evaluation_evaluator_metric_links(
                         tenant_id=tenant_id,
                         owner_user_id=user_id,
                         arena_id=arena_id,
                         evaluator_metric_links=links,
                     )
+                    saved_links = [
+                        item
+                        for item in saved_state.get("evaluator_metric_links", [])
+                        if isinstance(item, dict)
+                    ]
+                    enabled_links_total = sum(1 for item in saved_links if bool(item.get("enabled", False)))
+                    unsupported_links_total = sum(
+                        1 for item in saved_links if str(item.get("compatibility_status", "compatible")) == "incompatible"
+                    )
                     return {
-                        "assistant_text": f"Filled matrix links: {len(links)} link(s).",
+                        "assistant_text": (
+                            f"Autofilled {enabled_links_total} compatible link(s); "
+                            f"skipped {unsupported_links_total} unsupported link(s)."
+                        ),
                         "resolved_action": "autofill_matrix_links",
                         "allowed_actions": allowed_actions,
-                        "summary": "Evaluator matrix links updated.",
+                        "summary": "Evaluator matrix links updated with compatibility guard.",
                     }
                 return {
                     "assistant_text": "Evaluators copilot is active. Try: 'autofill matrix'.",

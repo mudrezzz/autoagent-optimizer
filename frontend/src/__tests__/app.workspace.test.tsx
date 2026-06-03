@@ -1050,7 +1050,7 @@ describe("Battle workspace candidates", () => {
           evaluator_id: "golden_oracle",
           metric_kind: "comparative",
           metric_id: "latency_p95",
-          enabled: false,
+          enabled: true,
           compatibility_status: "incompatible",
           compatibility_reason: "Golden dataset oracle does not support comparative:latency_p95.",
         },
@@ -1068,7 +1068,9 @@ describe("Battle workspace candidates", () => {
     expect(await screen.findByText("dataset")).toBeInTheDocument();
     expect(await screen.findByText("budget: cases")).toBeInTheDocument();
     expect(await screen.findByText("not supported")).toBeInTheDocument();
-    expect(await screen.findByLabelText("toggle-matrix-golden_oracle-comparative-latency_p95")).toBeDisabled();
+    const unsupportedCell = await screen.findByLabelText("toggle-matrix-golden_oracle-comparative-latency_p95");
+    expect(unsupportedCell).toBeDisabled();
+    expect(unsupportedCell).not.toBeChecked();
   });
 
   it("updates matrix columns immediately when evaluator is toggled", async () => {

@@ -425,8 +425,8 @@ def test_evaluator_metric_matrix_is_present_in_evaluation_state(tmp_path: Path) 
     assert all("compatibility_status" in item for item in links)
 
 
-def test_evaluation_profile_validation_reports_incompatible_evaluator_metric_link(tmp_path: Path) -> None:
-    """Проверяет, что validate ловит включенную несовместимую связь evaluator x metric."""
+def test_evaluation_profile_save_sanitizes_incompatible_evaluator_metric_link(tmp_path: Path) -> None:
+    """Проверяет, что store не сохраняет включенной несовместимую связь evaluator x metric."""
 
     store = WorkspaceRegistryStore(store_file=tmp_path / "registry.json")
     arena = store.create_arena(
@@ -454,12 +454,21 @@ def test_evaluation_profile_validation_reports_incompatible_evaluator_metric_lin
         for item in state.get("evaluator_metric_links", [])
         if isinstance(item, dict)
     ]
-    store.save_arena_evaluation_evaluator_metric_links(
+    saved_state = store.save_arena_evaluation_evaluator_metric_links(
         tenant_id="tenant_a",
         owner_user_id="user_a",
         arena_id=arena.workspace_id,
         evaluator_metric_links=links,
     )
+    sanitized_link = next(
+        item
+        for item in saved_state["evaluator_metric_links"]
+        if item["evaluator_id"] == "golden_oracle"
+        and item["metric_kind"] == "comparative"
+        and item["metric_id"] == "latency_p95"
+    )
+    assert sanitized_link["compatibility_status"] == "incompatible"
+    assert sanitized_link["enabled"] is False
 
     report = store.validate_arena_evaluation_profile(
         tenant_id="tenant_a",
@@ -469,7 +478,7 @@ def test_evaluation_profile_validation_reports_incompatible_evaluator_metric_lin
 
     assert report["status"] == "invalid"
     issue_codes = {item["code"] for item in report["issues"]}
-    assert "evaluator_metric_incompatible" in issue_codes
+    assert "evaluator_metric_incompatible" not in issue_codes
     assert "evaluator_requires_dataset" in issue_codes
 
 
