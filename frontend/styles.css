@@ -1682,6 +1682,101 @@ code { font-family: var(--font-mono); }
   max-height: 180px;
 }
 
+.debug-drawer {
+  position: fixed;
+  top: 60px;
+  right: 0;
+  bottom: 0;
+  width: min(520px, calc(100vw - 280px));
+  z-index: 30;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 12px;
+  padding: 16px;
+  background: var(--gray-0);
+  border-left: 1px solid var(--border-muted);
+  box-shadow: -8px 0 24px rgba(10, 10, 15, 0.10);
+}
+
+.debug-drawer-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.debug-drawer-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.debug-drawer-sub {
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--gray-500);
+}
+
+.debug-drawer-close {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--gray-0);
+  color: var(--gray-700);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.debug-drawer-close:hover {
+  background: var(--gray-50);
+}
+
+.debug-drawer-close i {
+  width: 15px;
+  height: 15px;
+}
+
+.debug-drawer-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.debug-drawer-meta div {
+  border: 1px solid var(--border-muted);
+  border-radius: 8px;
+  background: var(--gray-25);
+  padding: 8px 10px;
+  min-width: 0;
+}
+
+.debug-drawer-meta span {
+  display: block;
+  font-size: 10px;
+  color: var(--gray-500);
+  text-transform: uppercase;
+}
+
+.debug-drawer-meta b {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--gray-900);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.debug-drawer-json {
+  max-height: none;
+  min-height: 0;
+  height: 100%;
+}
+
 .workspace-board {
   background: var(--gray-25);
   border: 1px solid var(--border-muted);
@@ -2365,6 +2460,11 @@ code { font-family: var(--font-mono); }
   .c3-pattern-actions {
     justify-content: flex-start;
   }
+
+  .debug-drawer {
+    top: 0;
+    width: min(520px, 100vw);
+  }
 }
 
 @media (max-width: 680px) {
@@ -2397,5 +2497,14 @@ code { font-family: var(--font-mono); }
 
   .candidate-config-grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .debug-drawer {
+    left: 0;
+    width: 100vw;
+  }
+
+  .debug-drawer-meta {
+    grid-template-columns: 1fr;
   }
 }

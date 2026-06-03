@@ -366,9 +366,13 @@ V2.4.S6 (v0) фиксирует tab-scoped контракт:
 
 `Runtime snapshot` не должен перекрывать основной контент capability-экрана:
 
-1. основной режим: скрыт из рабочего полотна;
-2. debug-режим: доступен в отдельном drawer/panel;
-3. в пользовательском режиме не влияет на скролл и визуальную иерархию.
+1. основной режим: raw JSON не рендерится внутри capability content panel;
+2. debug-режим: доступен через кнопку `Debug` в workspace topbar;
+3. `Debug` открывает отдельный drawer с последним `jsonText`/`lastPayload` summary;
+4. drawer имеет собственный scroll и не участвует в высоте центрального workspace;
+5. в пользовательском режиме не влияет на скролл и визуальную иерархию.
+
+V2.4.S7 фиксирует: любые будущие debug/raw payload surfaces должны жить в drawer/devtools-зоне, а не в рабочих карточках кандидатов, датасетов, метрик, stage mapping, evaluators или optimizer setup.
 
 ## Budget and Cost UX
 

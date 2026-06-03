@@ -141,7 +141,7 @@ type UiState = {
   c2SelectedCandidateId: string;
   c2SelectedForTestsIds: string[];
   c2ExpandedCandidateId: string;
-  c2JsonCollapsed: boolean;
+  debugDrawerOpen: boolean;
   c3PatternQuery: string;
   c3Patterns: C3PatternItem[];
   c3SelectedPatternIds: string[];
@@ -222,7 +222,7 @@ export function App(): JSX.Element {
     c2SelectedCandidateId: "",
     c2SelectedForTestsIds: [],
     c2ExpandedCandidateId: "",
-    c2JsonCollapsed: true,
+    debugDrawerOpen: false,
     c3PatternQuery: "",
     c3Patterns: [],
     c3SelectedPatternIds: [],
@@ -426,7 +426,7 @@ export function App(): JSX.Element {
       c2SelectedCandidateId: "",
       c2SelectedForTestsIds: [],
       c2ExpandedCandidateId: "",
-      c2JsonCollapsed: true,
+      debugDrawerOpen: false,
       c3PatternQuery: "",
       c3Patterns: [],
       c3SelectedPatternIds: [],
@@ -2181,9 +2181,9 @@ export function App(): JSX.Element {
     }));
   }
 
-  // Русский комментарий: сворачивает/разворачивает JSON-панель workspace, чтобы освободить место под список кандидатов.
-  function handleToggleWorkspaceJson(): void {
-    setState((prev) => ({ ...prev, c2JsonCollapsed: !prev.c2JsonCollapsed }));
+  // Русский комментарий: открывает/закрывает debug drawer с последним runtime snapshot.
+  function handleToggleDebugDrawer(): void {
+    setState((prev) => ({ ...prev, debugDrawerOpen: !prev.debugDrawerOpen }));
   }
 
   // Русский комментарий: отправляет сообщение по Enter (Shift+Enter оставляет перенос строки).
@@ -2569,6 +2569,18 @@ export function App(): JSX.Element {
             <div className="tb-budget-vals">{state.budgetPercent}% <span className="muted">{state.budgetStage}</span></div>
           </div>
           <div className="tb-right">
+            {isBattleRoute ? (
+              <button
+                type="button"
+                className="tb-btn tb-btn-ghost"
+                onClick={handleToggleDebugDrawer}
+                aria-expanded={state.debugDrawerOpen}
+                aria-controls="debug-drawer"
+              >
+                <i data-lucide="bug" />
+                Debug
+              </button>
+            ) : null}
             <button type="button" className="tb-btn tb-btn-ghost" onClick={handleExportPayload}>
               <i data-lucide="download" />
               Export snapshot
@@ -2810,21 +2822,6 @@ export function App(): JSX.Element {
                             );
                           })}
                         </div>
-                      </section>
-                      <section className={`workspace-json-panel${state.c2JsonCollapsed ? " is-collapsed" : ""}`}>
-                        <button
-                          type="button"
-                          className="workspace-json-toggle"
-                          onClick={handleToggleWorkspaceJson}
-                          aria-expanded={!state.c2JsonCollapsed}
-                          aria-controls="workspace-json-panel-body"
-                        >
-                          <span>Runtime snapshot</span>
-                          <i data-lucide={state.c2JsonCollapsed ? "chevron-down" : "chevron-up"} />
-                        </button>
-                        {!state.c2JsonCollapsed ? (
-                          <pre id="workspace-json-panel-body" className="json-view json-view--workspace">{state.jsonText}</pre>
-                        ) : null}
                       </section>
                     </div>
                   </section>
@@ -3410,21 +3407,6 @@ export function App(): JSX.Element {
                           </div>
                         ) : null}
                       </section>
-                      <section className={`workspace-json-panel${state.c2JsonCollapsed ? " is-collapsed" : ""}`}>
-                        <button
-                          type="button"
-                          className="workspace-json-toggle"
-                          onClick={handleToggleWorkspaceJson}
-                          aria-expanded={!state.c2JsonCollapsed}
-                          aria-controls="workspace-json-panel-body"
-                        >
-                          <span>Runtime snapshot</span>
-                          <i data-lucide={state.c2JsonCollapsed ? "chevron-down" : "chevron-up"} />
-                        </button>
-                        {!state.c2JsonCollapsed ? (
-                          <pre id="workspace-json-panel-body" className="json-view json-view--workspace">{state.jsonText}</pre>
-                        ) : null}
-                      </section>
                     </div>
                   </section>
                 ) : isOptimizerCapability ? (
@@ -3628,21 +3610,6 @@ export function App(): JSX.Element {
                           </div>
                         </div>
                       </section>
-                      <section className={`workspace-json-panel${state.c2JsonCollapsed ? " is-collapsed" : ""}`}>
-                        <button
-                          type="button"
-                          className="workspace-json-toggle"
-                          onClick={handleToggleWorkspaceJson}
-                          aria-expanded={!state.c2JsonCollapsed}
-                          aria-controls="workspace-json-panel-body"
-                        >
-                          <span>Runtime snapshot</span>
-                          <i data-lucide={state.c2JsonCollapsed ? "chevron-down" : "chevron-up"} />
-                        </button>
-                        {!state.c2JsonCollapsed ? (
-                          <pre id="workspace-json-panel-body" className="json-view json-view--workspace">{state.jsonText}</pre>
-                        ) : null}
-                      </section>
                     </div>
                   </section>
                 ) : (
@@ -3811,21 +3778,6 @@ export function App(): JSX.Element {
                           )}
                         </div>
                       </div>
-                      <section className={`workspace-json-panel${state.c2JsonCollapsed ? " is-collapsed" : ""}`}>
-                        <button
-                          type="button"
-                          className="workspace-json-toggle"
-                          onClick={handleToggleWorkspaceJson}
-                          aria-expanded={!state.c2JsonCollapsed}
-                          aria-controls="workspace-json-panel-body"
-                        >
-                          <span>Runtime snapshot</span>
-                          <i data-lucide={state.c2JsonCollapsed ? "chevron-down" : "chevron-up"} />
-                        </button>
-                        {!state.c2JsonCollapsed ? (
-                          <pre id="workspace-json-panel-body" className="json-view json-view--workspace">{state.jsonText}</pre>
-                        ) : null}
-                      </section>
                     </div>
                   </section>
                 )}
@@ -3909,6 +3861,26 @@ export function App(): JSX.Element {
           ) : null}
         </div>
       </div>
+
+      {isBattleRoute && state.debugDrawerOpen ? (
+        <aside id="debug-drawer" className="debug-drawer" aria-label="Debug drawer">
+          <header className="debug-drawer-head">
+            <div>
+              <div className="debug-drawer-title">Debug snapshot</div>
+              <div className="debug-drawer-sub">{activeCapability.id.toUpperCase()} · {state.budgetStage}</div>
+            </div>
+            <button type="button" className="debug-drawer-close" onClick={handleToggleDebugDrawer} aria-label="Close debug drawer">
+              <i data-lucide="x" />
+            </button>
+          </header>
+          <div className="debug-drawer-meta">
+            <div><span>progress</span><b>{state.budgetPercent}%</b></div>
+            <div><span>payload</span><b>{state.lastPayload ? "available" : "empty"}</b></div>
+            <div><span>battle</span><b>{state.activeArenaId || "none"}</b></div>
+          </div>
+          <pre className="json-view debug-drawer-json">{state.jsonText}</pre>
+        </aside>
+      ) : null}
 
       {arenaDialogMode ? (
         <div className="workspace-modal-overlay" onClick={closeArenaDialog}>

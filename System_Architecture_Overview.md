@@ -205,10 +205,10 @@ Input (Tenant + User + Battle + Task Brief + Constraints + Data + Budget)
    - V2.4.S4 evaluator-matrix layer: explicit `evaluator_metric_links` contract + `POST /api/arenas/{id}/evaluation/matrix/save` + validation guard `evaluator_metric_coverage_gap`.
    - V2.4.S5b target-stage-first mapping layer: `stage_mappings` contract + `POST /api/arenas/{id}/evaluation/stage-mapping/auto-map` + `POST /api/arenas/{id}/evaluation/stage-mapping/save` + validation guards (`stage_mapping_*`).
    - V2.4.S6 contextual right-chat router: single chat endpoint with `capability_id/context_action`, tab-scoped copilot actions (`C2/C4/C5/C5s/C6/C7`) and `copilot_context` response contract.
+   - V2.4.S7 debug drawer UX: runtime snapshot stays available through workspace `Debug`, but raw JSON is no longer rendered inside capability content panels.
    - C4 corrective UX split: explicit `Datasets`/`Metrics` tabs with isolated user flows and regression tests.
    - C5 optimizer setup studio v0 (methods/controls/run-plan/budget, preflight guardrails, profile versioning, launch queue) via `/api/arenas/{id}/optimizer/*`.
 2. Next:
-   - Vertical product delivery track continues with `V2.4.S7`: runtime snapshot UX cleanup (debug drawer) and non-overlapping workspace content.
    - Evaluation Fabric & MetricOps (`I5.*`) including evaluator adapter layer and post-export native evaluation loop.
 
 ## Decision Records

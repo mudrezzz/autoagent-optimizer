@@ -22,6 +22,10 @@
 
 ![Battle Workspace C6](../assets/screenshots/real-workspace-c6-evaluators-matrix.png)
 
+### Battle Workspace Debug Drawer
+
+![Battle Workspace Debug Drawer](../assets/screenshots/real-workspace-debug-drawer.png)
+
 ## Core User Flow
 
 1. Create or open a battle in Battles Hub.
@@ -45,6 +49,15 @@ Right chat is step-aware and changes behavior by active wizard tab:
 4. C5s: contextual actions `auto_map_stage_mappings` / `add_mapping_row`.
 5. C6: contextual action `autofill_matrix_links`.
 6. C7: contextual action `validate_optimizer_setup`.
+
+## Debug Drawer (V2.4.S7)
+
+The workspace topbar has a `Debug` button for technical inspection.
+
+1. The main workspace does not show inline raw JSON blocks.
+2. `Debug` opens a drawer with the latest runtime snapshot.
+3. `Export snapshot` still downloads the latest payload.
+4. The drawer is intended for debugging and support, not for the normal user flow.
 
 ## Internal Processes (Hidden from User)
 

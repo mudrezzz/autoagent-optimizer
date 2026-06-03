@@ -429,17 +429,22 @@ describe("Battle workspace candidates", () => {
     expect(secondCandidateButton).toHaveClass("candidate-row--active");
   });
 
-  it("collapses and expands workspace JSON panel", async () => {
+  it("opens and closes debug drawer without rendering inline runtime snapshot", async () => {
     const user = userEvent.setup();
     renderWorkspace();
 
-    const toggle = await screen.findByRole("button", { name: /Runtime snapshot/i });
+    const toggle = await screen.findByRole("button", { name: "Debug" });
     expect(toggle).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText(/"status": "success"/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Debug drawer")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Runtime snapshot/i })).not.toBeInTheDocument();
 
     await user.click(toggle);
     expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(await screen.findByLabelText("Debug drawer")).toBeInTheDocument();
     expect(await screen.findByText(/"status": "success"/i)).toBeInTheDocument();
+
+    await user.click(await screen.findByLabelText("Close debug drawer"));
+    expect(screen.queryByLabelText("Debug drawer")).not.toBeInTheDocument();
   });
 
   it("expands candidate details accordion and renders mini graph", async () => {

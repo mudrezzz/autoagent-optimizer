@@ -37,6 +37,6 @@ Here you save launch profile and validate preflight guardrails.
 ## What You See After Launch
 
 1. `Launch queue` gets a new `run_id` with `queued` status.
-2. `Runtime snapshot` shows payload of the latest launch action.
+2. `Debug` drawer shows payload of the latest launch action when needed.
 
 The next C5 slice extends this into a detailed Run Monitor timeline.

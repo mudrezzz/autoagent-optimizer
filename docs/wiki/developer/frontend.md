@@ -73,6 +73,14 @@ State is loaded through `fetchArenaDatasetState` + `fetchArenaEvaluationState` a
 8. C5/C5s/C6 -> `loadC4EvaluationState`,
 9. C7 -> `loadC5OptimizerState`.
 
+## Debug Drawer Contract (V2.4.S7)
+
+1. Raw `jsonText` must not be rendered inside capability content panels.
+2. Workspace topbar exposes `Debug`.
+3. `Debug` opens `debug-drawer` with latest `jsonText` plus compact metadata.
+4. `Export snapshot` remains a download action for `lastPayload`.
+5. Future debug/timeline additions should extend the drawer/devtools surface, not the main wizard panels.
+
 ## C5 UI Contract
 
 In C5 Optimizer Setup:
