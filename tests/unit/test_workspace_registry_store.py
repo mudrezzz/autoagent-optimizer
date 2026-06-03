@@ -525,6 +525,80 @@ def test_evaluation_profile_validation_requires_matrix_coverage(tmp_path: Path) 
     assert "evaluator_metric_coverage_gap" in issue_codes
 
 
+def test_metric_crafting_proposal_requires_hitl_apply(tmp_path: Path) -> None:
+    """Проверяет, что proposal метрик не меняет profile до явного apply."""
+
+    store = WorkspaceRegistryStore(store_file=tmp_path / "registry.json")
+    arena = store.create_arena(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        name="metric-crafting",
+        description="",
+    )
+    store.save_arena_candidate_set_draft(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+        candidate_set_draft={
+            "candidate_set_id": "cset_style",
+            "arena_id": arena.workspace_id,
+            "task_brief": "Rewrite LinkedIn posts and remove AI patterns.",
+            "candidates": [
+                {
+                    "candidate_id": "style_direct",
+                    "title": "Direct LLM Rewriter",
+                    "selected_for_tests": True,
+                    "mini_graph": {
+                        "nodes": [
+                            {"id": "input", "label": "input", "kind": "input"},
+                            {"id": "rewrite", "label": "llm.rewrite", "kind": "llm"},
+                            {"id": "guard", "label": "style.guard", "kind": "validator"},
+                            {"id": "out", "label": "output", "kind": "output"},
+                        ]
+                    },
+                }
+            ],
+        },
+    )
+
+    initial_state = store.get_arena_evaluation_studio_state(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+    )
+    initial_metric_ids = {item["metric_id"] for item in initial_state["comparative_metrics"]}
+
+    proposal_state = store.suggest_arena_evaluation_metrics(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+    )
+    proposal = proposal_state["latest_metric_proposal"]
+    assert proposal["status"] == "draft"
+    assert "human_likeness" not in {item["metric_id"] for item in proposal_state["comparative_metrics"]}
+    assert {item["metric_id"] for item in proposal_state["comparative_metrics"]} == initial_metric_ids
+
+    selected_items = [
+        item["proposal_item_id"]
+        for item in proposal["items"]
+        if item["metric_kind"] == "comparative" and item["metric_id"] in {"human_likeness", "narrative_preservation"}
+    ]
+    applied_state = store.apply_arena_evaluation_metric_proposal(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+        proposal_id=proposal["proposal_id"],
+        proposal_item_ids=selected_items,
+    )
+
+    applied_metric_ids = {item["metric_id"] for item in applied_state["comparative_metrics"]}
+    assert "human_likeness" in applied_metric_ids
+    assert "narrative_preservation" in applied_metric_ids
+    assert applied_state["latest_metric_proposal"]["status"] == "applied"
+    assert applied_state["versions"][-1]["source"] == "metric_crafting_apply"
+    assert any(item["metric_id"] == "human_likeness" for item in applied_state["evaluator_metric_links"])
+
+
 def test_dataset_row_stage_aware_payload_is_persisted(tmp_path: Path) -> None:
     """Проверяет, что dataset row хранит target_stage и expected_payload в нормализованном виде."""
 

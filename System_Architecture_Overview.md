@@ -70,6 +70,7 @@ Input (Tenant + User + Battle + Task Brief + Constraints + Data + Budget)
      - executable validator (tests/code/run),
      - render validator.
    - Metric-Crafting Agent loop with HITL approval for metric/profile evolution.
+   - Metric proposals are draft artifacts: generated suggestions do not mutate evaluation profiles until the user applies selected items.
    - stage-mapping step as explicit preflight layer between metrics and evaluators for non-final metrics.
 9. `Optimization Layer`
    - equal-budget baseline tournament.
@@ -208,10 +209,11 @@ Input (Tenant + User + Battle + Task Brief + Constraints + Data + Budget)
    - V2.4.S7 debug drawer UX: runtime snapshot stays available through workspace `Debug`, but raw JSON is no longer rendered inside capability content panels.
    - I5.S2 evaluator adapter layer: `optimizer.evaluation.evaluator_adapters` catalog enriches C6 evaluators with adapter kind, requirements, supported metric refs and compatibility reasons; `/api/evaluation/evaluator-adapters` exposes the catalog.
    - I5.S2b safe matrix autofill: unsupported evaluator x metric links are normalized to `enabled=false`, and C6 chat autofill enables only compatible links.
+   - I5.S3 metric-crafting loop: `optimizer.evaluation.metric_crafting` builds task-specific metric proposals, C5 Metrics renders HITL selection, and backend apply creates a new evaluation profile version.
    - C4 corrective UX split: explicit `Datasets`/`Metrics` tabs with isolated user flows and regression tests.
    - C5 optimizer setup studio v0 (methods/controls/run-plan/budget, preflight guardrails, profile versioning, launch queue) via `/api/arenas/{id}/optimizer/*`.
 2. Next:
-   - Evaluation Fabric & MetricOps (`I5.*`) including evaluator adapter layer and post-export native evaluation loop.
+   - Post-export native benchmark loop (`I5.S4`) and champion regression gates (`I5.S5`).
 
 ## Decision Records
 

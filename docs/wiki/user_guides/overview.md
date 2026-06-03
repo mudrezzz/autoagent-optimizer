@@ -18,6 +18,10 @@
 
 ![Battle Workspace C4 Dataset Editor](../assets/screenshots/real-workspace-c4-dataset-editor-v2.png)
 
+### Battle Workspace (C5 Metrics)
+
+![Battle Workspace C5 Metrics](../assets/screenshots/real-workspace-c5-metric-proposal.png)
+
 ### Battle Workspace (C6 Evaluators)
 
 ![Battle Workspace C6](../assets/screenshots/real-workspace-c6-evaluators-matrix.png)
@@ -33,7 +37,7 @@
 3. In C2, describe the task and click `Generate` to build candidate architectures.
 4. In C2, select candidates via checkboxes and run `Select for tests`.
 5. In C4, prepare datasets, assign selected datasets, and save.
-6. In C5, configure comparative metrics + diagnostic signals and save profile.
+6. In C5, configure comparative metrics + diagnostic signals, or use `Suggest metrics` to create a HITL proposal.
 7. In C5s, verify stage mapping (auto-map + manual adjustments if needed).
 8. In C6, configure evaluators and `Evaluator x Metric` matrix.
 9. In C7, save optimizer setup, run `Validate`, then click `Launch`.
@@ -45,7 +49,7 @@ Right chat is step-aware and changes behavior by active wizard tab:
 
 1. C2: regular task chat + candidate generation.
 2. C4: contextual action `add_dataset_row`.
-3. C5: contextual action `enable_default_metrics`.
+3. C5: contextual action `suggest_metrics`.
 4. C5s: contextual actions `auto_map_stage_mappings` / `add_mapping_row`.
 5. C6: contextual action `autofill_matrix_links`.
 6. C7: contextual action `validate_optimizer_setup`.

@@ -50,6 +50,8 @@ Evaluation steps (`C5/C5s/C6`) use a split contract:
 4. `Validate profile` and `Save version` are executed from C6.
 5. Unavailable metrics/signals (based on selected candidates) stay disabled with reason text.
 6. Candidate feature summary is shown at the top of C5.
+7. `Suggest metrics` renders the latest HITL metric proposal in C5 without applying it.
+8. `Apply selected` sends only selected proposal item ids to backend and reloads evaluation state.
 
 State is loaded through `fetchArenaDatasetState` + `fetchArenaEvaluationState` and refreshed after each C4 action.
 
@@ -65,6 +67,7 @@ State is loaded through `fetchArenaDatasetState` + `fetchArenaEvaluationState` a
 8. Incompatible disabled cells must show `not supported` and must not be toggleable into enabled state.
 9. If a legacy incompatible cell is already enabled, UI must render it as unchecked; backend save will sanitize persisted state.
 10. C6 contextual action `autofill_matrix_links` must be followed by `loadC4EvaluationState` so sanitized matrix state is visible immediately.
+11. C5 contextual action `suggest_metrics` must create a proposal only; it must not mutate metric lists until the user clicks `Apply selected`.
 
 ## Contextual Chat Contract (V2.4.S6)
 

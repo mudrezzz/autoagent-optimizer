@@ -376,6 +376,38 @@ export async function saveArenaEvaluationMetrics(
   return parseJsonOrThrow<C4EvaluationStateResponse>(response);
 }
 
+// Русский комментарий: запрашивает HITL proposal task-specific метрик без применения к profile.
+export async function suggestArenaEvaluationMetrics(arenaId: string): Promise<C4EvaluationStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/evaluation/metrics/suggest`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to suggest C5 metrics: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C4EvaluationStateResponse>(response);
+}
+
+// Русский комментарий: применяет выбранные proposal items после явного HITL approval.
+export async function applyArenaEvaluationMetricProposal(
+  arenaId: string,
+  proposalId: string,
+  proposalItemIds: string[],
+): Promise<C4EvaluationStateResponse> {
+  const response = await fetch(`/api/arenas/${encodeURIComponent(arenaId)}/evaluation/metrics/proposals/${encodeURIComponent(proposalId)}/apply`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ proposal_item_ids: proposalItemIds }),
+  });
+  if (!response.ok) {
+    const payload = await parseJsonOrThrow<ErrorPayload>(response);
+    throw new Error(payload.message || `Failed to apply C5 metric proposal: HTTP ${response.status}`);
+  }
+  return parseJsonOrThrow<C4EvaluationStateResponse>(response);
+}
+
 // Русский комментарий: сохраняет evaluator-адаптеры evaluation profile.
 export async function saveArenaEvaluationEvaluators(
   arenaId: string,

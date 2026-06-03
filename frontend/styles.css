@@ -1443,6 +1443,76 @@ code { font-family: var(--font-mono); }
   margin-top: 2px;
 }
 
+.c4-proposal-card {
+  border-color: var(--indigo-300);
+  box-shadow: 0 10px 24px rgba(99, 91, 255, 0.08);
+}
+
+.c4-proposal-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: var(--accent-bg);
+  color: var(--gray-900);
+}
+
+.c4-proposal-summary span {
+  font-size: 11px;
+  color: var(--gray-600);
+}
+
+.c4-proposal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.c4-proposal-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: start;
+  padding: 10px;
+  border: 1px solid var(--border-muted);
+  border-radius: 10px;
+  background: var(--gray-0);
+}
+
+.c4-proposal-item--disabled {
+  opacity: 0.68;
+}
+
+.c4-proposal-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.c4-proposal-item-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.c4-proposal-rationale {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--gray-700);
+}
+
+.c4-proposal-weight {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
 .c4-weight-input {
   width: 84px;
 }

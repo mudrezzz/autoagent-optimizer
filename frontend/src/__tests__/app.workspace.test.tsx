@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "../App";
-import type { ArenaRecord, C2CandidateSetDraft, Capability } from "../types";
+import type { ArenaRecord, C2CandidateSetDraft, C4MetricProposal, Capability } from "../types";
 
 // Русский комментарий: мокируем API-слой, чтобы UI-тесты были детерминированными и не зависели от backend-сервера.
 vi.mock("../api", () => ({
@@ -32,6 +32,8 @@ vi.mock("../api", () => ({
   saveArenaEvaluationStageBindings: vi.fn(),
   suggestArenaEvaluationStageBindings: vi.fn(),
   saveArenaEvaluationMetrics: vi.fn(),
+  suggestArenaEvaluationMetrics: vi.fn(),
+  applyArenaEvaluationMetricProposal: vi.fn(),
   saveArenaEvaluationVersion: vi.fn(),
   saveArenaOptimizerSetup: vi.fn(),
   saveArenaOptimizerVersion: vi.fn(),
@@ -72,6 +74,8 @@ import {
   saveArenaEvaluationStageBindings,
   suggestArenaEvaluationStageBindings,
   saveArenaEvaluationMetrics,
+  suggestArenaEvaluationMetrics,
+  applyArenaEvaluationMetricProposal,
   saveArenaEvaluationVersion,
   saveArenaOptimizerSetup,
   saveArenaOptimizerVersion,
@@ -392,6 +396,8 @@ describe("Battle workspace candidates", () => {
     vi.mocked(validateArenaDataset).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(saveArenaDatasetVersion).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(saveArenaEvaluationMetrics).mockRejectedValue(new Error("not used in this test"));
+    vi.mocked(suggestArenaEvaluationMetrics).mockRejectedValue(new Error("not used in this test"));
+    vi.mocked(applyArenaEvaluationMetricProposal).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(saveArenaEvaluationEvaluators).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(saveArenaEvaluationMatrix).mockRejectedValue(new Error("not used in this test"));
     vi.mocked(saveArenaEvaluationStageMappings).mockRejectedValue(new Error("not used in this test"));
@@ -953,6 +959,108 @@ describe("Battle workspace candidates", () => {
     await user.click(await screen.findByRole("button", { name: "Validate profile" }));
     expect(vi.mocked(validateArenaEvaluationProfile)).toHaveBeenCalledWith(ARENA.workspace_id);
     expect(await screen.findByText("Evaluation profile status: ready")).toBeInTheDocument();
+  });
+
+  it("suggests and applies metric proposal from Metrics screen", async () => {
+    const user = userEvent.setup();
+    vi.mocked(fetchArenaPatternSelection).mockResolvedValue({
+      status: "success",
+      capability_id: "c3",
+      arena_id: ARENA.workspace_id,
+      selection: {
+        include_pattern_ids: ["style.direct_llm"],
+        exclude_pattern_ids: [],
+        updated_at: "2026-05-24T00:00:00+00:00",
+      },
+    });
+    vi.mocked(getArenaChatState).mockResolvedValue({
+      status: "success",
+      capability_id: "c2",
+      arena_id: ARENA.workspace_id,
+      arena_name: ARENA.name,
+      messages: [],
+      messages_total: 0,
+      candidate_set_draft: {
+        ...CANDIDATE_SET,
+        candidates: CANDIDATE_SET.candidates.map((candidate, index) => ({
+          ...candidate,
+          selected_for_tests: index < 2,
+        })),
+      },
+    });
+    const proposal = {
+      proposal_id: "mp_style_1",
+      arena_id: ARENA.workspace_id,
+      profile_id: "ep_default",
+      status: "draft",
+      source: "deterministic_metric_crafter_v0",
+      created_at: "2026-06-03T00:00:00+00:00",
+      summary: "Prepared 1 task-specific metric suggestion from the battle brief.",
+      items: [
+        {
+          proposal_item_id: "mpi_human",
+          metric_kind: "comparative",
+          metric_id: "human_likeness",
+          title: "Human-likeness score",
+          description: "Ranks human style.",
+          enabled: true,
+          selected: true,
+          weight: 0.3,
+          required_features: ["llm"],
+          target_stage: "final",
+          recommended_evaluators: ["llm_judge"],
+          rationale: "The battle goal is style transformation.",
+          compatibility_status: "ready",
+          compatibility_reason: "",
+        },
+      ],
+    } satisfies C4MetricProposal;
+    vi.mocked(suggestArenaEvaluationMetrics).mockResolvedValue({
+      status: "success",
+      capability_id: "c4",
+      arena_id: ARENA.workspace_id,
+      action: "suggest_metrics",
+      comparative_metrics: [
+        { metric_id: "quality_f1", title: "Quality F1@K", description: "quality", enabled: true, weight: 0.6 },
+      ],
+      diagnostic_signals: [{ signal_id: "synthesis_drift", title: "Synthesis drift", description: "drift", enabled: true }],
+      evaluators: [{ evaluator_id: "llm_judge", title: "LLM as a judge", description: "semantic", enabled: true }],
+      evaluator_metric_links: [],
+      latest_metric_proposal: proposal,
+      budget: { max_cases: 20, max_llm_calls: 100, max_cost_usd: 5.0 },
+      versions: [],
+      updated_at: "2026-06-03T00:00:00+00:00",
+    });
+    vi.mocked(applyArenaEvaluationMetricProposal).mockResolvedValue({
+      status: "success",
+      capability_id: "c4",
+      arena_id: ARENA.workspace_id,
+      action: "apply_metric_proposal",
+      comparative_metrics: [
+        { metric_id: "quality_f1", title: "Quality F1@K", description: "quality", enabled: true, weight: 0.6 },
+        { metric_id: "human_likeness", title: "Human-likeness score", description: "Ranks human style.", enabled: true, weight: 0.3 },
+      ],
+      diagnostic_signals: [{ signal_id: "synthesis_drift", title: "Synthesis drift", description: "drift", enabled: true }],
+      evaluators: [{ evaluator_id: "llm_judge", title: "LLM as a judge", description: "semantic", enabled: true }],
+      evaluator_metric_links: [{ evaluator_id: "llm_judge", metric_kind: "comparative", metric_id: "human_likeness", enabled: true }],
+      latest_metric_proposal: { ...proposal, status: "applied", applied_at: "2026-06-03T00:01:00+00:00" },
+      budget: { max_cases: 20, max_llm_calls: 100, max_cost_usd: 5.0 },
+      versions: [
+        { version_id: "evv_metric", label: "metric-proposal-mp_style_1", created_at: "2026-06-03T00:01:00+00:00", source: "metric_crafting_apply", enabled_comparative_total: 2, enabled_diagnostic_total: 1, enabled_evaluators_total: 1 },
+      ],
+      updated_at: "2026-06-03T00:01:00+00:00",
+    });
+
+    renderWorkspace();
+    await user.click(await screen.findByRole("button", { name: /Metrics/i }));
+    await user.click(await screen.findByRole("button", { name: "Suggest metrics" }));
+
+    expect(await screen.findByText("Human-likeness score")).toBeInTheDocument();
+    expect(await screen.findByLabelText("toggle-proposal-item-human_likeness")).toBeChecked();
+
+    await user.click(await screen.findByRole("button", { name: "Apply selected" }));
+    expect(vi.mocked(applyArenaEvaluationMetricProposal)).toHaveBeenCalledWith(ARENA.workspace_id, "mp_style_1", ["mpi_human"]);
+    expect(await screen.findByText("metric-proposal-mp_style_1 · cmp 2 · diag 1 · eval 1")).toBeInTheDocument();
   });
 
   it("saves evaluator-metric matrix from C6 screen", async () => {

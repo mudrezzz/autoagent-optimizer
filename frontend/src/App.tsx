@@ -28,6 +28,8 @@ import {
   autoMapArenaEvaluationStageMappings,
   saveArenaEvaluationMetrics,
   saveArenaEvaluationVersion,
+  suggestArenaEvaluationMetrics,
+  applyArenaEvaluationMetricProposal,
   searchArenaPatterns,
   selectArenaDataset,
   selectArenaCandidatesForTests,
@@ -55,6 +57,7 @@ import type {
   C4StageBinding,
   C4StageBindingCoverage,
   C4EvaluationVersion,
+  C4MetricProposal,
   C4Evaluator,
   C5OptimizerBudget,
   C5OptimizerControl,
@@ -114,7 +117,7 @@ const CHAT_SUPPORTED_CAPABILITY_IDS = new Set(["c2", "c4", "c5", "c5s", "c6", "c
 // Русский комментарий: дефолтные contextual action для non-C2 шагов wizard.
 const CHAT_DEFAULT_CONTEXT_ACTION_BY_CAPABILITY: Record<string, string> = {
   c4: "add_dataset_row",
-  c5: "enable_default_metrics",
+  c5: "suggest_metrics",
   c5s: "auto_map_stage_mappings",
   c6: "autofill_matrix_links",
   c7: "validate_optimizer_setup",
@@ -171,6 +174,8 @@ type UiState = {
   c4EvaluatorMetricLinks: C4EvaluatorMetricLink[];
   c4EvaluationBudget: C4EvaluationBudget;
   c4EvaluationVersions: C4EvaluationVersion[];
+  c4MetricProposal: C4MetricProposal | null;
+  c4SelectedMetricProposalItemIds: string[];
   c4EvaluationValidationStatus: "not_run" | "ready" | "warnings" | "invalid";
   c4EvaluationValidationIssues: Array<{ severity: string; code: string; message: string }>;
   c4CandidateFeatures: Record<string, boolean>;
@@ -252,6 +257,8 @@ export function App(): JSX.Element {
     c4EvaluatorMetricLinks: [],
     c4EvaluationBudget: { max_cases: 0, max_llm_calls: 0, max_cost_usd: 0 },
     c4EvaluationVersions: [],
+    c4MetricProposal: null,
+    c4SelectedMetricProposalItemIds: [],
     c4EvaluationValidationStatus: "not_run",
     c4EvaluationValidationIssues: [],
     c4CandidateFeatures: {},
@@ -773,6 +780,8 @@ export function App(): JSX.Element {
       c4CandidateFeatures: response.candidate_features ?? {},
       c4EvaluationBudget: response.budget,
       c4EvaluationVersions: response.versions,
+      c4MetricProposal: response.latest_metric_proposal ?? null,
+      c4SelectedMetricProposalItemIds: buildDefaultMetricProposalSelection(response.latest_metric_proposal ?? null),
       c4EvaluationValidationStatus: "not_run",
       c4EvaluationValidationIssues: [],
       budgetPercent: writeSnapshot ? 100 : prev.budgetPercent,
@@ -1274,6 +1283,19 @@ export function App(): JSX.Element {
     }));
   }
 
+  // Русский комментарий: переключает выбранность proposal item до явного Apply.
+  function handleToggleC4MetricProposalItem(proposalItemId: string): void {
+    setState((prev) => {
+      const selected = new Set(prev.c4SelectedMetricProposalItemIds);
+      if (selected.has(proposalItemId)) {
+        selected.delete(proposalItemId);
+      } else {
+        selected.add(proposalItemId);
+      }
+      return { ...prev, c4SelectedMetricProposalItemIds: Array.from(selected) };
+    });
+  }
+
   // Русский комментарий: локально переключает evaluator adapter в evaluation profile.
   function handleToggleC4Evaluator(evaluatorId: string): void {
     setState((prev) => ({
@@ -1360,6 +1382,94 @@ export function App(): JSX.Element {
         c4EvaluationVersions: response.versions,
         budgetPercent: 100,
         budgetStage: "evaluation metrics saved",
+        jsonText: prettyJson(snapshot),
+        lastPayload: snapshot,
+      }));
+    } catch (error) {
+      setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
+    }
+  }
+
+  // Русский комментарий: запрашивает AI/deterministic proposal метрик без применения к profile.
+  async function handleSuggestC4EvaluationMetrics(): Promise<void> {
+    if (!state.activeArenaId) {
+      return;
+    }
+    setState((prev) => ({ ...prev, budgetStage: "suggesting metrics", budgetPercent: 60 }));
+    try {
+      const response = await suggestArenaEvaluationMetrics(state.activeArenaId);
+      const proposal = response.latest_metric_proposal ?? null;
+      const snapshot = {
+        status: "success",
+        capability_id: "c5",
+        action: response.action ?? "suggest_metrics",
+        arena_id: state.activeArenaId,
+        proposal_id: proposal?.proposal_id ?? "",
+        proposal_items_total: proposal?.items.length ?? 0,
+      };
+      setState((prev) => ({
+        ...prev,
+        c4ComparativeMetrics: response.comparative_metrics,
+        c4DiagnosticSignals: response.diagnostic_signals,
+        c4Evaluators: response.evaluators,
+        c4StageMappings: response.stage_mappings ?? prev.c4StageMappings,
+        c4StageMappingCoverage: response.stage_mapping_coverage ?? prev.c4StageMappingCoverage,
+        c4StageBindings: response.stage_bindings ?? prev.c4StageBindings,
+        c4StageBindingCoverage: response.stage_binding_coverage ?? prev.c4StageBindingCoverage,
+        c4EvaluatorMetricLinks: response.evaluator_metric_links,
+        c4CandidateFeatures: response.candidate_features ?? prev.c4CandidateFeatures,
+        c4EvaluationBudget: response.budget,
+        c4EvaluationVersions: response.versions,
+        c4MetricProposal: proposal,
+        c4SelectedMetricProposalItemIds: buildDefaultMetricProposalSelection(proposal),
+        budgetPercent: 100,
+        budgetStage: "metric proposal ready",
+        jsonText: prettyJson(snapshot),
+        lastPayload: snapshot,
+      }));
+    } catch (error) {
+      setState((prev) => ({ ...prev, budgetPercent: 100, budgetStage: "failed", jsonText: prettyJson({ status: "error", message: String(error) }) }));
+    }
+  }
+
+  // Русский комментарий: применяет выбранные proposal items как новую версию evaluation profile.
+  async function handleApplyC4MetricProposal(): Promise<void> {
+    if (!state.activeArenaId || !state.c4MetricProposal) {
+      return;
+    }
+    setState((prev) => ({ ...prev, budgetStage: "applying metric proposal", budgetPercent: 65 }));
+    try {
+      const response = await applyArenaEvaluationMetricProposal(
+        state.activeArenaId,
+        state.c4MetricProposal.proposal_id,
+        state.c4SelectedMetricProposalItemIds
+      );
+      const proposal = response.latest_metric_proposal ?? null;
+      const snapshot = {
+        status: "success",
+        capability_id: "c5",
+        action: response.action ?? "apply_metric_proposal",
+        arena_id: state.activeArenaId,
+        proposal_id: state.c4MetricProposal.proposal_id,
+        applied_items_total: state.c4SelectedMetricProposalItemIds.length,
+      };
+      setState((prev) => ({
+        ...prev,
+        c4ComparativeMetrics: response.comparative_metrics,
+        c4DiagnosticSignals: response.diagnostic_signals,
+        c4Evaluators: response.evaluators,
+        c4StageMappings: response.stage_mappings ?? prev.c4StageMappings,
+        c4StageMappingCoverage: response.stage_mapping_coverage ?? prev.c4StageMappingCoverage,
+        c4StageBindings: response.stage_bindings ?? prev.c4StageBindings,
+        c4StageBindingCoverage: response.stage_binding_coverage ?? prev.c4StageBindingCoverage,
+        c4EvaluatorMetricLinks: response.evaluator_metric_links,
+        c4CandidateFeatures: response.candidate_features ?? prev.c4CandidateFeatures,
+        c4EvaluationBudget: response.budget,
+        c4EvaluationVersions: response.versions,
+        c4MetricProposal: proposal,
+        c4SelectedMetricProposalItemIds: buildDefaultMetricProposalSelection(proposal),
+        budgetPercent: 100,
+        budgetStage: "metric proposal applied",
         jsonText: prettyJson(snapshot),
         lastPayload: snapshot,
       }));
@@ -2480,7 +2590,7 @@ export function App(): JSX.Element {
       return "Default action: add dataset row.";
     }
     if (activeCapability.id === "c5") {
-      return "Default action: enable available metrics.";
+      return "Default action: suggest task-specific metrics.";
     }
     if (activeCapability.id === "c5s") {
       return "Default action: auto-map stage mappings.";
@@ -3108,6 +3218,11 @@ export function App(): JSX.Element {
                               <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleValidateC4EvaluationProfile(); }} disabled={!state.activeArenaId}>
                                 Validate profile
                               </button>
+                              {isMetricsCapability ? (
+                                <button type="button" className="tb-btn tb-btn-primary" onClick={() => { void handleSuggestC4EvaluationMetrics(); }} disabled={!state.activeArenaId}>
+                                  Suggest metrics
+                                </button>
+                              ) : null}
                               {isEvaluatorsCapability ? (
                                 <button type="button" className="tb-btn tb-btn-ghost" onClick={() => { void handleSaveC4EvaluationVersion(); }} disabled={!state.activeArenaId}>
                                   Save version
@@ -3123,6 +3238,69 @@ export function App(): JSX.Element {
                           <div className="c4-eval-grid">
                             {isMetricsCapability ? (
                               <>
+                                <section className="c4-eval-card c4-eval-card--full c4-proposal-card">
+                                  <div className="c4-eval-card-title">
+                                    AI metric proposal
+                                    {state.c4MetricProposal ? <span className="c4-eval-kind-chip">{state.c4MetricProposal.status}</span> : null}
+                                  </div>
+                                  {!state.c4MetricProposal ? (
+                                    <div className="issue-row info">No metric proposal yet. Use Suggest metrics or ask the Metrics copilot to suggest metrics.</div>
+                                  ) : (
+                                    <>
+                                      <div className="c4-proposal-summary">
+                                        <b>{state.c4MetricProposal.summary}</b>
+                                        <span>{state.c4MetricProposal.source} · {state.c4MetricProposal.created_at}</span>
+                                      </div>
+                                      <div className="c4-proposal-list">
+                                        {state.c4MetricProposal.items.map((item) => {
+                                          const isReviewOnly = item.compatibility_status === "review_only";
+                                          const isSelected = state.c4SelectedMetricProposalItemIds.includes(item.proposal_item_id);
+                                          return (
+                                            <label key={item.proposal_item_id} className={`c4-proposal-item${isReviewOnly ? " c4-proposal-item--disabled" : ""}`}>
+                                              <input
+                                                type="checkbox"
+                                                checked={isSelected}
+                                                onChange={() => {
+                                                  handleToggleC4MetricProposalItem(item.proposal_item_id);
+                                                }}
+                                                aria-label={`toggle-proposal-item-${item.metric_id}`}
+                                                disabled={isReviewOnly || state.c4MetricProposal?.status === "applied"}
+                                              />
+                                              <div className="c4-proposal-item-body">
+                                                <div className="c4-proposal-item-title">
+                                                  {item.title}
+                                                  <span className="candidate-step-chip">{item.metric_kind}</span>
+                                                  <span className="candidate-step-chip">{item.target_stage}</span>
+                                                </div>
+                                                <div className="c4-eval-item-sub">{item.description}</div>
+                                                <div className="c4-proposal-rationale">{item.rationale}</div>
+                                                <div className="c4-eval-requirements">
+                                                  {item.recommended_evaluators.length > 0 ? item.recommended_evaluators.map((evaluatorId) => (
+                                                    <span key={`${item.proposal_item_id}:${evaluatorId}`} className="candidate-step-chip">eval: {evaluatorId}</span>
+                                                  )) : <span className="candidate-step-chip">eval: manual</span>}
+                                                </div>
+                                                {item.compatibility_reason ? <div className="c4-eval-item-hint">{item.compatibility_reason}</div> : null}
+                                              </div>
+                                              {item.metric_kind === "comparative" ? <span className="c4-proposal-weight">w {item.weight}</span> : null}
+                                            </label>
+                                          );
+                                        })}
+                                      </div>
+                                      <button
+                                        type="button"
+                                        className="tb-btn tb-btn-ghost"
+                                        onClick={() => { void handleApplyC4MetricProposal(); }}
+                                        disabled={
+                                          !state.activeArenaId ||
+                                          state.c4MetricProposal.status === "applied" ||
+                                          state.c4SelectedMetricProposalItemIds.length <= 0
+                                        }
+                                      >
+                                        Apply selected
+                                      </button>
+                                    </>
+                                  )}
+                                </section>
                                 <section className="c4-eval-card">
                                   <div className="c4-eval-card-title">Comparative metrics</div>
                                   <div className="c4-eval-list">
@@ -4312,10 +4490,25 @@ function mapDiagnosticSignalToStage(signalId: string): "retrieval" | "rerank" | 
   if (signalId === "rerank_gain") {
     return "rerank";
   }
-  if (signalId === "synthesis_drift") {
+  if (
+    signalId === "synthesis_drift" ||
+    signalId === "pattern_cleanup_effectiveness" ||
+    signalId === "proof_context_preservation" ||
+    signalId === "over_sanitization_risk"
+  ) {
     return "synthesis";
   }
   return null;
+}
+
+// Русский комментарий: выбирает применимые proposal items по умолчанию, но не применяет их без Apply.
+function buildDefaultMetricProposalSelection(proposal: C4MetricProposal | null): string[] {
+  if (!proposal) {
+    return [];
+  }
+  return proposal.items
+    .filter((item) => item.selected && item.compatibility_status !== "review_only")
+    .map((item) => item.proposal_item_id);
 }
 
 // Русский комментарий: гарантирует присутствие Stage Mapping шага в capability-меню даже при старом backend-каталоге.

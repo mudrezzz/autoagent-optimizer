@@ -155,6 +155,7 @@ def _build_c4_evaluation_state_payload(*, arena_id: str, studio_state: dict[str,
         "stage_bindings": [dict(item) for item in studio_state.get("stage_bindings", []) if isinstance(item, dict)],
         "stage_binding_coverage": [dict(item) for item in studio_state.get("stage_binding_coverage", []) if isinstance(item, dict)],
         "evaluator_metric_links": [dict(item) for item in studio_state.get("evaluator_metric_links", []) if isinstance(item, dict)],
+        "latest_metric_proposal": dict(studio_state.get("latest_metric_proposal", {})) if isinstance(studio_state.get("latest_metric_proposal"), dict) else None,
         "candidate_features": dict(studio_state.get("candidate_features", {})),
         "budget": dict(studio_state.get("budget", {})),
         "versions": [_build_c4_evaluation_version(item) for item in versions if isinstance(item, dict)],
@@ -483,6 +484,25 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
                     tenant_id=tenant_id,
                     user_id=user_id,
                     arena_id=arena_evaluation_metrics_save_match.group(1),
+                )
+                return
+
+            arena_evaluation_metrics_suggest_match = re.fullmatch(r"/api/arenas/([^/]+)/evaluation/metrics/suggest", path)
+            if arena_evaluation_metrics_suggest_match is not None:
+                self._handle_post_arena_evaluation_metrics_suggest(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    arena_id=arena_evaluation_metrics_suggest_match.group(1),
+                )
+                return
+
+            arena_evaluation_metrics_apply_match = re.fullmatch(r"/api/arenas/([^/]+)/evaluation/metrics/proposals/([^/]+)/apply", path)
+            if arena_evaluation_metrics_apply_match is not None:
+                self._handle_post_arena_evaluation_metrics_proposal_apply(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    arena_id=arena_evaluation_metrics_apply_match.group(1),
+                    proposal_id=arena_evaluation_metrics_apply_match.group(2),
                 )
                 return
 
@@ -1165,47 +1185,32 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
                 }
 
             if capability_id == "c5":
-                allowed_actions = ["enable_default_metrics"]
+                allowed_actions = ["suggest_metrics"]
                 resolved_action = context_action if context_action in allowed_actions else ""
-                if not resolved_action and ("enable metrics" in normalized_message or "включи метрики" in normalized_message):
-                    resolved_action = "enable_default_metrics"
-                if resolved_action == "enable_default_metrics":
-                    evaluation_state = registry_store.get_arena_evaluation_studio_state(
+                if not resolved_action and (
+                    "suggest" in normalized_message
+                    or "metric" in normalized_message
+                    or "предлож" in normalized_message
+                    or "метрик" in normalized_message
+                ):
+                    resolved_action = "suggest_metrics"
+                if resolved_action == "suggest_metrics":
+                    evaluation_state = registry_store.suggest_arena_evaluation_metrics(
                         tenant_id=tenant_id,
                         owner_user_id=user_id,
                         arena_id=arena_id,
                     )
-                    comparative: list[dict[str, Any]] = []
-                    for item in evaluation_state.get("comparative_metrics", []):
-                        if not isinstance(item, dict):
-                            continue
-                        metric = dict(item)
-                        if str(metric.get("availability_status", "available")) != "unavailable":
-                            metric["enabled"] = True
-                        comparative.append(metric)
-                    diagnostic: list[dict[str, Any]] = []
-                    for item in evaluation_state.get("diagnostic_signals", []):
-                        if not isinstance(item, dict):
-                            continue
-                        signal = dict(item)
-                        if str(signal.get("availability_status", "available")) != "unavailable":
-                            signal["enabled"] = True
-                        diagnostic.append(signal)
-                    registry_store.save_arena_evaluation_metrics(
-                        tenant_id=tenant_id,
-                        owner_user_id=user_id,
-                        arena_id=arena_id,
-                        comparative_metrics=comparative,
-                        diagnostic_signals=diagnostic,
-                    )
+                    proposal = evaluation_state.get("latest_metric_proposal", {})
+                    proposal_items = proposal.get("items", []) if isinstance(proposal, dict) else []
+                    proposed_total = len(proposal_items) if isinstance(proposal_items, list) else 0
                     return {
-                        "assistant_text": "Enabled available metrics/signals. Review weights in Metrics.",
-                        "resolved_action": "enable_default_metrics",
+                        "assistant_text": f"Prepared metric proposal with {proposed_total} item(s). Review and apply selected metrics in Metrics.",
+                        "resolved_action": "suggest_metrics",
                         "allowed_actions": allowed_actions,
-                        "summary": "Metrics were updated.",
+                        "summary": "Metric proposal created; no profile changes applied yet.",
                     }
                 return {
-                    "assistant_text": "Metrics copilot is active. Try: 'enable metrics'.",
+                    "assistant_text": "Metrics copilot is active. Try: 'suggest metrics'.",
                     "resolved_action": "none",
                     "allowed_actions": allowed_actions,
                     "summary": "No metrics action executed.",
@@ -2017,6 +2022,68 @@ def _build_handler(*, project_root: Path, registry_store: WorkspaceRegistryStore
 
             response_payload = _build_c4_evaluation_state_payload(arena_id=arena_id, studio_state=studio_state)
             response_payload["action"] = "save_evaluation_metrics"
+            self._send_json(response_payload)
+
+        def _handle_post_arena_evaluation_metrics_suggest(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:
+            """Создает task-specific metric proposal без изменения текущего profile."""
+
+            try:
+                studio_state = registry_store.suggest_arena_evaluation_metrics(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                )
+            except KeyError as exc:
+                self._send_json({"status": "error", "code": "arena_not_found", "message": str(exc)}, status=HTTPStatus.NOT_FOUND)
+                return
+            except ValueError as exc:
+                self._send_json({"status": "error", "code": "validation_error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            response_payload = _build_c4_evaluation_state_payload(arena_id=arena_id, studio_state=studio_state)
+            response_payload["action"] = "suggest_metrics"
+            self._send_json(response_payload, status=HTTPStatus.CREATED)
+
+        def _handle_post_arena_evaluation_metrics_proposal_apply(
+            self,
+            *,
+            tenant_id: str,
+            user_id: str,
+            arena_id: str,
+            proposal_id: str,
+        ) -> None:
+            """Применяет выбранные proposal items после явного HITL approval."""
+
+            try:
+                payload = self._read_json_body()
+            except ValueError as exc:
+                self._send_json({"status": "error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            item_ids = payload.get("proposal_item_ids", [])
+            if not isinstance(item_ids, list) or any(not isinstance(item, str) for item in item_ids):
+                self._send_json(
+                    {"status": "error", "code": "validation_error", "message": "Field `proposal_item_ids` must be an array of strings."},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            try:
+                studio_state = registry_store.apply_arena_evaluation_metric_proposal(
+                    tenant_id=tenant_id,
+                    owner_user_id=user_id,
+                    arena_id=arena_id,
+                    proposal_id=proposal_id,
+                    proposal_item_ids=[str(item) for item in item_ids],
+                )
+            except KeyError as exc:
+                self._send_json({"status": "error", "code": "proposal_not_found", "message": str(exc)}, status=HTTPStatus.NOT_FOUND)
+                return
+            except ValueError as exc:
+                self._send_json({"status": "error", "code": "validation_error", "message": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+
+            response_payload = _build_c4_evaluation_state_payload(arena_id=arena_id, studio_state=studio_state)
+            response_payload["action"] = "apply_metric_proposal"
             self._send_json(response_payload)
 
         def _handle_post_arena_evaluation_evaluators_save(self, *, tenant_id: str, user_id: str, arena_id: str) -> None:

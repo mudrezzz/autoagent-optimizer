@@ -269,6 +269,31 @@ def test_frontend_dev_server_serves_shell_and_capability_api() -> None:
         assert eval_state_payload["candidate_features"]["llm"] is False
         assert eval_state_payload["candidate_features"]["retrieval"] is False
 
+        initial_metric_ids = {item["metric_id"] for item in eval_state_payload["comparative_metrics"]}
+        status_metric_suggest, metric_suggest_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/evaluation/metrics/suggest",
+            {},
+        )
+        assert status_metric_suggest == 201
+        assert metric_suggest_payload["status"] == "success"
+        assert metric_suggest_payload["latest_metric_proposal"]["status"] == "draft"
+        assert "human_likeness" not in {item["metric_id"] for item in metric_suggest_payload["comparative_metrics"]}
+        assert {item["metric_id"] for item in metric_suggest_payload["comparative_metrics"]} == initial_metric_ids
+        selected_proposal_items = [
+            item["proposal_item_id"]
+            for item in metric_suggest_payload["latest_metric_proposal"]["items"]
+            if item["metric_kind"] == "comparative" and item["metric_id"] == "human_likeness"
+        ]
+        status_metric_apply, metric_apply_payload = _json_post(
+            f"{base_url}/api/arenas/{arena_id}/evaluation/metrics/proposals/{metric_suggest_payload['latest_metric_proposal']['proposal_id']}/apply",
+            {"proposal_item_ids": selected_proposal_items},
+        )
+        assert status_metric_apply == 200
+        assert metric_apply_payload["status"] == "success"
+        assert metric_apply_payload["latest_metric_proposal"]["status"] == "applied"
+        assert "human_likeness" in {item["metric_id"] for item in metric_apply_payload["comparative_metrics"]}
+        assert metric_apply_payload["versions"][-1]["source"] == "metric_crafting_apply"
+
         status_eval_metrics_save, eval_metrics_save_payload = _json_post(
             f"{base_url}/api/arenas/{arena_id}/evaluation/metrics/save",
             {

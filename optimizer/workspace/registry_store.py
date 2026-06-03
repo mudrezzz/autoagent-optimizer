@@ -15,6 +15,7 @@ from optimizer.evaluation.evaluator_adapters import (
     enrich_evaluator_adapter,
     evaluate_evaluator_metric_compatibility,
 )
+from optimizer.evaluation.metric_crafting import build_metric_crafting_proposal
 
 
 @dataclass(frozen=True)
@@ -975,6 +976,114 @@ class WorkspaceRegistryStore:
         """Возвращает каталог evaluator-adapters без чтения workspace-состояния."""
 
         return build_evaluator_adapter_catalog()
+
+    def suggest_arena_evaluation_metrics(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        profile_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Создает HITL proposal task-specific метрик без применения к profile."""
+
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            candidate_set_draft = workspace.get("candidate_set_draft") if isinstance(workspace.get("candidate_set_draft"), dict) else None
+            studio_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
+            _sync_evaluation_profile_availability(
+                studio_state=studio_state,
+                candidate_set_draft=candidate_set_draft,
+                profile_id=profile_id,
+            )
+            target_profile = _find_target_evaluation_profile(
+                studio_state=studio_state,
+                profile_id=profile_id,
+            )
+            proposal = build_metric_crafting_proposal(
+                arena_id=arena_id,
+                candidate_set_draft=candidate_set_draft,
+                evaluation_profile=target_profile,
+                candidate_features=_extract_candidate_feature_flags(candidate_set_draft),
+                created_at=_utc_now_iso(),
+            )
+            proposals = target_profile.get("metric_proposals", [])
+            proposals = proposals if isinstance(proposals, list) else []
+            target_profile["metric_proposals"] = [_normalize_metric_proposal(item) for item in proposals if isinstance(item, dict)][-9:]
+            target_profile["metric_proposals"].append(_normalize_metric_proposal(proposal))
+            target_profile["latest_metric_proposal_id"] = proposal["proposal_id"]
+            target_profile["updated_at"] = _utc_now_iso()
+            studio_state["updated_at"] = _utc_now_iso()
+            _sync_evaluation_studio_legacy_mirror_fields(studio_state)
+            workspace["evaluation_studio"] = studio_state
+            self._write_store(data)
+            return dict(studio_state)
+
+    def apply_arena_evaluation_metric_proposal(
+        self,
+        *,
+        tenant_id: str,
+        owner_user_id: str,
+        arena_id: str,
+        proposal_id: str,
+        proposal_item_ids: list[str],
+        profile_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Применяет только выбранные proposal items и создает новую версию profile."""
+
+        normalized_item_ids = _normalize_string_list(proposal_item_ids)
+        if not normalized_item_ids:
+            raise ValueError("At least one proposal item must be selected.")
+        with self._lock:
+            data = self._read_store()
+            workspace = self._find_workspace(
+                data=data,
+                tenant_id=tenant_id,
+                owner_user_id=owner_user_id,
+                workspace_id=arena_id,
+            )
+            candidate_set_draft = workspace.get("candidate_set_draft") if isinstance(workspace.get("candidate_set_draft"), dict) else None
+            studio_state = _normalize_evaluation_studio_state(workspace.get("evaluation_studio"))
+            target_profile = _find_target_evaluation_profile(
+                studio_state=studio_state,
+                profile_id=profile_id,
+            )
+            proposal = _find_metric_proposal(profile=target_profile, proposal_id=proposal_id)
+            applied_total = _apply_metric_proposal_items(
+                profile=target_profile,
+                proposal=proposal,
+                proposal_item_ids=normalized_item_ids,
+            )
+            if applied_total <= 0:
+                raise ValueError("Selected proposal items are not applicable.")
+            proposal["status"] = "applied"
+            proposal["applied_at"] = _utc_now_iso()
+            target_profile["updated_at"] = _utc_now_iso()
+            _sync_evaluation_profile_availability(
+                studio_state=studio_state,
+                candidate_set_draft=candidate_set_draft,
+                profile_id=profile_id,
+            )
+            version = _build_evaluation_profile_version_snapshot(
+                profile=target_profile,
+                label=f"metric-proposal-{proposal_id}",
+                source="metric_crafting_apply",
+            )
+            versions = target_profile.get("versions", [])
+            versions = versions if isinstance(versions, list) else []
+            versions.append(version)
+            target_profile["versions"] = versions
+            studio_state["updated_at"] = _utc_now_iso()
+            _sync_evaluation_studio_legacy_mirror_fields(studio_state)
+            workspace["evaluation_studio"] = studio_state
+            self._write_store(data)
+            return dict(studio_state)
 
     def save_arena_evaluation_metrics(
         self,
@@ -2090,6 +2199,10 @@ _COMPARATIVE_METRIC_REQUIRED_FEATURES: dict[str, tuple[str, ...]] = {
     "quality_f1": (),
     "cost_per_case": (),
     "latency_p95": (),
+    "human_likeness": ("llm",),
+    "narrative_preservation": (),
+    "ai_pattern_reduction": (),
+    "length_discipline": (),
 }
 
 # Русский комментарий: требования к feature-флагам для diagnostic-сигналов.
@@ -2097,6 +2210,9 @@ _DIAGNOSTIC_SIGNAL_REQUIRED_FEATURES: dict[str, tuple[str, ...]] = {
     "retrieval_coverage": ("retrieval",),
     "rerank_gain": ("rerank",),
     "synthesis_drift": ("llm",),
+    "pattern_cleanup_effectiveness": (),
+    "proof_context_preservation": (),
+    "over_sanitization_risk": (),
 }
 
 # Русский комментарий: какие target_stage требуются для включенных диагностических сигналов.
@@ -2104,6 +2220,9 @@ _DIAGNOSTIC_SIGNAL_REQUIRED_STAGES: dict[str, str] = {
     "retrieval_coverage": "retrieval",
     "rerank_gain": "rerank",
     "synthesis_drift": "synthesis",
+    "pattern_cleanup_effectiveness": "synthesis",
+    "proof_context_preservation": "synthesis",
+    "over_sanitization_risk": "synthesis",
 }
 
 # Русский комментарий: допустимые политики резолва stage_ref при множественных совпадениях.
@@ -2565,6 +2684,7 @@ def _build_default_evaluation_studio_state() -> dict[str, Any]:
         "stage_mappings": [dict(item) for item in default_profile.get("stage_mappings", [])],
         "stage_mapping_coverage": [dict(item) for item in default_profile.get("stage_mapping_coverage", [])],
         "evaluator_metric_links": [dict(item) for item in default_profile.get("evaluator_metric_links", [])],
+        "latest_metric_proposal": _get_latest_metric_proposal(default_profile),
         "budget": dict(default_profile.get("budget", {})),
         "versions": [dict(item) for item in default_profile.get("versions", [])],
         "updated_at": now,
@@ -2674,6 +2794,8 @@ def _build_default_evaluation_profile(
             diagnostic_signals=normalized_diagnostic_signals,
             evaluators=normalized_evaluators,
         ),
+        "metric_proposals": [],
+        "latest_metric_proposal_id": "",
         "budget": _normalize_evaluation_budget(base_budget),
         "versions": [_normalize_evaluation_version(item) for item in base_versions if isinstance(item, dict)],
         "created_at": now,
@@ -2695,6 +2817,7 @@ def _normalize_evaluation_profile_payload(raw_profile: Any) -> dict[str, Any]:
     stage_bindings_raw = raw_profile.get("stage_bindings", [])
     stage_mappings_raw = raw_profile.get("stage_mappings", [])
     evaluator_metric_links_raw = raw_profile.get("evaluator_metric_links", [])
+    metric_proposals_raw = raw_profile.get("metric_proposals", [])
     budget_raw = raw_profile.get("budget", {})
     versions_raw = raw_profile.get("versions", [])
     created_at = str(raw_profile.get("created_at", "")).strip() or _utc_now_iso()
@@ -2709,6 +2832,11 @@ def _normalize_evaluation_profile_payload(raw_profile: Any) -> dict[str, Any]:
     normalized_evaluators = _normalize_evaluators(evaluators_raw)
     normalized_stage_bindings = _normalize_stage_bindings(stage_bindings_raw)
     normalized_stage_mappings = _normalize_stage_mappings(stage_mappings_raw, candidate_set_draft=None)
+    metric_proposals = _normalize_metric_proposals(metric_proposals_raw)
+    latest_metric_proposal_id = str(raw_profile.get("latest_metric_proposal_id", "")).strip()
+    known_proposal_ids = {str(item.get("proposal_id", "")) for item in metric_proposals}
+    if latest_metric_proposal_id not in known_proposal_ids:
+        latest_metric_proposal_id = str(metric_proposals[-1].get("proposal_id", "")) if metric_proposals else ""
     return {
         "profile_id": profile_id,
         "name": name,
@@ -2726,6 +2854,8 @@ def _normalize_evaluation_profile_payload(raw_profile: Any) -> dict[str, Any]:
             diagnostic_signals=normalized_diagnostic_signals,
             evaluators=normalized_evaluators,
         ),
+        "metric_proposals": metric_proposals,
+        "latest_metric_proposal_id": latest_metric_proposal_id,
         "budget": _normalize_evaluation_budget(budget_raw),
         "versions": versions,
         "created_at": created_at,
@@ -2800,6 +2930,7 @@ def _normalize_evaluation_studio_state(raw_state: Any) -> dict[str, Any]:
         "stage_mappings": [dict(item) for item in active_profile.get("stage_mappings", [])],
         "stage_mapping_coverage": [dict(item) for item in active_profile.get("stage_mapping_coverage", [])],
         "evaluator_metric_links": [dict(item) for item in active_profile.get("evaluator_metric_links", [])],
+        "latest_metric_proposal": _get_latest_metric_proposal(active_profile),
         "budget": dict(active_profile.get("budget", {})),
         "versions": [dict(item) for item in active_profile.get("versions", [])],
         "updated_at": updated_at,
@@ -2861,6 +2992,7 @@ def _sync_evaluation_studio_legacy_mirror_fields(studio_state: dict[str, Any]) -
     studio_state["stage_mappings"] = [dict(item) for item in active_profile.get("stage_mappings", [])]
     studio_state["stage_mapping_coverage"] = [dict(item) for item in active_profile.get("stage_mapping_coverage", [])]
     studio_state["evaluator_metric_links"] = [dict(item) for item in active_profile.get("evaluator_metric_links", [])]
+    studio_state["latest_metric_proposal"] = _get_latest_metric_proposal(active_profile)
     studio_state["budget"] = dict(active_profile.get("budget", {}))
     studio_state["versions"] = [dict(item) for item in active_profile.get("versions", [])]
 
@@ -2947,11 +3079,183 @@ def _normalize_diagnostic_signals(raw_signals: Any) -> list[dict[str, Any]]:
                 "required_features": required_features,
                 "availability_status": availability_status,
                 "availability_reason": availability_reason,
+                "target_stage": str(item.get("target_stage", _DIAGNOSTIC_SIGNAL_REQUIRED_STAGES.get(signal_id, "final"))).strip().lower() or "final",
             }
         )
     if not normalized:
         raise ValueError("Diagnostic signals list must contain at least one signal.")
     return normalized
+
+
+def _normalize_metric_proposals(raw_proposals: Any) -> list[dict[str, Any]]:
+    """Нормализует список HITL proposal-ов метрик в profile storage."""
+
+    if not isinstance(raw_proposals, list):
+        return []
+    proposals: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in raw_proposals:
+        if not isinstance(item, dict):
+            continue
+        proposal = _normalize_metric_proposal(item)
+        proposal_id = str(proposal.get("proposal_id", ""))
+        if not proposal_id or proposal_id in seen:
+            continue
+        seen.add(proposal_id)
+        proposals.append(proposal)
+    return proposals
+
+
+def _normalize_metric_proposal(raw_proposal: dict[str, Any]) -> dict[str, Any]:
+    """Нормализует один metric-crafting proposal для API/UI."""
+
+    proposal_id = str(raw_proposal.get("proposal_id", "")).strip() or f"mp_{uuid4().hex[:10]}"
+    items_raw = raw_proposal.get("items", [])
+    items = [_normalize_metric_proposal_item(item) for item in items_raw if isinstance(item, dict)] if isinstance(items_raw, list) else []
+    return {
+        "proposal_id": proposal_id,
+        "arena_id": str(raw_proposal.get("arena_id", "")).strip(),
+        "profile_id": str(raw_proposal.get("profile_id", "")).strip(),
+        "status": str(raw_proposal.get("status", "draft")).strip() or "draft",
+        "source": str(raw_proposal.get("source", "metric_crafter")).strip() or "metric_crafter",
+        "created_at": str(raw_proposal.get("created_at", "")).strip() or _utc_now_iso(),
+        "applied_at": str(raw_proposal.get("applied_at", "")).strip(),
+        "summary": str(raw_proposal.get("summary", "")).strip(),
+        "items": items,
+    }
+
+
+def _normalize_metric_proposal_item(raw_item: dict[str, Any]) -> dict[str, Any]:
+    """Нормализует один item из HITL proposal метрик."""
+
+    metric_kind = str(raw_item.get("metric_kind", "")).strip().lower()
+    if metric_kind not in {"comparative", "diagnostic"}:
+        metric_kind = "diagnostic"
+    metric_id = str(raw_item.get("metric_id", "")).strip() or f"metric_{uuid4().hex[:8]}"
+    try:
+        weight = float(raw_item.get("weight", 0.0) or 0.0)
+    except (TypeError, ValueError):
+        weight = 0.0
+    return {
+        "proposal_item_id": str(raw_item.get("proposal_item_id", "")).strip() or f"mpi_{uuid4().hex[:10]}",
+        "metric_kind": metric_kind,
+        "metric_id": metric_id,
+        "title": str(raw_item.get("title", metric_id)).strip() or metric_id,
+        "description": str(raw_item.get("description", "")).strip(),
+        "enabled": bool(raw_item.get("enabled", True)),
+        "selected": bool(raw_item.get("selected", True)),
+        "weight": round(weight, 6),
+        "required_features": _normalize_required_features(raw_required_features=raw_item.get("required_features", [])),
+        "target_stage": str(raw_item.get("target_stage", "final")).strip().lower() or "final",
+        "recommended_evaluators": _normalize_string_list(raw_item.get("recommended_evaluators", [])),
+        "rationale": str(raw_item.get("rationale", "")).strip(),
+        "compatibility_status": str(raw_item.get("compatibility_status", "ready")).strip() or "ready",
+        "compatibility_reason": str(raw_item.get("compatibility_reason", "")).strip(),
+    }
+
+
+def _get_latest_metric_proposal(profile: dict[str, Any]) -> dict[str, Any] | None:
+    """Возвращает последний proposal активного profile для mirror/API."""
+
+    proposals = profile.get("metric_proposals", [])
+    if not isinstance(proposals, list) or not proposals:
+        return None
+    latest_id = str(profile.get("latest_metric_proposal_id", "")).strip()
+    if latest_id:
+        for item in proposals:
+            if isinstance(item, dict) and str(item.get("proposal_id", "")) == latest_id:
+                return dict(item)
+    latest = proposals[-1]
+    return dict(latest) if isinstance(latest, dict) else None
+
+
+def _find_metric_proposal(*, profile: dict[str, Any], proposal_id: str) -> dict[str, Any]:
+    """Ищет proposal по id внутри активного evaluation profile."""
+
+    normalized_proposal_id = proposal_id.strip()
+    for item in profile.get("metric_proposals", []):
+        if isinstance(item, dict) and str(item.get("proposal_id", "")) == normalized_proposal_id:
+            return item
+    raise KeyError(f"Metric proposal not found: {normalized_proposal_id}")
+
+
+def _apply_metric_proposal_items(
+    *,
+    profile: dict[str, Any],
+    proposal: dict[str, Any],
+    proposal_item_ids: list[str],
+) -> int:
+    """Добавляет selected proposal items в comparative/diagnostic списки profile."""
+
+    selected_ids = set(proposal_item_ids)
+    applied_total = 0
+    comparative_metrics = [dict(item) for item in profile.get("comparative_metrics", []) if isinstance(item, dict)]
+    diagnostic_signals = [dict(item) for item in profile.get("diagnostic_signals", []) if isinstance(item, dict)]
+    comparative_by_id = {str(item.get("metric_id", "")): item for item in comparative_metrics}
+    diagnostic_by_id = {str(item.get("signal_id", "")): item for item in diagnostic_signals}
+    for item in proposal.get("items", []):
+        if not isinstance(item, dict):
+            continue
+        if str(item.get("proposal_item_id", "")) not in selected_ids:
+            continue
+        if str(item.get("compatibility_status", "ready")) == "review_only":
+            continue
+        metric_kind = str(item.get("metric_kind", "")).strip()
+        metric_id = str(item.get("metric_id", "")).strip()
+        if not metric_id:
+            continue
+        if metric_kind == "comparative":
+            comparative_by_id[metric_id] = {
+                "metric_id": metric_id,
+                "title": str(item.get("title", metric_id)).strip() or metric_id,
+                "description": str(item.get("description", "")).strip(),
+                "enabled": bool(item.get("enabled", True)),
+                "weight": float(item.get("weight", 0.0) or 0.0),
+                "required_features": _normalize_required_features(raw_required_features=item.get("required_features", [])),
+            }
+            applied_total += 1
+        elif metric_kind == "diagnostic":
+            diagnostic_by_id[metric_id] = {
+                "signal_id": metric_id,
+                "title": str(item.get("title", metric_id)).strip() or metric_id,
+                "description": str(item.get("description", "")).strip(),
+                "enabled": bool(item.get("enabled", True)),
+                "required_features": _normalize_required_features(raw_required_features=item.get("required_features", [])),
+                "target_stage": str(item.get("target_stage", "final")).strip().lower() or "final",
+            }
+            applied_total += 1
+    profile["comparative_metrics"] = _normalize_comparative_metrics(list(comparative_by_id.values()))
+    profile["diagnostic_signals"] = _normalize_diagnostic_signals(list(diagnostic_by_id.values()))
+    profile["evaluator_metric_links"] = _normalize_evaluator_metric_links(
+        raw_links=profile.get("evaluator_metric_links", []),
+        comparative_metrics=profile["comparative_metrics"],
+        diagnostic_signals=profile["diagnostic_signals"],
+        evaluators=profile.get("evaluators", []),
+    )
+    return applied_total
+
+
+def _build_evaluation_profile_version_snapshot(
+    *,
+    profile: dict[str, Any],
+    label: str,
+    source: str,
+) -> dict[str, Any]:
+    """Создает snapshot-версию profile после HITL apply без повторного входа в store."""
+
+    return {
+        "version_id": f"evv_{uuid4().hex[:10]}",
+        "label": label.strip() or f"snapshot-{_utc_now_iso()}",
+        "created_at": _utc_now_iso(),
+        "source": source.strip() or "manual",
+        "comparative_metrics": [dict(item) for item in profile.get("comparative_metrics", []) if isinstance(item, dict)],
+        "diagnostic_signals": [dict(item) for item in profile.get("diagnostic_signals", []) if isinstance(item, dict)],
+        "evaluators": [dict(item) for item in profile.get("evaluators", []) if isinstance(item, dict)],
+        "stage_bindings": [dict(item) for item in profile.get("stage_bindings", []) if isinstance(item, dict)],
+        "stage_mappings": [dict(item) for item in profile.get("stage_mappings", []) if isinstance(item, dict)],
+        "evaluator_metric_links": [dict(item) for item in profile.get("evaluator_metric_links", []) if isinstance(item, dict)],
+        "budget": dict(profile.get("budget", {})),
+    }
 
 
 def _normalize_evaluators(raw_evaluators: Any) -> list[dict[str, Any]]:

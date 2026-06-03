@@ -121,6 +121,34 @@ Validation contract v2:
 
 `GET /api/arenas/{arena_id}/evaluation/state`
 
+`POST /api/arenas/{arena_id}/evaluation/metrics/suggest`
+
+Response:
+
+```json
+{
+  "status": "success",
+  "action": "suggest_metric_proposal",
+  "evaluation": {
+    "latest_metric_proposal": {
+      "proposal_id": "mp_1234567890",
+      "status": "draft",
+      "items": []
+    }
+  }
+}
+```
+
+`POST /api/arenas/{arena_id}/evaluation/metrics/proposals/{proposal_id}/apply`
+
+Body:
+
+```json
+{
+  "proposal_item_ids": ["mpi_1234567890", "mpi_abcdefghij"]
+}
+```
+
 `POST /api/arenas/{arena_id}/evaluation/metrics/save`
 
 `POST /api/arenas/{arena_id}/evaluation/evaluators/save`
@@ -165,6 +193,14 @@ Feature-aware behavior:
 - `availability_reason`.
 3. Unavailable metrics/signals are auto-disabled on backend before validation.
 4. Response includes `evaluator_metric_links` matrix (`evaluator_id`, `metric_kind`, `metric_id`, `enabled`, `compatibility_status`, `compatibility_reason`).
+
+Metric-crafting behavior:
+
+1. `suggest` creates a draft proposal and does not mutate comparative metrics or diagnostic signals.
+2. proposal items can be comparative metrics or diagnostic signals.
+3. `apply` accepts explicit `proposal_item_ids` and applies only those items.
+4. `apply` marks the proposal as `applied`, creates an evaluation profile version with source `metric_crafting_apply`, and refreshes evaluator x metric compatibility links.
+5. unsupported evaluator links for newly applied metrics are normalized to `enabled=false`.
 
 Evaluator coverage behavior:
 

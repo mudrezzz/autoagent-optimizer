@@ -71,6 +71,7 @@
 42. [ADR-0042-dataset-v2-stage-aware-target-schema.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0042-dataset-v2-stage-aware-target-schema.md) - Accepted
 43. [ADR-0043-target-stage-first-mapping-and-stage-ref-demotion.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0043-target-stage-first-mapping-and-stage-ref-demotion.md) - Accepted
 44. [ADR-0044-evaluator-adapter-layer-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0044-evaluator-adapter-layer-v0.md) - Accepted
+45. [ADR-0045-metric-crafting-hitl-loop-v0.md](/c:/Users/solovev.v/Documents/ALT_PRJs/AutoAgent%20Optimizer/docs/adr/ADR-0045-metric-crafting-hitl-loop-v0.md) - Accepted
 
 ## Template
 

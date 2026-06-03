@@ -343,6 +343,7 @@ export type C4ComparativeMetric = {
   required_features?: string[];
   availability_status?: "available" | "unavailable" | string;
   availability_reason?: string;
+  target_stage?: "retrieval" | "rerank" | "synthesis" | "final" | string;
 };
 
 // Русский комментарий: diagnostic сигнал evaluation profile.
@@ -472,6 +473,37 @@ export type C4EvaluationVersion = {
   enabled_stage_mappings_total?: number;
 };
 
+// Русский комментарий: item HITL proposal для task-specific metric crafting.
+export type C4MetricProposalItem = {
+  proposal_item_id: string;
+  metric_kind: "comparative" | "diagnostic" | string;
+  metric_id: string;
+  title: string;
+  description: string;
+  enabled: boolean;
+  selected: boolean;
+  weight: number;
+  required_features: string[];
+  target_stage: "retrieval" | "rerank" | "synthesis" | "final" | string;
+  recommended_evaluators: string[];
+  rationale: string;
+  compatibility_status: "ready" | "review_only" | "needs_evaluator" | "not_applicable" | string;
+  compatibility_reason: string;
+};
+
+// Русский комментарий: HITL proposal метрик, который не меняет profile до явного apply.
+export type C4MetricProposal = {
+  proposal_id: string;
+  arena_id: string;
+  profile_id: string;
+  status: "draft" | "applied" | string;
+  source: string;
+  created_at: string;
+  applied_at?: string;
+  summary: string;
+  items: C4MetricProposalItem[];
+};
+
 // Русский комментарий: ответ состояния C4 Metrics & Evaluators Studio.
 export type C4EvaluationStateResponse = {
   status: "success";
@@ -485,6 +517,7 @@ export type C4EvaluationStateResponse = {
   stage_bindings?: C4StageBinding[];
   stage_binding_coverage?: C4StageBindingCoverage[];
   evaluator_metric_links: C4EvaluatorMetricLink[];
+  latest_metric_proposal?: C4MetricProposal | null;
   candidate_features?: Record<string, boolean>;
   budget: C4EvaluationBudget;
   versions: C4EvaluationVersion[];

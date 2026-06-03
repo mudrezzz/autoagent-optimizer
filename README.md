@@ -6,8 +6,8 @@ OSS-first платформа для архитектурного поиска, w
 
 - `Phase`: MVP-2 transition (product realignment + evaluation fabric)
 - `Iteration`: Roadmap v3 - vertical product slices
-- `Overall`: In Progress (V2.3.S1 + V2.3.S1a + V2.3.S2 + V2.3.S2b + V2.3.S2c + V2.3.S2d + V2.3.S3 + V2.3.S4 + V2.3.S4a + V2.3.S5 + V2.3.S5a + V2.3.S6 + V2.3.S6a + V2.3.S7 + V2.4.S1 + V2.4.S2 + V2.4.S3 + V2.4.S4 + V2.4.S5 + V2.4.S5a + V2.4.S5b + V2.4.S5c + V2.4.S6 + V2.4.S7 + I5.S2 + I5.S2b done)
-- `Next Slice`: I5.S3 Metric-Crafting Agent + HITL loop v0
+- `Overall`: In Progress (V2.3.S1 + V2.3.S1a + V2.3.S2 + V2.3.S2b + V2.3.S2c + V2.3.S2d + V2.3.S3 + V2.3.S4 + V2.3.S4a + V2.3.S5 + V2.3.S5a + V2.3.S6 + V2.3.S6a + V2.3.S7 + V2.4.S1 + V2.4.S2 + V2.4.S3 + V2.4.S4 + V2.4.S5 + V2.4.S5a + V2.4.S5b + V2.4.S5c + V2.4.S6 + V2.4.S7 + I5.S2 + I5.S2b + I5.S3 done)
+- `Next Slice`: I5.S4 Post-export Native Benchmark Loop v0
 
 Подробный статус:
 
@@ -198,11 +198,12 @@ mkdocs build --strict
 
 ## Configurable Evaluation Model
 
-Оценка в платформе развивается как `profile-driven` слой:
+Evaluation is developed as a `profile-driven` layer:
 
-1. Метрики comparative/diagnostic задаются под конкретный task type.
-2. Методы оценки подключаются как adapters (`golden_oracle`, `llm_judge`, `executable`, `render`, ...).
-3. зменение профиля метрик рассматривается как agent workflow с обязательным HITL approve.
+1. Comparative metrics and diagnostic signals are task-specific.
+2. Evaluator methods are connected through adapters (`golden_oracle`, `llm_judge`, `executable`, `render`, ...).
+3. Metric profile changes are handled as an agent-assisted workflow with explicit HITL approval before apply.
+4. `I5.S3` adds a task-specific Metric-Crafting proposal loop: suggestions are stored as drafts and only selected items are applied to the active profile.
 
 Текущая спецификация направления:
 
