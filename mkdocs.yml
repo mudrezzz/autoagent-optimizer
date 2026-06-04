@@ -57,5 +57,6 @@ nav:
       - V2.4.S7: releases/v2.4.s7.md
       - I5.S2: releases/i5.s2.md
       - I5.S3: releases/i5.s3.md
+      - I5.S3a: releases/i5.s3a.md
   - Governance:
       - ADR to Wiki Policy: governance/adr-to-wiki-policy.md

@@ -41,5 +41,6 @@ This wiki site is published from the current repository through GitHub Pages.
 25. [Releases / V2.4.S7](releases/v2.4.s7.md)
 26. [Releases / I5.S2](releases/i5.s2.md)
 27. [Releases / I5.S3](releases/i5.s3.md)
+28. [Releases / I5.S3a](releases/i5.s3a.md)
 
 _Deployment trigger: 2026-06-03._

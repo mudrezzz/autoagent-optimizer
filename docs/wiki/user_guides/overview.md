@@ -22,6 +22,10 @@
 
 ![Battle Workspace C5 Metrics](../assets/screenshots/real-workspace-c5-metric-proposal.png)
 
+### Battle Workspace (C5s Stage Mapping)
+
+![Battle Workspace C5s Stage Mapping](../assets/screenshots/real-workspace-c5s-manual-confirmed.png)
+
 ### Battle Workspace (C6 Evaluators)
 
 ![Battle Workspace C6](../assets/screenshots/real-workspace-c6-evaluators-matrix.png)

@@ -237,12 +237,14 @@ Stage mapping behavior (`target_stage-first`):
 
 1. Auto-map endpoint builds per-candidate mappings from required diagnostic stages.
 2. Save endpoint persists manual overrides (`selected_node_ids`, `enabled`, `notes`).
-3. Validation is driven by mapping coverage and may return:
+3. Save endpoint treats a single selected node with `source=manual` or manual confirmation notes as `bound` with `confidence >= 0.80`.
+4. Validation deduplicates repeated stage/candidate mapping issues when several diagnostics require the same stage.
+5. Validation is driven by mapping coverage and may return:
 - `stage_mapping_missing`,
 - `stage_mapping_unresolved`,
 - `stage_mapping_ambiguous`,
 - `stage_mapping_policy_violation`.
-4. Legacy `stage_bindings` API remains available as compatibility wrapper.
+6. Legacy `stage_bindings` API remains available as compatibility wrapper.
 
 Validate report statuses:
 

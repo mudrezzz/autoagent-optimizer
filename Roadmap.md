@@ -175,6 +175,7 @@ Note: после `V2.3.S1` добавлен corrective slice `V2.3.S1a`, что�
 | I5.S2 | Evaluator Adapter Layer v0 | Done | adapter catalog + evaluator requirements + evaluator x metric compatibility + C6 UI gating |
 | I5.S2b | Safe Evaluator Matrix Autofill | Done | unsupported evaluator x metric links are sanitized off; C6 autofill skips incompatible cells |
 | I5.S3 | Metric-Crafting Agent + HITL loop v0 | Done | task-specific metric proposal service + Metrics UI proposal/apply HITL loop + evaluator compatibility refresh |
+| I5.S3a | Stage Mapping manual confirmation fix | Done | manual confirmation resolves ambiguous auto-map rows + deduplicated validation issues |
 | I5.S4 | Post-export Native Benchmark Loop v0 | Planned | benchmark exported native agent over golden/llm_judge pipeline |
 | I5.S5 | Champion Regression Gates v0 | Planned | baseline-vs-current gating for exported native artifacts |
 

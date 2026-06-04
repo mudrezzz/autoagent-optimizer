@@ -1231,6 +1231,7 @@ class WorkspaceRegistryStore:
             target_profile["stage_mappings"] = _normalize_stage_mappings(
                 stage_mappings,
                 candidate_set_draft=candidate_set_draft,
+                confirm_manual=True,
             )
             target_profile["updated_at"] = _utc_now_iso()
             _sync_evaluation_profile_availability(
@@ -2378,6 +2379,7 @@ def _normalize_stage_mapping(
     raw_mapping: Any,
     *,
     candidate_set_draft: dict[str, Any] | None,
+    confirm_manual: bool = False,
 ) -> dict[str, Any]:
     """Нормализует одну запись stage mapping в контракт хранения."""
 
@@ -2403,6 +2405,24 @@ def _normalize_stage_mapping(
         confidence = 0.0
     elif len(selected_node_ids) > 1 and normalized_status not in {"bound", "ambiguous"}:
         normalized_status = "ambiguous"
+    source = str(raw_mapping.get("source", "manual")).strip() or "manual"
+    notes = str(raw_mapping.get("notes", "")).strip()
+    # Русский комментарий: ручное подтверждение пользователя снимает ambiguity, если выбран один конкретный node.
+    manual_confirmation_markers = ("manual", "confirmed", "confirm", "подтверж")
+    is_manual_confirmation = (
+        confirm_manual
+        and len(selected_node_ids) == 1
+        and (
+            source == "manual"
+            or any(marker in notes.lower() for marker in manual_confirmation_markers)
+        )
+    )
+    if is_manual_confirmation:
+        normalized_status = "bound"
+        confidence = max(confidence, 0.8)
+        source = "manual"
+        if not str(raw_mapping.get("reason", "")).strip():
+            raw_mapping = {**raw_mapping, "reason": "Manually confirmed by user."}
     return {
         "mapping_id": mapping_id,
         "target_stage": target_stage,
@@ -2414,8 +2434,8 @@ def _normalize_stage_mapping(
         "confidence": round(confidence, 3),
         "reason": str(raw_mapping.get("reason", "")).strip(),
         "enabled": bool(raw_mapping.get("enabled", True)),
-        "notes": str(raw_mapping.get("notes", "")).strip(),
-        "source": str(raw_mapping.get("source", "manual")).strip() or "manual",
+        "notes": notes,
+        "source": source,
     }
 
 
@@ -2423,6 +2443,7 @@ def _normalize_stage_mappings(
     raw_mappings: Any,
     *,
     candidate_set_draft: dict[str, Any] | None,
+    confirm_manual: bool = False,
 ) -> list[dict[str, Any]]:
     """Нормализует список stage mappings и удаляет дубли по target_stage/candidate_id."""
 
@@ -2432,7 +2453,7 @@ def _normalize_stage_mappings(
     seen_keys: set[str] = set()
     for item in raw_mappings:
         try:
-            mapping = _normalize_stage_mapping(item, candidate_set_draft=candidate_set_draft)
+            mapping = _normalize_stage_mapping(item, candidate_set_draft=candidate_set_draft, confirm_manual=confirm_manual)
         except ValueError:
             continue
         dedupe_key = f"{mapping.get('target_stage','')}::{mapping.get('candidate_id','')}".strip().lower()
@@ -3641,14 +3662,20 @@ def _build_evaluation_profile_validation_report(
         if mapping_id:
             coverage_by_mapping_id[mapping_id] = item
 
-    for signal_id, target_stage, signal_title in required_stage_targets:
+    required_stage_titles_by_stage: dict[str, list[str]] = {}
+    for _signal_id, target_stage, signal_title in required_stage_targets:
+        required_stage_titles_by_stage.setdefault(target_stage, []).append(signal_title)
+
+    for target_stage, signal_titles in required_stage_titles_by_stage.items():
+        affected_total = len(signal_titles)
         stage_rows = stage_mappings_by_stage.get(target_stage, [])
         if not stage_rows:
+            suffix = f" and affects {affected_total} diagnostic signal(s)" if affected_total > 1 else ""
             issues.append(
                 {
                     "severity": "error",
                     "code": "stage_mapping_missing",
-                    "message": f"Diagnostic `{signal_title}` requires enabled stage mapping for `{target_stage}`.",
+                    "message": f"Diagnostic stage `{target_stage}` requires enabled stage mapping{suffix}.",
                 }
             )
             continue
@@ -3660,30 +3687,33 @@ def _build_evaluation_profile_validation_report(
             status = str(coverage.get("status", "")).strip().lower() if isinstance(coverage, dict) else ""
             selected_nodes_total = int(coverage.get("selected_nodes_total", 0) or 0) if isinstance(coverage, dict) else 0
             if status == "missing" or selected_nodes_total <= 0:
+                suffix = f" and affects {affected_total} diagnostic signal(s)" if affected_total > 1 else ""
                 issues.append(
                     {
                         "severity": "error",
                         "code": "stage_mapping_unresolved",
-                        "message": f"Stage mapping for `{target_stage}` is unresolved for candidate `{mapping.get('candidate_title', mapping.get('candidate_id', 'unknown'))}`.",
+                        "message": f"Stage mapping for `{target_stage}` is unresolved for candidate `{mapping.get('candidate_title', mapping.get('candidate_id', 'unknown'))}`{suffix}.",
                     }
                 )
                 continue
             if status == "ambiguous":
+                suffix = f" and affects {affected_total} diagnostic signal(s)" if affected_total > 1 else ""
                 issues.append(
                     {
                         "severity": "error",
                         "code": "stage_mapping_ambiguous",
-                        "message": f"Stage mapping for `{target_stage}` is ambiguous for candidate `{mapping.get('candidate_title', mapping.get('candidate_id', 'unknown'))}`.",
+                        "message": f"Stage mapping for `{target_stage}` is ambiguous for candidate `{mapping.get('candidate_title', mapping.get('candidate_id', 'unknown'))}`{suffix}.",
                     }
                 )
                 continue
             has_valid_mapping = True
         if not has_valid_mapping:
+            suffix = f" and affects {affected_total} diagnostic signal(s)" if affected_total > 1 else ""
             issues.append(
                 {
                     "severity": "error",
                     "code": "stage_mapping_policy_violation",
-                    "message": f"Diagnostic `{signal_title}` has no valid stage mapping after checks.",
+                    "message": f"Diagnostic stage `{target_stage}` has no valid stage mapping after checks{suffix}.",
                 }
             )
 

@@ -359,6 +359,106 @@ def test_stage_mapping_auto_map_and_save_updates_coverage(tmp_path: Path) -> Non
     assert all(str(item["status"]) == "bound" for item in saved_state["stage_mapping_coverage"])
 
 
+def test_stage_mapping_manual_confirmation_resolves_ambiguous_row(tmp_path: Path) -> None:
+    """Проверяет, что ручное подтверждение ambiguous mapping снимает validation-ошибку."""
+
+    store = WorkspaceRegistryStore(store_file=tmp_path / "registry.json")
+    arena = store.create_arena(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        name="stage-mapping-manual-confirm",
+        description="",
+    )
+    store.save_arena_candidate_set_draft(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+        candidate_set_draft={
+            "candidate_set_id": "cset_pattern_cleaner",
+            "arena_id": arena.workspace_id,
+            "candidates": [
+                {
+                    "candidate_id": "pattern_cleaner",
+                    "title": "Pattern Cleaner",
+                    "selected_for_tests": True,
+                    "mini_graph": {
+                        "nodes": [
+                            {"id": "rewrite_draft", "label": "llm.rewrite", "kind": "llm"},
+                            {"id": "cleanup_pass", "label": "llm.cleanup", "kind": "llm"},
+                        ]
+                    },
+                }
+            ],
+        },
+    )
+    proposal_state = store.suggest_arena_evaluation_metrics(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+    )
+    proposal = proposal_state["latest_metric_proposal"]
+    diagnostic_item_ids = [
+        item["proposal_item_id"]
+        for item in proposal["items"]
+        if item["metric_kind"] == "diagnostic" and item.get("target_stage") == "synthesis"
+    ]
+    assert diagnostic_item_ids
+    store.apply_arena_evaluation_metric_proposal(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+        proposal_id=proposal["proposal_id"],
+        proposal_item_ids=diagnostic_item_ids,
+    )
+
+    auto_map = store.auto_map_arena_evaluation_stage_mappings(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+    )
+    ambiguous_rows = [item for item in auto_map["stage_mappings"] if item["status"] == "ambiguous"]
+    assert len(ambiguous_rows) == 1
+    store.save_arena_evaluation_stage_mappings(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+        stage_mappings=auto_map["stage_mappings"],
+    )
+    ambiguous_report = store.validate_arena_evaluation_profile(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+    )
+    ambiguous_issues = [item for item in ambiguous_report["issues"] if item["code"] == "stage_mapping_ambiguous"]
+    assert len(ambiguous_issues) == 1
+    assert "affects" in ambiguous_issues[0]["message"]
+
+    manually_confirmed_rows = []
+    for row in auto_map["stage_mappings"]:
+        next_row = dict(row)
+        if next_row["status"] == "ambiguous":
+            next_row["selected_node_ids"] = ["rewrite_draft"]
+            next_row["notes"] = "manual confirmed"
+        manually_confirmed_rows.append(next_row)
+    confirmed_state = store.save_arena_evaluation_stage_mappings(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+        stage_mappings=manually_confirmed_rows,
+    )
+    confirmed_row = next(item for item in confirmed_state["stage_mappings"] if item["candidate_id"] == "pattern_cleaner")
+    assert confirmed_row["status"] == "bound"
+    assert confirmed_row["source"] == "manual"
+    assert confirmed_row["confidence"] >= 0.8
+
+    confirmed_report = store.validate_arena_evaluation_profile(
+        tenant_id="tenant_a",
+        owner_user_id="user_a",
+        arena_id=arena.workspace_id,
+    )
+    assert "stage_mapping_ambiguous" not in {item["code"] for item in confirmed_report["issues"]}
+
+
 def test_validation_reports_missing_stage_mapping_for_enabled_diagnostics(tmp_path: Path) -> None:
     """Проверяет ошибку validate, когда diagnostic включен без required stage-mapping."""
 

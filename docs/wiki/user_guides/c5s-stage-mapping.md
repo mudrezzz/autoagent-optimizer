@@ -23,6 +23,30 @@ This step is required only when such diagnostics are enabled in `Metrics`.
 6. Click `Save mapping`.
 7. Click `Validate profile` to confirm mapping coverage.
 
+## Statuses
+
+1. `bound` - the row points to a concrete candidate node and can be used by diagnostics.
+2. `missing` - no node is selected for that candidate/stage pair.
+3. `ambiguous` / `needs confirmation` - auto-map found more than one possible node.
+
+`ambiguous` is not a user mistake.
+It means the system needs HITL confirmation because several nodes look suitable for the same stage.
+
+## Manual Confirmation
+
+To confirm an ambiguous row:
+
+1. keep or edit `Node ids` so exactly one node id remains,
+2. optionally write a note such as `manual confirmed`,
+3. click `Save mapping`.
+
+After save, the row should become `bound` with `source=manual`.
+Validation should not report `stage_mapping_ambiguous` for that row anymore.
+
+## Screenshot (Real UI)
+
+![C5s Stage Mapping Manual Confirmation](../assets/screenshots/real-workspace-c5s-manual-confirmed.png)
+
 ## Result
 
 If required stage coverage is valid, `Evaluators` step becomes available in wizard flow.

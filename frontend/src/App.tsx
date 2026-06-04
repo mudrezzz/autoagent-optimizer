@@ -1598,7 +1598,7 @@ export function App(): JSX.Element {
           return item;
         }
         if (field === "enabled") {
-          return { ...item, enabled: Boolean(value) };
+          return { ...item, enabled: Boolean(value), source: "manual" };
         }
         if (field === "selected_node_ids") {
           const nodeIds = String(value)
@@ -1609,14 +1609,18 @@ export function App(): JSX.Element {
             ...item,
             selected_node_ids: nodeIds,
             status: nodeIds.length <= 0 ? "missing" : nodeIds.length > 1 ? "ambiguous" : "bound",
-            confidence: nodeIds.length <= 0 ? 0 : nodeIds.length > 1 ? 0.55 : 0.95,
+            confidence: nodeIds.length <= 0 ? 0 : nodeIds.length > 1 ? 0.55 : 0.8,
             source: "manual",
+            reason: nodeIds.length === 1 ? "Manually confirmed by user." : item.reason,
           };
         }
         if (field === "target_stage") {
           return {
             ...item,
             target_stage: String(value),
+            status: item.selected_node_ids.length === 1 ? "bound" : item.status,
+            confidence: item.selected_node_ids.length === 1 ? Math.max(item.confidence || 0, 0.8) : item.confidence,
+            reason: item.selected_node_ids.length === 1 ? "Manually confirmed by user." : item.reason,
             source: "manual",
           };
         }
@@ -1627,10 +1631,20 @@ export function App(): JSX.Element {
             ...item,
             candidate_id: nextCandidateId,
             candidate_title: (candidate?.title ?? nextCandidateId) || "Unknown candidate",
+            status: item.selected_node_ids.length === 1 ? "bound" : item.status,
+            confidence: item.selected_node_ids.length === 1 ? Math.max(item.confidence || 0, 0.8) : item.confidence,
+            reason: item.selected_node_ids.length === 1 ? "Manually confirmed by user." : item.reason,
             source: "manual",
           };
         }
-        return { ...item, notes: String(value) };
+        return {
+          ...item,
+          notes: String(value),
+          status: item.selected_node_ids.length === 1 ? "bound" : item.status,
+          confidence: item.selected_node_ids.length === 1 ? Math.max(item.confidence || 0, 0.8) : item.confidence,
+          reason: item.selected_node_ids.length === 1 ? "Manually confirmed by user." : item.reason,
+          source: "manual",
+        };
       }),
     }));
   }
@@ -3386,9 +3400,10 @@ export function App(): JSX.Element {
                                     <div className="issue-row info">No stage mapping rows yet. Add one manually or use auto-init suggestions.</div>
                                   ) : state.c4StageMappings.map((mapping) => {
                                     const coverage = c4StageCoverageByMappingId.get(mapping.mapping_id);
-                                    const status = coverage?.status ?? mapping.status;
-                                    const confidence = coverage?.confidence ?? mapping.confidence;
-                                    const statusLabel = `${status} · conf ${Number(confidence || 0).toFixed(2)}`;
+                                    const status = mapping.source === "manual" ? mapping.status : coverage?.status ?? mapping.status;
+                                    const confidence = mapping.source === "manual" ? mapping.confidence : coverage?.confidence ?? mapping.confidence;
+                                    const statusText = status === "ambiguous" ? "needs confirmation" : status;
+                                    const statusLabel = `${statusText} · conf ${Number(confidence || 0).toFixed(2)}`;
                                     return (
                                       <div key={mapping.mapping_id} className="c4-stage-binding-row">
                                         <input

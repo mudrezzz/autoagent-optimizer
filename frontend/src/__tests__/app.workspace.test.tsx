@@ -1328,6 +1328,118 @@ describe("Battle workspace candidates", () => {
     expect(vi.mocked(saveArenaEvaluationStageMappings)).toHaveBeenCalled();
   });
 
+  it("confirms ambiguous stage mapping rows manually", async () => {
+    const user = userEvent.setup();
+    vi.mocked(autoMapArenaEvaluationStageMappings).mockResolvedValue({
+      status: "success",
+      capability_id: "c4",
+      arena_id: ARENA.workspace_id,
+      action: "auto_map_stage_mappings",
+      comparative_metrics: [{ metric_id: "quality_f1", title: "Quality F1@K", description: "quality", enabled: true, weight: 0.6 }],
+      diagnostic_signals: [{ signal_id: "synthesis_drift", title: "Synthesis drift", description: "synthesis", enabled: true }],
+      evaluators: [{ evaluator_id: "llm_judge", title: "LLM as a judge", description: "semantic", enabled: true }],
+      evaluator_metric_links: [{ evaluator_id: "llm_judge", metric_kind: "diagnostic", metric_id: "synthesis_drift", enabled: true }],
+      stage_mappings: [],
+      stage_mapping_coverage: [],
+      suggested_stage_mappings: [
+        {
+          mapping_id: "smap_ambiguous",
+          target_stage: "synthesis",
+          candidate_id: "cand_cleaner",
+          candidate_title: "Pattern Cleaner",
+          selected_node_ids: ["rewrite_draft"],
+          suggested_node_ids: ["rewrite_draft", "cleanup_pass"],
+          status: "ambiguous",
+          confidence: 0.55,
+          reason: "multiple stage nodes",
+          enabled: true,
+          notes: "auto-mapped",
+          source: "auto",
+        },
+      ],
+      suggested_stage_mapping_coverage: [
+        {
+          mapping_id: "smap_ambiguous",
+          target_stage: "synthesis",
+          candidate_id: "cand_cleaner",
+          candidate_title: "Pattern Cleaner",
+          selected_node_ids: ["rewrite_draft"],
+          selected_nodes_total: 1,
+          status: "ambiguous",
+          confidence: 0.55,
+          reason: "multiple stage nodes",
+          enabled: true,
+          source: "auto",
+        },
+      ],
+      candidate_features: { core: true, llm: true, retrieval: false, rerank: false, tool: true, hitl: false },
+      budget: { max_cases: 20, max_llm_calls: 100, max_cost_usd: 5 },
+      versions: [],
+      updated_at: "2026-06-04T00:00:00+00:00",
+    });
+    vi.mocked(saveArenaEvaluationStageMappings).mockResolvedValue({
+      status: "success",
+      capability_id: "c4",
+      arena_id: ARENA.workspace_id,
+      action: "save_stage_mappings",
+      comparative_metrics: [{ metric_id: "quality_f1", title: "Quality F1@K", description: "quality", enabled: true, weight: 0.6 }],
+      diagnostic_signals: [{ signal_id: "synthesis_drift", title: "Synthesis drift", description: "synthesis", enabled: true }],
+      evaluators: [{ evaluator_id: "llm_judge", title: "LLM as a judge", description: "semantic", enabled: true }],
+      evaluator_metric_links: [{ evaluator_id: "llm_judge", metric_kind: "diagnostic", metric_id: "synthesis_drift", enabled: true }],
+      stage_mappings: [
+        {
+          mapping_id: "smap_ambiguous",
+          target_stage: "synthesis",
+          candidate_id: "cand_cleaner",
+          candidate_title: "Pattern Cleaner",
+          selected_node_ids: ["rewrite_draft"],
+          suggested_node_ids: ["rewrite_draft", "cleanup_pass"],
+          status: "bound",
+          confidence: 0.8,
+          reason: "Manually confirmed by user.",
+          enabled: true,
+          notes: "manual confirmed",
+          source: "manual",
+        },
+      ],
+      stage_mapping_coverage: [
+        {
+          mapping_id: "smap_ambiguous",
+          target_stage: "synthesis",
+          candidate_id: "cand_cleaner",
+          candidate_title: "Pattern Cleaner",
+          selected_node_ids: ["rewrite_draft"],
+          selected_nodes_total: 1,
+          status: "bound",
+          confidence: 0.8,
+          reason: "Manually confirmed by user.",
+          enabled: true,
+          source: "manual",
+        },
+      ],
+      candidate_features: { core: true, llm: true, retrieval: false, rerank: false, tool: true, hitl: false },
+      budget: { max_cases: 20, max_llm_calls: 100, max_cost_usd: 5 },
+      versions: [],
+      updated_at: "2026-06-04T00:00:00+00:00",
+    });
+
+    renderWorkspace();
+    await user.click(await screen.findByRole("button", { name: /Stage Mapping/i }));
+    await user.click(await screen.findByRole("button", { name: "Refresh auto-map" }));
+    expect(await screen.findByText(/needs confirmation/i)).toBeInTheDocument();
+
+    const notesInput = await screen.findByDisplayValue("auto-mapped");
+    await user.clear(notesInput);
+    await user.type(notesInput, "manual confirmed");
+    await user.click(await screen.findByRole("button", { name: "Save mapping" }));
+
+    await waitFor(() => {
+      const mappingsArg = vi.mocked(saveArenaEvaluationStageMappings).mock.calls.at(-1)?.[1] ?? [];
+      expect(mappingsArg[0]).toMatchObject({ source: "manual", status: "bound", confidence: 0.8, notes: "manual confirmed" });
+    });
+    expect(await screen.findByText(/bound · conf 0.80/i)).toBeInTheDocument();
+  });
+
   it("locks unavailable diagnostics based on candidate features", async () => {
     const user = userEvent.setup();
     vi.mocked(getArenaChatState).mockResolvedValue({
